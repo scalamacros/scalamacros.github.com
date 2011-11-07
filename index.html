@@ -2,4 +2,61 @@
 is_index: true
 layout: default
 ---
-<p>To be implemented</p>
+
+<p>
+  This is the home page of project Kepler, an ongoing effort towards bringing <b>compile-time metaprogramming</b> to Scala.
+  Our flavor of macros is reminiscent of Lisp macros, adapted to incorporate type safety and rich syntax.
+  Unlike infamous C/C++ preprocessor macros, Scala macros: 1) are written in full-fledged Scala,
+  2) work with expression trees, not with raw strings, 3) cannot change syntax of Scala.
+  You can learn more about our vision of metaprogramming from <a href="/talks.html">our talks</a>.
+</p>
+
+<p>
+  <a href="/sips/macros.html">We propose</a> to enrich Scala with two flavors of macros: <b>macro defs</b> and <b>macro types</b>. 
+  Both kinds of macros can be used wherever their vanilla analogues are used, but they are treated differently by the compiler,
+  providing <a href="/usecases.html">novel ways to analyze and generate code</a>.
+</p>
+
+<p>
+  <b>Macro defs</b> are about morphing a program during the compile-time. Whenever a compiler sees an invocation of a method declared as a <code class="scala"><span class="n">macro def</span></code>,
+  it immediately calls its implementation that analyzes the program and/or generates new code at the call site (so called "macro expansion").
+</p>
+
+<p>
+  The following example shows the definition and usage of a type-safe <code class="scala"><span class="n">printf</span></code> function along with the result of its expansion. 
+  If certain aspects of the code are unclear, consult our walkthroughs (<a href="/talks/2011-10-18-WhatsUp.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>):
+</p>
+
+{% highlight scala %}
+macro def printf(format: String, params: Any*) {
+  val (evals, refs) = parse(format, params)
+  val seq = evals + refs.map(x => c"print($x)")
+  c"$seq"
+}
+
+printf("Value = %d", 123 + 877)
+
+val p1 = (123 + 877): Int
+print("Value = ")
+print(p1)
+{% endhighlight %}
+
+<p>
+  <b>Macro types</b> are used to parametrically generate classes and traits that can be utilized directly, extended or mixed in, similarly to vanilla Scala classes.
+  Moreover, macro types can also declare new package objects full of various definitions that can be imported using regular Scala import syntax:
+</p>
+
+{% highlight scala %}
+macro trait MySqlDb(connString: String) = ...
+type MyDb = Base with MySqlDb("Server=127.0.0.1;Database=Foo;")
+
+import MyDb._
+val products = new MyDb().products
+products.filter(p => p.name.startsWith("foo")).toList
+{% endhighlight %}
+
+<p>
+  Macros significantly simplify <b>code analysis and code generation</b>, which makes them a tool of choice for a multitude of <a href="/usecases.html">real-world use cases</a>.
+  Scenarios that traditionally involve writing and maintaining boilerplate can be addressed with macros in concise and maintainable way.
+  Therefore we believe that macros are a valuable asset to Scala programming language.
+</p>
