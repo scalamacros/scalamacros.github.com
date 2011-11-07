@@ -1,0 +1,12 @@
+---
+layout: news
+title: Status update and call for feedback
+author: Eugene Burmako
+---
+<p>My today's talk at the Scala meeting was about concrete ideas of bringing the notions of compile-time metaprogramming to Scala. The slides covers such fancy beasts as macro defs, macro types and even macro annotations. This is highly experimental and, definitely, not everything will make it into a Scala improvement proposal, but take a look and share your thoughts: <a href="/talks/2011-10-18-WhatsUp.pdf">read slides from today's talk</a>.</p>
+
+<p>During this month I've received a lot of very useful feedback. Say, Chris and Stefan want to experiment with LINQ-flavored facilities for Scala. They need reification, composability of queries, static checking/optimization of queries and transparency for the user. After a couple of discussions, we've come up with several ways of doing all that stuff with macros in a win-win fashion.</p>
+
+<p>Also, for instance, Greg and Nada routinely have to bite the bullet and deal with gazillions of overloads that cover all those countless FunctionN and TupleN classes for their Scala to JavaScript crosscompiler. No problem, macros come to the rescue. After a brainstorming session, the draft of the proposal now features a way to generate tedious code with macros.</p>
+
+<p>I'm hinting that at this very phase your feedback is priceless and has the possibility to significantly affect the design of Scala's macro system. Got a compelling use-case that can be simplified by macros? Just drop me a line in the comments here or to my email (see my profile or google for my name). I don't even have a beta version of macro-related Scala improvement proposal yet, so it would be very use to adapt macros to your personal use-cases. Looking forward to your comments!</p>

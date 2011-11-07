@@ -1,0 +1,15 @@
+auto: true
+pygments: true
+
+url: "http://scalamacros.org"
+email: "dev@scalamacros.org"
+
+google:
+  api_key: "ABQIAAAAuDWGyZwnd1HI_IKK_OZ_gxSlgV6YuvoTRjHOTp1xlrRBa9pa2xTsqy3ur_UxfDbs8609KXWnUooOjQ"
+  group:
+    url: "http://groups.google.com/group/scalamacros"
+    feed: "https://groups.google.com/group/scalamacros/feed/rss_v2_0_msgs.xml"
+
+github:
+  url: "https://github.com/scalamacros/kepler"
+

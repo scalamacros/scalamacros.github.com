@@ -1,0 +1,24 @@
+---
+layout: news
+title: Splicing
+author: Eugene Burmako
+---
+<p>The journey to macroland keeps amazing me!</p>
+
+<p>Take splices. At first they seemed just a clever response to AST composability issue. Then I figured out that <a href="/talks/2011-09-27-ProjectKepler.pdf">splices can be used to drastically simplify pattern matching</a>. But even that didn't exhaust the bag of tricks provided by splices!</p>
+
+<p>A few days after the pattern matching revelation, I learned how <a href="http://dl.dropbox.com/u/10497693/Library/Computer%20Science/Metaprogramming/Macros/Quasiquotations/Syntax/Ellipses%20in%20Scheme.pdf?dl">schemers use ellipses to write declarative syntax transformers</a>. Say, we want to code up the following syntactic transformation: (let ([var val] ...) body) = ((lambda (var ...) body) val ...). Clear and concise, but imagine how ugly this will become when we'll try to transform this informal notation into executable code.</p>
+
+<p>This problem has been addressed by Eugene Kohlbecker, a researcher from Scheme community. He extended the macro system to literally understand those ellipses:</p>
+
+<pre><code>(define-syntax my-let<
+  (syntax-rules ()
+    [(my-let ([var val] ...) body)
+      ((lambda (var ...) body) val ...)]))</code></pre>
+      
+<p>Amazing, huh? But that still doesn't cover all the fancy uses of splices. For an icing on the cake, take a look at string interpolation example from Nemerle:</p>
+
+<pre><code>public static Render(this exprs : list[PExpr]) : String
+{
+  $<#..$(exprs; ", "; Render)#>
+}</code></pre>

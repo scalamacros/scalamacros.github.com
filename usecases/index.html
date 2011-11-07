@@ -1,0 +1,34 @@
+---
+layout: default
+title: Use cases
+---
+
+{% for post in site.posts %}
+  {% if post.categories contains "usecases" %}
+    <p>
+      <span class="title"><a class="link" href="{{ post.url }}">{{ post.title }}</a></span>
+    </p>
+  {% endif %}
+{% endfor %}
+
+<p>To submit a new use case to the repository, leave a comment right here, <a href="mailto:dev@scalamacros.org">write an email to us</a> or 
+post the use-case <a href="http://groups.google.com/group/scalamacros">to the mailing list</a>.</p>
+
+<p>
+  <img src="/media/images/rss.ico" />
+  <a href="/usecases/rss.xml">Subscribe to updates</a>
+</p>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  var disqus_shortname = "scalamacros";
+  //var disqus_developer = 1;
+  var disqus_identifier = "{{ page.id }}";
+  var disqus_url = "{{ site.url }}{{ page.url }}";
+
+  (function() {
+    var dsq = document.createElement("script"); dsq.type = "text/javascript"; dsq.async = true;
+    dsq.src = "http://" + disqus_shortname + ".disqus.com/embed.js";
+    (document.getElementsByTagName("head")[0] || document.getElementsByTagName("body")[0]).appendChild(dsq);
+  })();
+</script>

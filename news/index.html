@@ -1,0 +1,18 @@
+---
+layout: default
+title: News
+---
+{% for post in site.posts %}
+  {% if post.categories contains "news" %}
+    <p>
+      <span class="date">{{ post.date | date: "%d.%m.%Y" }}</span>
+      <span class="title"><a class="link" href="{{ post.url }}">{{ post.title }}</a></span>
+    </p>
+  {% endif %}
+{% endfor %}
+
+<p>
+  <img src="/media/images/rss.ico" />
+  <a href="/news/rss.xml">Subscribe to updates</a>
+</p>
+
