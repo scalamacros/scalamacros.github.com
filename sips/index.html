@@ -1,0 +1,17 @@
+---
+layout: default
+title: News
+---
+{% for post in site.posts %}
+  {% if post.categories contains "sips" %}
+    <p>
+      <span class="title"><a class="link" href="{{ post.url }}">{{ post.title }}</a></span>
+    </p>
+  {% endif %}
+{% endfor %}
+
+<p>
+  <img src="/media/images/rss.ico" />
+  <a href="/sips/rss.xml">Subscribe to updates</a>
+</p>
+

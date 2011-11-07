@@ -12,26 +12,17 @@ layout: nil
     <pubDate>{{ site.time | date: "%a, %d %b %Y %H:%M:%S %Z" }}</pubDate>
     <lastBuildDate>{{ site.time | date: "%a, %d %b %Y %H:%M:%S %Z" }}</lastBuildDate>
 
-    {% for entry in site.categories.news %}
-    <item>
-      <title>{{ entry.title }}</title>
-      <link>{{ site.url }}{{ entry.url }}</link>
-      <pubDate>{{ entry.date | date: "%a, %d %b %Y %H:%M:%S %Z" }}</pubDate>
-      <author>{{ site.email }}</author>
-      <guid>{{ site.url }}{{ entry.id }}</guid>
-      <description>{{ entry.content | xml_escape }}</description>
-    </item>
-    {% endfor %}
-
-    {% for entry in site.categories.usecases %}
-    <item>
-      <title>Use case: {{ entry.title }}</title>
-      <link>{{ site.url }}{{ entry.url }}</link>
-      <pubDate>{{ entry.date | date: "%a, %d %b %Y %H:%M:%S %Z" }}</pubDate>
-      <author>{{ site.email }}</author>
-      <guid>{{ site.url }}{{ entry.id }}</guid>
-      <description>{{ entry.content | xml_escape }}</description>
-    </item>
-    {% endfor %}
+    {% for post in site.posts %}
+      {% if post.categories contains "news" or post.categories contains "usecases" or post.categories contains "sips" %}
+        <item>
+          <title>{{ post.title }}</title>
+          <link>{{ site.url }}{{ post.url }}</link>
+          <pubDate>{{ post.date | date: "%a, %d %b %Y %H:%M:%S %Z" }}</pubDate>
+          <author>{{ site.email }}</author>
+          <guid>{{ site.url }}{{ post.id }}</guid>
+          <description>{{ post.content | xml_escape }}</description>
+        </item>
+       {% endif %}
+     {% endfor %}
   </channel> 
 </rss>

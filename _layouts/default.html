@@ -32,10 +32,10 @@
               {% if page.url == "/usecases.html" %}<li class="current">Use cases</li>{% else %}
               <li><a href="/usecases.html">Use cases</a></li>{% endif %}
 
-              {% if page.url == "/documentation.html" %}<li class="current">Documentation</li>{% else %}
+              {% if page.url == "/documentation.html" or page.url == "/sips/index.html" %}<li class="current">Documentation</li>{% else %}
               <li><a href="/documentation.html">Documentation</a></li>{% endif %}
 
-              {% if page.url == "/documentation.html" or page.url == "/sips/macros.html" or page.url == "/sips/quasiquotations.html" %}
+              {% if page.url == "/documentation.html" or page.url == "/sips/index.html" or page.url == "/sips/macros.html" or page.url == "/sips/quasiquotations.html" %}
                 {% if page.url == "/sips/macros.html" %}<li class="current">Macros</li>{% else %}
                 <li><a href="/sips/macros.html">Macros</a></li>{% endif %}
                 {% if page.url == "/sips/quasiquotations.html" %}<li class="current">Quasiquotations</li>{% else %}
