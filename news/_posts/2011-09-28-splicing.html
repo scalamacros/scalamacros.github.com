@@ -11,14 +11,9 @@ author: Eugene Burmako
 
 <p>This problem has been addressed by Eugene Kohlbecker, a researcher from Scheme community. He extended the macro system to literally understand those ellipses:</p>
 
-<pre><code>(define-syntax my-let<
+{% highlight scheme %}
+(define-syntax my-let
   (syntax-rules ()
-    [(my-let ([var val] ...) body)
-      ((lambda (var ...) body) val ...)]))</code></pre>
-      
-<p>Amazing, huh? But that still doesn't cover all the fancy uses of splices. For an icing on the cake, take a look at string interpolation example from Nemerle:</p>
-
-<pre><code>public static Render(this exprs : list[PExpr]) : String
-{
-  $<#..$(exprs; ", "; Render)#>
-}</code></pre>
+    ((my-let ((var val) ...) body)
+      ((lambda (var ...) body) val ...))))
+{% endhighlight %}

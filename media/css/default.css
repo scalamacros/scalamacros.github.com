@@ -24,21 +24,6 @@ img {
   border: none;
 }
 
-code {
-  font-family: "Monaco", "DejaVu Sans Mono", "Courier New", "monospace";
-  font-size: 10pt;
-}
-
-pre {
-  border: 1px solid #a0a0a0;
-  padding: 0.6em;
-}
-
-pre.license {
-  border: 0px;
-  line-height: 1.1em;
-}
-
 .home {
   font-size: 1.6em;
   font-weight: bold;
