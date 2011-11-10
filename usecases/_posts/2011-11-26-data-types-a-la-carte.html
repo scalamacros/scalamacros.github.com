@@ -3,3 +3,30 @@ layout: usecase
 title: Data types "a la carte"
 permalink: /usecases/data-types-a-la-carte.html
 ---
+
+<p>Besides being useful for <a href="/usecases/type-providers.html">type providers</a> and 
+<a href="/usecase/generation-of-boilerplate.html">large-scale code generation</a>,
+macro types provide another interesting opportunity for both a language designer and a programmer.</p>
+
+<p>Recall that macro types can be mixed in into abritrary classes, and let's think this idea over.
+We've already seen how mixing in independently generated logic can be useful for real-world programming tasks,
+but what if macro types would generate the code and be aware of their context?</p>
+
+<p>The first augmentation of macro types lets them read the contents (i.e. the members) of the host class.
+This is immediately useful for building so called data types "a la carte". Take case classes. Write the following code
+and inspect the output:</p>
+
+{% highlight bash %}
+echo 'case class Foo(bar: String, baz: Int)' >> Hello.scala
+scalac -Xprint:typer Hello.scala
+{% endhighlight %}
+
+<p>We see that the compiler has generated a lot of stuff for a small case class declaration, i.e. among the others
+implementations of <code>Product</code>, <code>Serializable</code>, <code>equals/hashCode</code>, <code>toString</code>, as well as,
+the entire companion object. Certain auto-implementations are frequently useful on their own, but, currently, it's all or nothing - 
+either you declare your class as a <code>case class</code> and live with all restrictions being imposed, or you don't get any of the
+auto-generated goodies.</p>
+
+<p>A more balanced API can be provided by augmented macro types. If such macros can discover members of the main class,
+they can provide auto-generated functionality in piecemeal fashion (e.g. in a trait or in groups of traits).
+This restaurant metaphor gives the technique its fancy name.</p>
