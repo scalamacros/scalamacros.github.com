@@ -2,7 +2,10 @@
 layout: news
 title: "Macros in a typed language with syntax: state of the art"
 author: Eugene Burmako
+comments: true
+plusone: true
 ---
+
 <p>Today I've read two fundamental papers on Nemerle macros: <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.121.8658&rep=rep1&type=pdf">"Syntax-Extending and Type-Reflecting Macros in an Object-Oriented Language"</a> (referred to as "the thesis") and <a href="http://dl.dropbox.com/u/10497693/Library/Computer%20Science/Metaprogramming/Macros/Quasiquotations/Syntax/Язык%20Немерле,%20часть%205.pdf?dl">"Язык Немерле, часть 5"</a> (referred to as "the article", sorry, folks, it's in Russian). Also I had a fruitful conversation with VladD2, the principal developer of Nemerle (kudos, Vlad, for your desire to help and very detailed explanations). Some preliminary findings:</p>
 
 <p>1) Quasiquotation is very elegant. It only takes three intuitive language constructs (quotation, antiquotation, splicing, see the section 8.3 of the thesis for the summary and the section "Квази-цитирование" of the article for the details) to significantly simplify parsing and generation of abstract syntax trees. I was especially impressed by the usage of antiquotes and splices together with pattern-matching. Personally for me, the beauty of quasiquotations is especially striking after the <a href="http://cs.hubfs.net/blogs/tomasp/archive/2007/10/15/dynamic_queries_csharp_and_fsharp.aspx">troubles with composability of LINQ expression trees</a>.</p>
