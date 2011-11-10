@@ -25,8 +25,16 @@ plusone: true
 </p>
 
 <p>
-  The following example shows the definition and usage of a type-safe <code class="scala"><span class="n">printf</span></code> function along with the result of its expansion. 
-  If certain aspects of the code are unclear, consult our walkthroughs (<a href="/talks/2011-10-18-WhatsUp.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>):
+  The following example describes a type-safe <code>printf</code> function. 
+  Being a macro, <code>printf</code> formats the output during the compile-time, which provides safety guarantees inaccessible to regular approaches.
+  This notion can be generalized to serve the needs of many other domains, the topic that is dwelled upon in the
+  <a href="/usecase/compile-time-verification.html">"Compile-time verification"</a> case study on this site.
+</p>
+
+<p>
+  However, let's proceed with the code example that outlines the implementation and usage of the <code>printf</code> macro along with the result of its expansion.
+  If certain aspects of the code are unclear, consult our walkthroughs (<a href="/talks/2011-10-18-WhatsUp.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>)
+  or drop us a line at <a href="mailto:dev@scalamacros.org">dev@scalamacros.org</a>:
 </p>
 
 {% highlight scala %}
@@ -45,7 +53,19 @@ print(p1)
 
 <p>
   <b>Macro types</b> are used to parametrically generate classes and traits that can be utilized directly, extended or mixed in, similarly to vanilla Scala classes.
-  Moreover, macro types can also declare new package objects full of various definitions that can be imported using regular Scala import syntax:
+  Moreover, macro types can also declare new package objects full of various definitions that can be imported using regular Scala import syntax.
+</p>
+
+<p>
+  This facility can be leveraged to achieve something similar to type providers from F#. After creating a suitable macro type for such domains as database access,
+  inter-process interoperability, web services, the programmer is relieved from the necessity to generate and foster boilerplate classes.
+  Since macro types are based on a solid foundation of a macro system, they provide more flexibility than ad-hoc approaches to these problems.
+</p>
+
+<p>
+  The notion of type providers is elaborated in greater detail in the <a href="/usecases/type-providers.html">"Type providers"</a> case study, and now let's proceed with the code.
+  Same as before, if certain aspects of the code are unclear, take a look at the walkthroughs (<a href="/talks/2011-10-18-WhatsUp.pdf">English</a>, 
+  <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>) or ask us at <a href="mailto:dev@scalamacros.org">dev@scalamacros.org</a>:
 </p>
 
 {% highlight scala %}
