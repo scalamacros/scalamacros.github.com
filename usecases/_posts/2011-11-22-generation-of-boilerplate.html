@@ -1,0 +1,32 @@
+---
+layout: usecase
+title: Generation of boilerplate
+permalink: /usecases/generation-of-boilerplate.html
+---
+
+<p>The following excerpt from <a href="https://github.com/gkossakowski/virtualization-lms-core/commit/edea90fa0a4be4b9a91d2eb933dd1d08bb6e9a6c">a development branch</a>
+of LMS project illustrates a typical class of problems.
+Sometimes neither object-oriented, nor functional programming can overcome certain kinds of boilerplate:</p>
+
+{% highlight scala %}
+trait TupledFunctions extends Functions with TupleOps {
+  implicit def fun[A1:Manifest,A2:Manifest,B:Manifest](f: (Rep[A1], Rep[A2]) => Rep[B])
+    : Rep[((A1,A2))=>B] = fun((t: Rep[(A1,A2)]) => f(tuple2_get1(t), tuple2_get2(t)))
+  implicit def fun[A1:Manifest,A2:Manifest,A3:Manifest,B:Manifest](f: (Rep[A1], Rep[A2], Rep[A3]) => Rep[B])
+    : Rep[((A1,A2,A3))=>B] = fun((t: Rep[(A1,A2,A3)]) => f(tuple3_get1(t), tuple3_get2(t), tuple3_get3(t)))
+  ...
+}
+{% endhighlight %}
+
+<p>As outlined in the <a href="/usecases/type-providers.html">"Type providers"</a> case study, one of the solutions to the problem is textual code generation.
+Often, it's the most obvious and the only accessible ones. The aforementioned case study dwells upon the shortcomings of this approach: 
+1) unintelligibility of generated code, 2) poor extensibility, 3) sub-par maintainability of code generators - and proposes a solution that involves macro types.</p>
+
+<p>However, there are situations when generating a single type will not save the day. Sometimes the way to go is to create multiple types and/or functions at once.
+We considered to introduce macro packages, but decided that macro types will be enough, since Scala <code>objects</code> already represent an abstraction of modules.
+See more details on macro objects in <a href="/sips/macros.html">the proposal</a>.</p>
+
+<p>Generating piles of code is greatly simplified by using quasiquotations. As outlined <a href="/talks/2011-09-27-ProjectKepler.pdf">in one of our walkthroughs</a>, quasiquotes: 
+1) let the programmer express ASTs in the syntax of the target language,
+2) excel in composability by supporting splicing - a special operator that inserts one/several small ASTs into a big one,
+3) trivialize pattern matching against ASTs. See an example and more detailed dicussion in the <a href="/usecases/type-providers.html">"Type providers"</a> case study.</p>

@@ -3,3 +3,84 @@ layout: usecase
 title: Type providers
 permalink: /usecases/type-providers.html
 ---
+
+<p>The image below might ring a bell. It displays a database schema designer of Visual Studio at the left along with the code generated at the right.</p> 
+
+<p><a href="/media/images/usecases/typical-data-designer.png"><img src="/media/images/usecases/typical-data-designer.png" /></a></p>
+
+<p>Code generation is the common solution to the interoperability challenge. It is employed not only in data access, but also in web services and
+in RPC technologies in general (ASN.1, protobuf, to name only a few).</p>
+
+<p>Despite having traditionally good support from integrated development environments, this approach leaves much to be desired.
+Generated code is often unintelligible, it's hard to be customized by hand (since the customizations might be lost after regeneration) 
+and, what's also very important, it still needs to be fostered by the programmer.
+Finally, it's virtually impossible to implement any sufficiently complex code generator without turning it into a spaghetti of textual templates
+and control flow that expresses generation logic (the proliferation of various template engines somewhat supports the stated fact).</p>
+
+<p>Compile-time metaprogramming techniques come to the rescue. By leveraging these techniques, the developer can 
+programmatically generate required classes into the compiler instead of having to provide them in source code form. 
+One of the popular approaches that involves compile-time codegen is represented by F# type providers (take a read of an excellent blog post
+<a href="http://www.mindscapehq.com/blog/index.php/2011/09/19/f-type-providers-as-if-by-magic/">"F# type providers - as if by magic..."</a> that outlines
+the underlying principles behind type providers):</p>
+
+{% highlight csharp %}
+[<TypeProvider>]
+type VectorProvider() =
+  interface ITypeProvider with // ...
+  interface IProvidedNamespace with // ...
+
+// Cheating for simplicity
+type Vector() = inherit obj()
+ 
+[<TypeProvider>]
+type VectorProvider() =
+  interface IProvidedNamespace with
+    member this.ResolveTypeName(typeName) = // ...
+    member this.NamespaceName with get() = // ...
+    member this.GetNestedNamespaces() = // ...
+    member this.GetTypes() = // ...
+{% endhighlight %}
+
+<p>We propose an approach even greater power that leverages the foundations of a macro system to generate the code during the compile-time.
+Instead of being a dedicated ad-hoc syntactic construct, macro types are smoothly incorporated into Scala.</p>
+
+<p>On the one hand, macro types are full-fledged macros, i.e. they can accept parameters in AST form, they can generate resulting ASTs, which provides
+necessary flexibility to address code generation tasks.
+On the other hand, macro types are interchangeable with regular types: they can be inherited, they can be mixed in, they can participate in instantiation of generic types
+and, finally, they can be used as first-class modules (<code>objects</code> in Scala). The latter is a topic of a separate installation
+(see the <a href="/usecases/generation-of-boilerplate.html">"Generation of boilerplate"</a> case study).</p>
+
+{% highlight scala %}
+macro trait MySqlDb(connString: String) = ...
+type MyDb = Base with MySqlDb("Server=127.0.0.1;Database=Foo;")
+
+val products = new MyDb().products
+products.filter(p => p.name.startsWith("foo")).toList
+{% endhighlight %}
+
+<p>The ellipses in the implementation of <code>MySqlDb</code> hide another interesting concept. 
+Runtime flavor of code generation (e.g. <code>System.Reflection.Emit</code>, <code>ASM</code> and likes) lifts the burden of maintenance of generated code, 
+but still does not solve readability and composability issues with the generators themselves. 
+To the contrast, compile-time metaprogramming with macros offers the programmer a domain-specific language targeted at code generation - so called,
+<a href="/sips/quasiquotations.html">quasiquotations</a>.</p>
+
+<p>As outlined <a href="/talks/2011-09-27-ProjectKepler.pdf">in one of our walkthroughs</a>, quasiquotes: 
+1) let the programmer express ASTs in the syntax of the target language,
+2) excel in composability by supporting splicing - a special operator that inserts one/several small ASTs into a big one,
+3) trivialize pattern matching against ASTs:</p>
+
+{% highlight scala %}
+macro trait MySqlDb(connString: String) = {
+  val schema = getSchema(connString)
+  c"""
+    class ${schema.Name} {
+      val connString = $connString
+      ${schema.Tables map generateClassForTable}
+    }
+  """
+} 
+{% endhighlight %}
+
+<p>All in all, macro types solve common problems with code generation by providing flexible extension points into the generation process
+and keeping the generator itself readable and maintainable. 
+This introduces robust solutions to the problems that inevitably require writing boilerplate in modern mainstream languages.</p>
