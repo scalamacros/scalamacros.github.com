@@ -1,0 +1,36 @@
+---
+layout: usecase
+title: Integration of external DSLs
+permalink: /usecases/integration-of-external-dsls.html
+---
+
+<p>The <a href="http://www.eecs.harvard.edu/~mainland/publications/mainland07quasiquoting.pdf">"Why It's Nice to be Quoted: Quasiquoting for Haskell"</a>
+paper by Geoffrey B. Mainland describes an astonishing concept of embedding and integrating arbitrary languages into a sufficiently capable host language.</p>
+
+<p>One of the most impressive examples in the paper involves a <a href="http://en.wikipedia.org/wiki/Peephole_optimization">peephole optimizer</a> for x86 assembly language.
+The example exhibits such prominent features of quasiquoting as: 1) expressing ASTs in native syntax, 2) easy composition, 3) enjoyable pattern matching
+(read more about quasiquotations in our walkthroughs: <a href="/talks/2011-09-27-ProjectKepler.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>).</p> 
+
+{% highlight haskell %}
+peep :: [Asm] -> [Asm]
+peep [:asm | mov&s $&r1, &r2
+             cmp $&r3, &r4
+             je &lbl |] : rest
+     | r3 == r1 && r4 == r2
+
+   = [:asm | mov&s $&r1, &r2
+             jmp &lbl |] : rest
+...
+{% endhighlight %}
+
+<p>The point here is that a language with quasiquotations (which constitute <a href="/sips/quasiquotations.html">a part of our proposal</a>) can subsume and embed
+arbitrary external domain-specific languages, granted someone implement quasiquoting services (parsing, splicing, pattern matching) for that language.</p>
+
+<p>Taken to the extreme by the developers of <a href="http://code.google.com/p/nemerle-2/">Nemerle 2.0</a>, this idea might lead to the very host language and its type system
+being implemented in such a fashion. In Nemerle 2.0, RSDN guys plan to implement high-level DSLs for syntax and typing rules, so that the compiler, effectively,
+becomes a metacircular metacompiler. Though, I digress.</p>
+
+<p>Beauty of this concept from the pragmatic standpoint comes from the fact that these external DSLs 
+can be processed (for example, validated) by macros, which are evaluated during the compile time.
+This means that format strings, regexes, XML (less relevant for Scala), HTML, JavaScript - all those can be to certain extent validated during the compilation of the application,
+bringing additional static safety to the program.</p>
