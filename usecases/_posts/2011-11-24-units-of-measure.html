@@ -1,0 +1,41 @@
+---
+layout: usecase
+title: Units of measure
+permalink: /usecases/units-of-measure.html
+---
+
+<p>One of the interesting requests in the comments to <a href="http://xeno-by.blogspot.com/2011/10/scala-macros-status-update-and-call-for.html">my recent post</a>
+was units of measure for Scala. Units of measure represent an augmentation of the type system of F# (you might wish up to read a blog series for more details:
+<a href="http://blogs.msdn.com/b/andrewkennedy/archive/2008/08/29/units-of-measure-in-f-part-one-introducing-units.aspx">first post</a>, 
+<a href="http://blogs.msdn.com/b/andrewkennedy/archive/2008/09/02/units-of-measure-in-f-part-two-unit-conversions.aspx">second post</a>, 
+<a href="http://blogs.msdn.com/b/andrewkennedy/archive/2008/09/04/units-of-measure-in-f-part-three-generic-units.aspx">third post</a>, 
+<a href="http://blogs.msdn.com/b/andrewkennedy/archive/2009/06/09/units-of-measure-in-f_2300_-part-four-parameterized-types.aspx">final post</a>).</p>
+
+<p>Despite the fact that compile-time metaprogramming lies on a different (lower!) level than type systems, this very use case can be implemented with macros.
+This brings an interesting question of when macros are appropriate, and when it's better to do away with them in favor of other language mechanisms.
+We will elaborate on this topic in future installations.</p>
+
+<p>In the following example F# compiler is capable of inferring the unit of measure for a derived value <code>speedOfImpact</code>
+(the dimensionality will be <code>m/s</code>):</p>
+
+{% highlight ocaml %}
+let gravityOnEarth = 9.81<m/s^2>
+let heightOfMyOfficeWindow = 3.5<m>
+let speedOfImpact = sqrt(2.0 * gravityOnEarth * heightOfMyOfficeWindow)
+{% endhighlight %}
+
+<p>With current version of <a href="/sips/macros.html">macro proposal</a> (that might change before the final release of the SIP) 
+one will be able to write the code like that:</p>
+
+{% highlight scala %}
+val gravityOnEarth = u(9.81, "m/s^2")
+val heightOfMyOfficeWindow = u(3.5, "m")
+val speedOfImpact = sqrt(2.0 * gravityOnEarth * heightOfMyOfficeWindow)
+{% endhighlight %}
+
+<p></code>u</code> is a macro def that takes a number and wraps it in a macro type that depends on the unit of measure passed. 
+That macro type hosts all necessary stuff that overloads relevant operations (<code>arithmetic</code>, <code>math._</code> stuff, so on). 
+These operations upon units of measure would themselves be macros that produce new types as necessary.</p>
+
+<p>At a glance, this looks like a workable solution, but, of course, it will be possible to fully assess the feasibility of this idea 
+only when we have an implementation of the macro system that can be used for tests.</p>
