@@ -68,29 +68,33 @@
       </div>
       <div id="content">
         {{ content }}
-      </div>  
-      <div id="social">
-        {% if page.plusone %}
-          <div class="google-plus" align="right"><g:plusone size="medium"></g:plusone></div>
-          <script type="text/javascript" src="https://apis.google.com/js/plusone.js">{lang: "en"}</script>
-        {% endif %}
 
-        {% if page.comments %}
-          <div id="disqus_thread"></div>
-          <script type="text/javascript">
-            var disqus_shortname = "scalamacros";
-            //var disqus_developer = 1;
-            var disqus_identifier = "{{ page.id }}";
-            var disqus_url = "{{ site.url }}{{ page.url }}";
-
-            (function() {
-              var dsq = document.createElement("script"); dsq.type = "text/javascript"; dsq.async = true;
-              dsq.src = "http://" + disqus_shortname + ".disqus.com/embed.js";
-              (document.getElementsByTagName("head")[0] || document.getElementsByTagName("body")[0]).appendChild(dsq);
-            })();
-          </script>
+        <div id="social">
+          {% if page.plusone %}
+            <div class="google-plus" align="right"><g:plusone size="medium"></g:plusone></div>
+            <script type="text/javascript" src="https://apis.google.com/js/plusone.js">{lang: "en"}</script>
           {% endif %}
-        </div>
+
+          {% if page.comments %}
+            <!-- disabled until I find a solution I like -->
+            <!--
+            <div id="disqus_thread"></div>
+            <script type="text/javascript">
+              var disqus_shortname = "scalamacros";
+              //var disqus_developer = 1;
+              var disqus_identifier = "{{ page.id }}";
+              var disqus_url = "{{ site.url }}{{ page.url }}";
+
+              (function() {
+                var dsq = document.createElement("script"); dsq.type = "text/javascript"; dsq.async = true;
+                dsq.src = "http://" + disqus_shortname + ".disqus.com/embed.js";
+                (document.getElementsByTagName("head")[0] || document.getElementsByTagName("body")[0]).appendChild(dsq);
+              })();
+            </script>
+            -->
+        {% endif %}
+      </div>
+      </div>  
       <div id="footer">
         ScalaMacros.org site &copy; 2011 <a href="http://xeno.by">Eugene Burmako</a>.
       </div>
