@@ -38,14 +38,32 @@ plusone: true
 </p>
 
 {% highlight scala %}
+// printf gets run during the compile-time and operates on ASTs
+// format, params and the return value are of type Tree
+// type annotations say that ASTs must type check to corresponding types
 macro def printf(format: String, params: Any*) {
+  // macros can call arbitrary functions, e.g. stuff from Scala library
+  // parse is a custom function of type (Tree, Tree) => (Tree*, Tree*)
   val (evals, refs) = parse(format, params)
+
+  // evals and refs are regular Scala values and can be manipulated as usual
+  // c"..." denotes a quasiquotation, i.e. stuff of type Tree
+  // "$x" is a splice that inserts x of type Tree into another Tree
   val seq = evals + refs.map(x => c"print($x)")
+
+  // macro returns an AST that is then inlined into the call site
+  // this quasiquotation wraps all the code generated into a block and returns it
   c"$seq"
 }
 
+// macro defs are called as regular functions
+// it's also possible to declare macro defs as class members
+// and invoke them using infix syntax
 printf("Value = %d", 123 + 877)
 
+// the code below represents the expansion of the above one-liner
+// note that "123 + 877" has been pasted into the expansion verbatim
+// this is because it was passed to the macro as an AST, not as a value
 val p1 = (123 + 877): Int
 print("Value = ")
 print(p1)
@@ -69,9 +87,20 @@ print(p1)
 </p>
 
 {% highlight scala %}
+// macro types are, in essence, the same as macro defs
+// they are also functions that take ASTs and produce ASTs
+// take a look at the body of this macro in the "Type Providers" use case
 macro trait MySqlDb(connString: String) = ...
+
+// analogously to macro defs that can be used in place of regular defs,
+// macro types can be used wherever you can use a type
+// in this example, we mix in a macro trait into a normal class
+// under the covers the macro will produce a synthetic trait that will be used
+// as usual, all this will happen during the compile-time
 type MyDb = Base with MySqlDb("Server=127.0.0.1;Database=Foo;")
 
+// macro types generate fields, methods, inner classes and whatever else
+// this "virtual" code can be used as if it was written manually
 import MyDb._
 val products = new MyDb().products
 products.filter(p => p.name.startsWith("foo")).toList
