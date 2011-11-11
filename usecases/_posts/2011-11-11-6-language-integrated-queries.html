@@ -20,7 +20,9 @@ For example, LINQ only supports lifting expressions, but not statements, which r
 if you want to know more about the composability problem - be sure to take a look at that post):</p>
 
 {% highlight csharp %}
-static bool MyPriceFunc(Nwind.Product p) { return p.ProductName.StartsWith("B"); }
+static bool MyPriceFunc(Nwind.Product p) { 
+  return p.ProductName.StartsWith("B"); 
+}
 
 var q = 
   from p in db.Products

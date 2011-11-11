@@ -18,7 +18,7 @@ var avg: Option[Float] =
   )
 {% endhighlight %}
 
-<p>This query look almost like a series of high-order functions applied to a collection, and, in fact, it is: 
+<p>This query looks almost like a series of high-order functions applied to a collection, and, in fact, it is: 
 everything is strongly-typed and usual stuff (e.g. closing over the <code>mathId</code> variable) works as expected.</p>
 
 <p>However, this comes at a price. First of all, <a href="https://github.com/max-l/Squeryl/tree/master/src/main/scala/org/squeryl/dsl">the amount of syntactic boilerplate</a> is truly gigantic.
@@ -35,7 +35,7 @@ As a consequence, one would then be able to use any syntax in the query (includi
 Also, the lifting (i.e. transformation of domain-specific codes into corresponding domain ASTs) would come for free, 
 without the need to carefully arrange the web of boilerplate to capture the intent of the user.</p>
 
-<p>This brings sweet memories of coding up <a href="https://github.com/xeno-by/conflux">Conflux</a>, the framework for programming CUDA in pure C#.
+<p>This brings sweet memories of coding up <a href="https://github.com/xeno-by/conflux">Conflux</a>, a framework for programming CUDA in pure C#.
 Since the computational architecture of massively parallel devices is incompatible with von Neumann architecture, I didn't even have a luxury of symbolic evaluation
 that is employed in Squeryl. Instead I went for writing <a href="https://github.com/xeno-by/truesight">a decompiler for .NET bytecode</a>.
 If I were programming in a language with macros, that effort would be completely unnecessary. For example, take a look how a similar goal is achieved by the
