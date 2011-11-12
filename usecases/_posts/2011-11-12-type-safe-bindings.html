@@ -1,0 +1,60 @@
+---
+layout: usecase
+title: Type-safe bindings
+permalink: /usecases/type-safe-bindings.html
+---
+
+<p>The advent of compile-time metaprogramming in C# gave birth to several interesting techniques that add extra expressivity to the type system.
+In this installation, we examine one of these techniques that provides a type-safe way to refer to object/class members.</p>
+
+<p>One of the natural scenarios that involves type-safe bindings is programming web applications in MVC style. 
+The following example is taken from a blog post <a href="http://weblogs.asp.net/seanmcalinden/archive/2009/10/21/strongly-typed-asp-net-mvc-helpers.aspx">Strongly Typed ASP.Net MVC Helpers</a> by Sean McAlinden
+(take a look at the post if you wonder about the internals of this neat trick):</p>
+
+{% highlight csharp %}
+<% using (Html.BeginForm("Update", "Home")) { %>     
+  <%= Html.RenderTextBoxFor(Model, c => c.FirstName) %>
+  <%= Html.RenderValidationMessageFor(Model, c => c.FirstName) %>
+  <%= Html.RenderTextBoxFor(Model, c => c.LastName) %>
+  <%= Html.RenderValidationMessageFor(Model, c => c.LastName) %>
+<% } %>
+{% endhighlight %}
+
+<p>This code snippet leverages surrogate lambdas hack to describe model properties that are bound to form widgets. 
+This works because <code>Render</code> methods specify the type of the second parameter as an <code>Expression&lt;Func&lt;T, U&gt;&gt;</code>.
+Whenever C# compiler sees a function type in the context when an expression type is required, it performs automatic code lifting
+(i.e. transforms the body of the function into an AST).</p>
+
+<p>The same effect would be achieved if <code>Render</code> methods were <code>macro defs</code>. 
+Since macros are expanded during the compile-time, they always get ASTs that correspond to their arguments, which provides code analysis capabilities.
+This topic is discussed in more details in <a href="/usecases/advanced-domain-specific-languages.html">"Advanced domain-specific languages"</a>
+and <a href="/usecases/language-integrated-queries.html">"Language integrated queries"</a> case studies.</p>
+
+<p>If you're inspired by this possibility, you might be delighted to know that similar functionality is already present in Scala since version 2.8 (though it has experimental status).
+To see how it works, let's compile and run the following code:</p>
+
+{% highlight scala %}
+import scala.reflect._
+
+object Lift extends App {
+  def bind[T, U](field: Code[T => U]) = 
+    println(field.tree.toString)
+  
+  class Foo(val bar: Int, val baz: Int)
+  bind((foo: Foo) => foo.bar)
+}
+{% endhighlight %}
+
+{% highlight bash %}
+Function(
+  List(LocalValue(NoSymbol,foo,PrefixedType(ThisType(Class(Lift)),Class(Lift.Foo)))),
+  Select(
+    Ident(LocalValue(NoSymbol,foo,PrefixedType(ThisType(Class(Lift)),Class(Lift.Foo)))),
+    Method(Lift.Foo.bar,NullaryMethodType(PrefixedType(ThisType(Class(scala)),Class(scala.Int))))))
+{% endhighlight %}
+
+<p>For more information about Scala reflection API, take a look at the following resources:
+<a href="http://lamp.epfl.ch/teaching/projects/archive/coppel_report.pdf">Reflecting Scala</a>,
+<a href="http://gilles.dubochet.ch/publications/2011_dubochet_phd.pdf">Embedded Domain-Specific Languages Using Libraries and Dynamic Metaprogramming</a> and
+<a href="https://github.com/scala/scala/tree/master/src/library/scala/reflect/api">reflection API in the trunk of Scala 2.10</a>,
+or write directly to our mailing list at <a href="http://groups.google.com/group/scala-user">http://groups.google.com/group/scala-user</a>.</p>
