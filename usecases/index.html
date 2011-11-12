@@ -7,9 +7,22 @@ plusone: true
 
 {% for post in site.posts %}
   {% if post.categories contains "usecases" %}
-    <p>
-      <span class="title"><a class="link" href="{{ post.url }}">{{ post.title }}</a></span>
-    </p>
+    {% if post.tags contains "important" %}
+      <p>
+        <span class="title"><a class="link" href="{{ post.url }}">{{ post.title }}</a></span>
+      </p>
+    {% endif %}
+  {% endif %}
+{% endfor %}
+
+{% for post in site.posts %}
+  {% if post.categories contains "usecases" %}
+    {% if post.tags contains "important" %}
+    {% else %}
+      <p>
+        <span class="title"><a class="link" href="{{ post.url }}">{{ post.title }}</a></span>
+      </p>
+    {% endif %}
   {% endif %}
 {% endfor %}
 
