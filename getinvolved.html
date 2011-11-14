@@ -95,6 +95,12 @@ If everything is fine, then you're done with setting up the project, otherwise r
 <p>Q: After the compilation I've got exactly one error, something about <code>build.properties</code>.<br/>
 A: If that's the only error, then you're fine. It can be safely ignored.</p>
 
+<p>Q: You get parser errors from Scala on every non-ASCII symbol.<br/>
+A: The <code>.project</code> file uses the platform encoding, which on the Mac is MacRoman. 
+Either change each project, if you have a reason to keep that default, or change the default to UTF-8.
+Note that you must restart Eclipse in order to have the Scala compiler use that new encoding default.
+<a href="https://www.assembla.com/spaces/scala-ide/wiki/Known_Issues#scala_errors_on_all_unicode_arrows">Learn more</a>.</p>
+
 <p>Q: Omg, panic! The IDE gives a lot of errors: &lt;long list of weird stuff&gt;.<br/>
 A: Try "Project > Clean...". If that does not work, try <code>ant all.clean</code> followed by <code>ant</code>. 
 If that does not work, let us know at <a href="mailto:dev@scalamacros.org">dev@scalamacros.org</a>.</p>
