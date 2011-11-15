@@ -1,0 +1,23 @@
+---
+layout: news
+title: Macro annotations
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>I'm excited to announce that we've decided to introduce a third flavor of macros into project Kepler, namely: <code>macro annotations</code>.
+These macros are very much inspired by Nemerle, but there are some important differences.</p>
+
+<p>In line with the idea of transparent embedding into the language, macro annotations look the same as regular annotations, 
+but instead of being static participants of the compilation, they trigger AST rewriting.
+As of such, macro annotations are expanded strictly after all other macros applicable to the annottee 
+(e.g. macro annotations for a class kick in after all macro types get expanded and after the entire inheritance chain is resolved and the members are mixed in).</p>
+
+<p>We have also played with the idea of macro annotations affecting outer scopes as well. For example, if we put a <code>@lazy</code> macro annotation
+on a parameter of some method <code>def m(@lazy x: T)</code>, then we'd really like the annotation to overwrite the entire method.
+However, it's not perfectly clear how far upwards we should go (e.g. it might also be reasonable to wish that a member annotation rewrites the entire class),
+so we decided to do away with this idea for the moment.</p>
+
+<p>Later today or tomorrow I will update the site with examples and further details about macro annotations. 
+Stay tuned and let us know what you think at <a href="mailto:dev@scalamacros.org">dev@scalamacros.org</a>.</p>
