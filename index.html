@@ -14,8 +14,9 @@ plusone: true
 </p>
 
 <p>
-  <a href="/sips/macros.html">We propose</a> to enrich Scala with two flavors of macros: <b>macro defs</b> and <b>macro types</b>. 
-  Both kinds of macros can be used wherever their vanilla analogues are used, but they are treated differently by the compiler,
+  <a href="/sips/macros.html">We propose</a> to enrich Scala programming language with three flavors of type-safe compile-time macros: 
+  <b>macro defs</b>, <b>macro types</b> and <b>macro annotations</b>. 
+  These kinds of macros can be used wherever their vanilla analogues are used, but they are treated differently by the compiler,
   providing <a href="/usecases.html">novel ways to analyze and generate code</a>.
 </p>
 
@@ -104,6 +105,39 @@ type MyDb = Base with MySqlDb("Server=127.0.0.1;Database=Foo;")
 import MyDb._
 val products = new MyDb().products
 products.filter(p => p.name.startsWith("foo")).toList
+{% endhighlight %}
+
+<p>
+  <b>Macro annotations</b> can be used to perform final postprocessing on program elements (classes, methods, expressions) after all other macros have been expanded.
+  Macro annotations look in the very same way as regular annotations do, however, 
+  they are not just static participants of the compilation pipeline, but can actively participate in it.
+</p>
+
+<p>
+  Potential areas of applicability of this feature include aspect-oriented programming, implementing new idioms 
+  (e.g. with macro annotations it's possible to introduce <code>@lazy</code> parameters or even work on sub-method level to, say, bless certain variables)
+  and automatizing chores on a small scale (read up more on that in the <a href="/usecases/generation-of-boilerplate.html">"Generation of boilerplate"</a> case study).
+</p>
+
+<p>
+  The example below features the <code>@Serializable</code> macro that reflects upon members of the annotated class, 
+  generates serialization/deserialization routines and implements the <code>Serializable</code> interface that exposes them
+  (compiler API we're using here is completely fictional, it will be refined when Scala reflection API gets stabilized):
+</p>
+
+{% highlight scala %}
+// in line with other flavors of macros, macro annotation transform ASTs
+// however, the transformee does not come from the arguments list
+// (after all, annotations might have arguments of its own)
+// instead, the affect program entity is provided in a special implicit parameter
+macro annotation Serializable(implicit ctx: AnnotationContext) = ...
+
+// annotations get applied after everything else (other macros, syntactic sugar)
+// that's why Serializable will see all the members of Person
+// regardless of whether they come from a case class sugar 
+// or from Entity (be it a regular class or a macro class)
+@Serializable
+case class Person(firstName: String, lastName: String) extends Entity { ... }
 {% endhighlight %}
 
 <p>

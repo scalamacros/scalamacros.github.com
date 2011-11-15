@@ -56,5 +56,6 @@ from the compiler AST that is provided in <code>p</code>) to accumulate and, eve
 
 <p>Also, there's a solution to the composability problem: if we declare <code>MyPriceFunc</code> as a <code>macro def</code> as well, 
 then it will expand into the call site and, consequently, will be processed by the domain-specific query translator.
-Among alternative approaches is the macro that requests ASTs for all annotated functions in the compilation unit and stores those ASTs for future uses.
+Among alternative approaches is the macro that requests ASTs for all annotated functions in the compilation unit and stores those ASTs for future uses
+(that macro could be implemented as a method-level macro annotation or even as a program-wide package annotation).
 The domain of possible solutions is quite big, thanks to macros being a core language feature, not an ad-hoc extension to the compiler.</p>

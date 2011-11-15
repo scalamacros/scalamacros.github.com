@@ -37,5 +37,14 @@ val speedOfImpact = sqrt(2.0 * gravityOnEarth * heightOfMyOfficeWindow)
 That macro type hosts all necessary stuff that overloads relevant operations (<code>arithmetic</code>, <code>math._</code> stuff, so on). 
 These operations upon units of measure would themselves be macros that produce new types as necessary.</p>
 
+<p>An alternative approach would be to implement <code>u</code> as a macro annotation that would operate on expression-level
+and ascribe numeric values with units of measure. Such a macro would be able to do everything a macro def can do, but it would look in, arguably, a nicer way:</p>
+
+<div class="highlight">
+<pre><code class="scala"><span class="k">val</span> <span class="n">gravityOnEarth</span> <span class="k">=</span> <span class="mf">9.81</span><span class="o">:</span> <span class="o">@</span><span class="n">u</span><span class="o">(</span><span class="s">"m/s^2"</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">heightOfMyOfficeWindow</span> <span class="k">=</span> <span class="mf">3.5</span><span class="o">:</span> <span class="o">@</span><span class="n">u</span><span class="o">(</span><span class="s">"m"</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">speedOfImpact</span> <span class="k">=</span> <span class="n">sqrt</span><span class="o">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">gravityOnEarth</span> <span class="o">*</span> <span class="n">heightOfMyOfficeWindow</span><span class="o">)</span></code></pre>
+</div>
+
 <p>At a glance, this looks like a workable solution, but, of course, it will be possible to fully assess the feasibility of this idea 
 only when we have an implementation of the macro system that can be used for tests.</p>

@@ -12,7 +12,7 @@ macro types provide another interesting opportunity for both a language designer
 We've already seen how mixing in independently generated logic can be useful for real-world programming tasks,
 but what if macro types would generate the code and be aware of their context?</p>
 
-<p>The first augmentation of macro types lets them read the contents (i.e. the members) of the host class.
+<p>An augmentation of macro types lets them read the contents (i.e. the members) of the host class.
 This is immediately useful for building so called data types "a la carte". Take case classes. Write the following code
 and inspect the output:</p>
 
@@ -27,6 +27,6 @@ the entire companion object. Certain auto-implementations are frequently useful 
 either you declare your class as a <code>case class</code> and live with all restrictions being imposed, or you don't get any of the
 auto-generated goodies.</p>
 
-<p>A more balanced API can be provided by augmented macro types. If such macros can discover members of the main class,
-they can provide auto-generated functionality in piecemeal fashion (e.g. in a trait or in groups of traits).
+<p>A more balanced API can be provided by augmented macro types or, alternatively, macro annotations. 
+Such macros can discover members of the main class, so they can provide auto-generated functionality in piecemeal fashion.
 This restaurant metaphor gives the technique its fancy name.</p>

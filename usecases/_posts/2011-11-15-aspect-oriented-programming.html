@@ -1,0 +1,34 @@
+---
+layout: usecase
+title: Aspect-oriented programming
+permalink: /usecases/aspect-oriented-programming.html
+---
+
+<p>Object-oriented and functional programming provide quite different and mostly complementing approaches to decomposition, 
+but there are certain aspects (pun intended) of composition that cannot be readily conveniently in either school of thought.
+These traditionally include such crosscutting concerns as logging, authentication/authorization, caching and so on.</p>
+
+<p>Here is an Emacs Lisp snippet that exemplifies introduction of an advice that gets executed before a certain function 
+(the snippet is courtesy of GNU Emacs Manual, <a href="http://www.gnu.org/s/emacs/manual/html_node/elisp/Simple-Advice.html">
+Chapter 17.1 A Simple Advice Example</a>):</p>
+
+{% highlight cl %}
+(defadvice previous-line (before next-line-at-end
+                                 (&optional arg try-vscroll))
+  "Insert an empty line when moving up from the top line."
+  (if (and next-line-add-newlines (= arg 1)
+           (save-excursion (beginning-of-line) (bobp)))
+      (progn
+        (beginning-of-line)
+        (newline))))
+{% endhighlight %}
+
+<p>Similar functionality can be implemented 
+either by embedding the advice in a lambda parameter of a macro annotation (<code>@before(...) def previousLine = ...</code>)
+or by creating a custom macro annotation that would host the desired domain logic).
+However, this comes with a restriction. Unfortunately, due to statically typed nature of Scala it'd be impossible to advice methods from a different compilation unit.</p>
+
+<p>Also, with the help of annotations on package objects, it might be possible to support, so to say, wildcards for advices, called pointcuts
+(e.g. here's a pointcut from AspectJ: <code>pointcut set() : execution(* set*(..)) && this(Point)</code>).
+However, this possibility is unclear at the moment and is subject to additional brainstorming.</p>
+
