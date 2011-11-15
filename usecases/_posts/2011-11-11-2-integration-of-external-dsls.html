@@ -35,3 +35,8 @@ becomes a metacircular metacompiler. Though, I digress.</p>
 can be processed (for example, validated) by macros, which are evaluated during the compile time.
 This means that format strings, regexes, XML (less relevant for Scala), HTML, JavaScript - all those can be to certain extent validated during the compilation of the application,
 bringing additional static safety to the program.</p>
+
+<p>Another useful application of this notion is convenient notation for new kinds of literals.
+For example, with the syntax introduced by <a href="https://docs.google.com/document/d/1NdxNxZYodPA-c4MLr33KzwzKFkzm9iW9POexT9PkJsU/edit?hl=en_US&pli=1">SIP: String interpolation and formatting</a>
+one could write <code>b"10001"</code> to express an integer literal <code>17</code>.
+The interpolation would be processed by a macro during the compile-time, which means that the programmer wouldn't pay any runtime penalty for the convenience.</p>
