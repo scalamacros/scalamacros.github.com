@@ -4,7 +4,7 @@ title: Data types "a la carte"
 permalink: /usecases/data-types-a-la-carte.html
 ---
 
-<p>Besides being useful for <a href="/usecases/type-providers.html">type providers</a> and 
+<p>Besides being useful for <a href="/usecases/type-providers.html">type providers</a> and
 <a href="/usecase/generation-of-boilerplate.html">large-scale code generation</a>,
 macro types provide another interesting opportunity for both a language designer and a programmer.</p>
 
@@ -23,10 +23,10 @@ scalac -Xprint:typer Hello.scala
 
 <p>We see that the compiler has generated a lot of stuff for a small case class declaration, i.e. among the others
 implementations of <code>Product</code>, <code>Serializable</code>, <code>equals/hashCode</code>, <code>toString</code>, as well as,
-the entire companion object. Certain auto-implementations are frequently useful on their own, but, currently, it's all or nothing - 
+the entire companion object. Certain auto-implementations are frequently useful on their own, but, currently, it's all or nothing -
 either you declare your class as a <code>case class</code> and live with all restrictions being imposed, or you don't get any of the
 auto-generated goodies.</p>
 
-<p>A more balanced API can be provided by augmented macro types or, alternatively, macro annotations. 
+<p>A more balanced API can be provided by augmented macro types or, alternatively, macro annotations.
 Such macros can discover members of the main class, so they can provide auto-generated functionality in piecemeal fashion.
 This restaurant metaphor gives the technique its fancy name.</p>

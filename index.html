@@ -14,8 +14,8 @@ plusone: true
 </p>
 
 <p>
-  <a href="/sips/macros.html">We propose</a> to enrich Scala programming language with three flavors of type-safe compile-time macros: 
-  <b>macro defs</b>, <b>macro types</b> and <b>macro annotations</b>. 
+  <a href="/sips/macros.html">We propose</a> to enrich Scala programming language with three flavors of type-safe compile-time macros:
+  <b>macro defs</b>, <b>macro types</b> and <b>macro annotations</b>.
   These kinds of macros can be used wherever their vanilla analogues are used, but they are treated differently by the compiler,
   providing <a href="/usecases.html">novel ways to analyze and generate code</a>.
 </p>
@@ -26,7 +26,7 @@ plusone: true
 </p>
 
 <p>
-  The following example describes the type-safe <code>printf</code> function. 
+  The following example describes the type-safe <code>printf</code> function.
   Being a macro, <code>printf</code> formats the output during the compile-time, which provides safety guarantees inaccessible to regular approaches.
   This notion can be generalized to serve the needs of many other domains, the topic that is dwelled upon in the
   <a href="/usecases/integration-of-external-dsls.html">"Integration of external DSLs"</a> case study on this site.
@@ -83,7 +83,7 @@ print(p1)
 
 <p>
   The notion of type providers is elaborated in greater detail in the <a href="/usecases/type-providers.html">"Type providers"</a> case study, but for now let's just proceed with the code.
-  Same as before, if something is confusing, take a look at the walkthroughs (<a href="/talks/2011-10-18-WhatsUp.pdf">English</a>, 
+  Same as before, if something is confusing, take a look at the walkthroughs (<a href="/talks/2011-10-18-WhatsUp.pdf">English</a>,
   <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>) or ask us at <a href="mailto:dev@scalamacros.org">dev@scalamacros.org</a>:
 </p>
 
@@ -109,18 +109,18 @@ products.filter(p => p.name.startsWith("foo")).toList
 
 <p>
   <b>Macro annotations</b> can be used to perform final postprocessing on program elements (classes, methods, expressions) after all other macros have been expanded.
-  Macro annotations look in the very same way as regular annotations do, however, 
+  Macro annotations look in the very same way as regular annotations do, however,
   they are not just static participants of the compilation pipeline, but can actively participate in it.
 </p>
 
 <p>
-  Potential areas of applicability of this feature include aspect-oriented programming, implementing new idioms 
+  Potential areas of applicability of this feature include aspect-oriented programming, implementing new idioms
   (e.g. with macro annotations it's possible to introduce <code>@lazy</code> parameters or even work on sub-method level to, say, bless certain variables)
   and automatizing chores on a small scale (read up more on that in the <a href="/usecases/generation-of-boilerplate.html">"Generation of boilerplate"</a> case study).
 </p>
 
 <p>
-  The example below features the <code>@Serializable</code> macro that reflects upon members of the annotated class, 
+  The example below features the <code>@Serializable</code> macro that reflects upon members of the annotated class,
   generates serialization/deserialization routines and implements the <code>Serializable</code> interface that exposes them
   (compiler API we're using here is completely fictional, it will be refined when Scala reflection API gets stabilized):
 </p>
@@ -134,7 +134,7 @@ macro annotation Serializable(implicit ctx: AnnotationContext) = ...
 
 // annotations get applied after everything else (other macros, syntactic sugar)
 // that's why Serializable will see all the members of Person
-// regardless of whether they come from a case class sugar 
+// regardless of whether they come from a case class sugar
 // or from Entity (be it a regular class or a macro class)
 @Serializable
 case class Person(firstName: String, lastName: String) extends Entity { ... }

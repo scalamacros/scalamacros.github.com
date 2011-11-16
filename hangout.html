@@ -11,32 +11,32 @@ Below you can find instructions for setting up a shared workspace and hanging ou
 
 <h2>1. Prerequisites</h2>
 
-<p>You need to have the following software installed: 
-1) <a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk-6u29-download-513648.html">JDK 1.6</a> (currently, Scala cannot be built with 1.7), 
+<p>You need to have the following software installed:
+1) <a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk-6u29-download-513648.html">JDK 1.6</a> (currently, Scala cannot be built with 1.7),
 2) <a href="http://eclipse.org/downloads/packages/eclipse-classic-362/heliossr2">Eclipse 3.6.2 "Helios"</a> (Scala plugin also supports Eclipse 3.7, but everyone in our team uses 3.6),
 3) <a href="http://download.scala-ide.org/">a nightly build of ScalaIDE</a>,
 4) <a href="http://www.saros-project.org/">the latest stable build of Saros</a>.</p>
 
-<p>Any popular operating system will do (for example, in our team we have people working on Windows, Linuxes and Macs), 
+<p>Any popular operating system will do (for example, in our team we have people working on Windows, Linuxes and Macs),
 however, screenshots in this tutorial will cover the setup from the perspective of a Windows user.
 Most things are cross-platform, but there are a few that need to be treated differently across platforms.
 Keep an eye on those!</p>
 
 <p>Most of this stuff is explained in the <a href="/getinvolved.html">"Get involved"</a> section of the site, here we will just cover the installation and configuration of Saros.
-First, the installation, which is very streamlines. To install Saros plugin for Eclipse, use "Help > Install New Software..." menu and enter 
+First, the installation, which is very streamlines. To install Saros plugin for Eclipse, use "Help > Install New Software..." menu and enter
 <code>http://dpp.sf.net/update</code> in the "Software sites" combobox:</p>
-                                                                                                                                              
+
 <p><a href="/media/images/hangout/saros-install-and-config-step01.png"><img src="/media/images/hangout/saros-install-and-config-step01.png" /></a></p>
 
 <p>When presented with the configuration dialog, use your <code>scalamacros.org</code> account as specified on the screenshots below.
 Saros will save your password in <code>/workspace/.metadata</code>, so, if that's an issue for you,
 be sure to make it encrypt the storage via "Saros &gt; Preferences... &gt; Encrypt password (this will require a separate secure storage password)":</p>
-                                                                                                                                              
+
 <p><a href="/media/images/hangout/saros-install-and-config-step02.png"><img src="/media/images/hangout/saros-install-and-config-step02.png" /></a></p>
 <p><a href="/media/images/hangout/saros-install-and-config-step03.png"><img src="/media/images/hangout/saros-install-and-config-step03.png" /></a></p>
 <p><a href="/media/images/hangout/saros-install-and-config-step04.png"><img src="/media/images/hangout/saros-install-and-config-step04.png" /></a></p>
 
-<p>Now go through "Saros &gt; Preferences..." and make sure that you use the following settings 
+<p>Now go through "Saros &gt; Preferences..." and make sure that you use the following settings
 (it is IMPERATIVE to set "Offer possibility to skip synchronization in Session Invitation dialog" or otherwise you will most likely run into problems during synchronization):</p>
 
 <p><a href="/media/images/hangout/saros-install-and-config-step05.png"><img src="/media/images/hangout/saros-install-and-config-step05.png" /></a></p>
@@ -46,7 +46,7 @@ be sure to make it encrypt the storage via "Saros &gt; Preferences... &gt; Encry
 
 <p><a href="/media/images/hangout/saros-install-and-config-step07.png"><img src="/media/images/hangout/saros-install-and-config-step07.png" /></a></p>
 
-<p>Now add buddies you want to hang out with. This looks approximately as follows (don't forget to provide full-fledged 
+<p>Now add buddies you want to hang out with. This looks approximately as follows (don't forget to provide full-fledged
 <code>&lt;firstname.lastname&gt;@scalamacros.org</code> developer accounts in the "XMPP/Jabber ID" combobox of the "Add Buddy" dialog):</p>
 
 <p><a href="/media/images/hangout/saros-install-and-config-step08.png"><img src="/media/images/hangout/saros-install-and-config-step08.png" /></a></p>
@@ -63,7 +63,7 @@ be sure to make it encrypt the storage via "Saros &gt; Preferences... &gt; Encry
 (to use Saros everyone must have the same projects in the workspace and the very same layout of the workspace):</p>
 
 <p>Start with cloning the git repository at <a href="https://github.com/scalamacros/kepler">https://github.com/scalamacros/kepler</a>.
-Currently the development is being performed in the <code>master</code> branch that is checked out automatically, 
+Currently the development is being performed in the <code>master</code> branch that is checked out automatically,
 so you don't need to do anything other than <code>git clone git://github.com/scalamacros/kepler.git</code> (read-only snapshot of the repository) or
 <code>git clone git@github.com:scalamacros/kepler.git</code> (read-write snapshot, if you have the permissions).</p>
 
@@ -76,7 +76,7 @@ To do that just <code>git clone git://github.com/xeno-by/reflection.git</code> (
 
 <p>When used in SBT this project requires the <code>SCALAREFLECTION_HOME</code> environment variable
 to point to the <code>build/pack</code> directory within the checkout of project Kepler.
-For example, on my laptop that environment variable equals to <code>C:\Projects\Kepler\build\pack</code>. 
+For example, on my laptop that environment variable equals to <code>C:\Projects\Kepler\build\pack</code>.
 This is necessary to make SBT compile and run the project with the very latest build of the Kepler compiler.
 Once you've set the environment variable, navigate to the checkout of the Reflection project and hit <code>sbt compile</code>.
 If it compiles without errors, move on. Otherwise, verify that you're using SBT 0.10+ and let us know at <a href="mailto:dev@scalamacros.org">dev@scalamacros.org</a>.</p>
@@ -96,7 +96,7 @@ Hint: use <code>git status</code> to verify that everything is okay:</p>
 
 <h2>3. Hang out</h2>
 
-<p>Cross your fingers and proceed with establishing a hangout. Open Saros dashboard ("Window &gt; Show view &gt; Other..."), 
+<p>Cross your fingers and proceed with establishing a hangout. Open Saros dashboard ("Window &gt; Show view &gt; Other..."),
 right-click "No Session Running" and choose "Share Project(s)...":</p>
 
 <p><a href="/media/images/hangout/saros-invite-step1.png"><img src="/media/images/hangout/saros-invite-step1.png" /></a></p>

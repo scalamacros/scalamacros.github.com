@@ -5,7 +5,7 @@ permalink: /usecases/language-integrated-queries.html
 tag: important
 ---
 
-<p>LINQ is a brilliant concept. Being released five years ago, even now it remains state of the art. However, it has its weaknesses: 
+<p>LINQ is a brilliant concept. Being released five years ago, even now it remains state of the art. However, it has its weaknesses:
 1) relying on a clever but rigid compiler hardcode, 2) lack of composability, 3) unclear semantics of calls to external code.</p>
 
 <p>The trick employed by LINQ is, actually, very neat. Whenever a compiler witnesses an expression of some functional type, say, <code>Func&lt;T, Boolean&gt;</code>,
@@ -21,11 +21,11 @@ For example, LINQ only supports lifting expressions, but not statements, which r
 if you want to know more about the composability problem - be sure to take a look at that post):</p>
 
 {% highlight csharp %}
-static bool MyPriceFunc(Nwind.Product p) { 
-  return p.ProductName.StartsWith("B"); 
+static bool MyPriceFunc(Nwind.Product p) {
+  return p.ProductName.StartsWith("B");
 }
 
-var q = 
+var q =
   from p in db.Products
   where MyPriceFunc(p.UnitPrice) > 30m
   select p
@@ -33,11 +33,11 @@ var q =
 
 <p>This code compiles with no errors, but when you execute it DLINQ throws an exception saying: <code>"Static method System.Boolean MyTest(LINQTest.Nwind.Product) has no supported translation to SQL"</code>.</p>
 
-<p>This happens because the lifting scheme is hardcoded to be shallow - lifting only processes the expression it sees and does not recursively generate ASTs for the functions used in the query. 
+<p>This happens because the lifting scheme is hardcoded to be shallow - lifting only processes the expression it sees and does not recursively generate ASTs for the functions used in the query.
 There exist several solutions to this problem (one of those is described in the aforementioned blog post), but they are not especially elegant.</p>
 
 <p>In <a href="/sips/macros.html">our proposal</a> LINQ can be implemented as follows (below we omit the discussion of LINQ infrastructure, and focus on
-the lifting part of the implementation). If certain aspects of the code are unclear, consult our walkthroughs 
+the lifting part of the implementation). If certain aspects of the code are unclear, consult our walkthroughs
 (<a href="/talks/2011-10-18-WhatsUp.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>):</p>
 
 {% highlight scala %}
@@ -50,11 +50,11 @@ class Queryable[T, Repr](query: Query) {
 }
 {% endhighlight %}
 
-<p>Implemented as a <code>macro def</code>, the <code>filter</code> high-order function receives its predicate in the form of an AST. 
+<p>Implemented as a <code>macro def</code>, the <code>filter</code> high-order function receives its predicate in the form of an AST.
 Having done that, the macro is free to perform arbitrary manipulations (e.g. to call the <code>reify</code> function that builds a domain-specific AST
 from the compiler AST that is provided in <code>p</code>) to accumulate and, eventually, process the query.</p>
 
-<p>Also, there's a solution to the composability problem: if we declare <code>MyPriceFunc</code> as a <code>macro def</code> as well, 
+<p>Also, there's a solution to the composability problem: if we declare <code>MyPriceFunc</code> as a <code>macro def</code> as well,
 then it will expand into the call site and, consequently, will be processed by the domain-specific query translator.
 Among alternative approaches is the macro that requests ASTs for all annotated functions in the compilation unit and stores those ASTs for future uses
 (that macro could be implemented as a method-level macro annotation or even as a program-wide package annotation).

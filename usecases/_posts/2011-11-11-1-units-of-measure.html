@@ -6,9 +6,9 @@ permalink: /usecases/units-of-measure.html
 
 <p>One of the interesting requests in the comments to <a href="http://xeno-by.blogspot.com/2011/10/scala-macros-status-update-and-call-for.html">my recent post</a>
 was units of measure for Scala. Units of measure represent an augmentation of the type system of F# (you might wish up to read a blog series for more details:
-<a href="http://blogs.msdn.com/b/andrewkennedy/archive/2008/08/29/units-of-measure-in-f-part-one-introducing-units.aspx">first post</a>, 
-<a href="http://blogs.msdn.com/b/andrewkennedy/archive/2008/09/02/units-of-measure-in-f-part-two-unit-conversions.aspx">second post</a>, 
-<a href="http://blogs.msdn.com/b/andrewkennedy/archive/2008/09/04/units-of-measure-in-f-part-three-generic-units.aspx">third post</a>, 
+<a href="http://blogs.msdn.com/b/andrewkennedy/archive/2008/08/29/units-of-measure-in-f-part-one-introducing-units.aspx">first post</a>,
+<a href="http://blogs.msdn.com/b/andrewkennedy/archive/2008/09/02/units-of-measure-in-f-part-two-unit-conversions.aspx">second post</a>,
+<a href="http://blogs.msdn.com/b/andrewkennedy/archive/2008/09/04/units-of-measure-in-f-part-three-generic-units.aspx">third post</a>,
 <a href="http://blogs.msdn.com/b/andrewkennedy/archive/2009/06/09/units-of-measure-in-f_2300_-part-four-parameterized-types.aspx">final post</a>).</p>
 
 <p>Despite the fact that compile-time metaprogramming lies on a different (lower!) level than type systems, this very use case can be implemented with macros.
@@ -24,7 +24,7 @@ let heightOfMyOfficeWindow = 3.5<m>
 let speedOfImpact = sqrt(2.0 * gravityOnEarth * heightOfMyOfficeWindow)
 {% endhighlight %}
 
-<p>With current version of <a href="/sips/macros.html">macro proposal</a> (that might change before the final release of the SIP) 
+<p>With current version of <a href="/sips/macros.html">macro proposal</a> (that might change before the final release of the SIP)
 one will be able to write the code like that:</p>
 
 {% highlight scala %}
@@ -33,8 +33,8 @@ val heightOfMyOfficeWindow = u(3.5, "m")
 val speedOfImpact = sqrt(2.0 * gravityOnEarth * heightOfMyOfficeWindow)
 {% endhighlight %}
 
-<p></code>u</code> is a macro def that takes a number and wraps it in a macro type that depends on the unit of measure passed. 
-That macro type hosts all necessary stuff that overloads relevant operations (<code>arithmetic</code>, <code>math._</code> stuff, so on). 
+<p></code>u</code> is a macro def that takes a number and wraps it in a macro type that depends on the unit of measure passed.
+That macro type hosts all necessary stuff that overloads relevant operations (<code>arithmetic</code>, <code>math._</code> stuff, so on).
 These operations upon units of measure would themselves be macros that produce new types as necessary.</p>
 
 <p>An alternative approach would be to implement <code>u</code> as a macro annotation that would operate on expression-level
@@ -46,5 +46,5 @@ and ascribe numeric values with units of measure. Such a macro would be able to 
 <span class="k">val</span> <span class="n">speedOfImpact</span> <span class="k">=</span> <span class="n">sqrt</span><span class="o">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">gravityOnEarth</span> <span class="o">*</span> <span class="n">heightOfMyOfficeWindow</span><span class="o">)</span></code></pre>
 </div>
 
-<p>At a glance, this looks like a workable solution, but, of course, it will be possible to fully assess the feasibility of this idea 
+<p>At a glance, this looks like a workable solution, but, of course, it will be possible to fully assess the feasibility of this idea
 only when we have an implementation of the macro system that can be used for tests.</p>

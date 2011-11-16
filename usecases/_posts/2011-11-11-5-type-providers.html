@@ -11,13 +11,13 @@ tag: important
 in RPC technologies in general (ASN.1, protobuf, to name only a few).</p>
 
 <p>Despite having traditionally good support from integrated development environments, this approach leaves much to be desired.
-Generated code is often unintelligible, is hard to be customized by hand (since the customizations might be lost after regeneration) 
+Generated code is often unintelligible, is hard to be customized by hand (since the customizations might be lost after regeneration)
 and, what's also very important, needs to be fostered by the programmer.
 Finally, it's virtually impossible to implement any sufficiently complex code generator without turning it into a spaghetti of textual templates
 and control flow that expresses generation logic (the proliferation of various template engines somewhat supports the stated fact).</p>
 
-<p>Compile-time metaprogramming techniques come to the rescue. By leveraging these techniques, the developer can 
-programmatically generate required classes into the compiler instead of having to provide them in the source code form. 
+<p>Compile-time metaprogramming techniques come to the rescue. By leveraging these techniques, the developer can
+programmatically generate required classes into the compiler instead of having to provide them in the source code form.
 One of the popular approaches that involves compile-time codegen is represented by F# type providers (take a read of an excellent blog post
 <a href="http://www.mindscapehq.com/blog/index.php/2011/09/19/f-type-providers-as-if-by-magic/">"F# type providers - as if by magic..."</a> that outlines
 the underlying principles behind type providers):</p>
@@ -30,7 +30,7 @@ type VectorProvider() =
 
 // Cheating for simplicity
 type Vector() = inherit obj()
- 
+
 [<TypeProvider>]
 type VectorProvider() =
   interface IProvidedNamespace with
@@ -57,13 +57,13 @@ val products = new MyDb().products
 products.filter(p => p.name.startsWith("foo")).toList
 {% endhighlight %}
 
-<p>The ellipses in the implementation of <code>MySqlDb</code> hide another interesting concept. 
-Runtime flavor of code generation (e.g. <code>System.Reflection.Emit</code>, <code>ASM</code> and likes) lifts the burden of maintenance of generated code, 
-but still does not solve readability and composability issues with the generators themselves. 
+<p>The ellipses in the implementation of <code>MySqlDb</code> hide another interesting concept.
+Runtime flavor of code generation (e.g. <code>System.Reflection.Emit</code>, <code>ASM</code> and likes) lifts the burden of maintenance of generated code,
+but still does not solve readability and composability issues with the generators themselves.
 To the contrast, compile-time metaprogramming with macros offers the programmer a domain-specific language targeted at code generation - so called,
 <a href="/sips/quasiquotations.html">quasiquotations</a>.</p>
 
-<p>As outlined in one of our walkthroughs (<a href="/talks/2011-09-27-ProjectKepler.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>), quasiquotations: 
+<p>As outlined in one of our walkthroughs (<a href="/talks/2011-09-27-ProjectKepler.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>), quasiquotations:
 1) let the programmer express ASTs in the syntax of the target language,
 2) excel in composability by supporting splicing - a special operator that inserts one/several small ASTs into a big one,
 3) trivialize pattern matching against ASTs:</p>
@@ -77,9 +77,9 @@ macro trait MySqlDb(connString: String) = {
       ${schema.Tables map generateClassForTable}
     }
   """
-} 
+}
 {% endhighlight %}
 
 <p>All in all, macro types solve common problems with code generation by providing flexible extension points into the generation process
-and keeping the generator itself readable and maintainable. 
+and keeping the generator itself readable and maintainable.
 This introduces robust solutions to the problems that inevitably require writing boilerplate in modern mainstream languages.</p>

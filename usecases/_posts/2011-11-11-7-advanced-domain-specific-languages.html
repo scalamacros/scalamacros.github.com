@@ -7,33 +7,33 @@ tag: important
 
 <p>One of the most important use cases of compile-time metaprogramming involves increasing the area of applicability of embedded domain-specific languages (eDSLs).</p>
 
-<p>As it was nicely summarized in <a href="http://biblion.epfl.ch/EPFL/theses/2011/5007/EPFL_TH5007.pdf">Embedded Domain-Specific Languages using Libraries 
+<p>As it was nicely summarized in <a href="http://biblion.epfl.ch/EPFL/theses/2011/5007/EPFL_TH5007.pdf">Embedded Domain-Specific Languages using Libraries
 and Dynamic Metaprogramming</a> by Gilles Dubochet, sooner or later DSLs hit the limitations of even very advanced programming languages.
 Here's an illustrative example from <a href="http://squeryl.org/">Squeryl</a>, a Scala ORM for SQL databases:</p>
 
 {% highlight scala %}
 var avg: Option[Float] =
   from(grades)(g =>
-    where(g.subjectId === mathId)   
+    where(g.subjectId === mathId)
     compute(avg(g.scoreInPercentage))
   )
 {% endhighlight %}
 
-<p>This query looks almost like a series of high-order functions applied to a collection, and, in fact, it is: 
+<p>This query looks almost like a series of high-order functions applied to a collection, and, in fact, it is:
 everything is strongly-typed and usual stuff (e.g. closing over the <code>mathId</code> variable) works as expected.</p>
 
 <p>However, this comes at a price. First of all, <a href="https://github.com/max-l/Squeryl/tree/master/src/main/scala/org/squeryl/dsl">the amount of syntactic boilerplate</a> is truly gigantic.
-Moreover, even Scala's type system is still not enough to serve the DSL. In order to capture the <code>subjectId</code> field access, 
-Squeryl builds an auxiliary instance of type <code>Grade</code>, wraps it into a proxy and sifts that proxy through the query during the runtime, 
+Moreover, even Scala's type system is still not enough to serve the DSL. In order to capture the <code>subjectId</code> field access,
+Squeryl builds an auxiliary instance of type <code>Grade</code>, wraps it into a proxy and sifts that proxy through the query during the runtime,
 recording accesses to fields and building the corresponding AST.</p>
 
-<p>And still, all this effort is not enough to provide seamless embedding into the host language. See that <code>===</code>? 
+<p>And still, all this effort is not enough to provide seamless embedding into the host language. See that <code>===</code>?
 This is a special surrogate operator that stands for <code>==</code>, because the equality operator itself cannot be overloaded to produce desired results.</p>
 
 <p>If <code>from</code> were a <code>macro def</code>, then it would get the <code>g => ...</code> function argument
-in the form of a <code>Tree</code> object that represents that query at the compile-time. 
+in the form of a <code>Tree</code> object that represents that query at the compile-time.
 As a consequence, one would then be able to use any syntax in the query (including non-overloadable constructs, such as the equality operator).
-Also, the lifting (i.e. transformation of domain-specific codes into corresponding domain ASTs) would come for free, 
+Also, the lifting (i.e. transformation of domain-specific codes into corresponding domain ASTs) would come for free,
 without the need to carefully arrange the web of boilerplate to capture the intent of the user.</p>
 
 <p>This brings sweet memories of coding up <a href="https://github.com/xeno-by/conflux">Conflux</a>, a framework for programming CUDA in pure C#.

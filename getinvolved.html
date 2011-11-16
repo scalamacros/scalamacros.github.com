@@ -6,19 +6,19 @@ plusone: true
 ---
 
 <p>Start with cloning the git repository at <a href="https://github.com/scalamacros/kepler">https://github.com/scalamacros/kepler</a>.
-Currently the development is being performed in the <code>master</code> branch that is checked out automatically, 
+Currently the development is being performed in the <code>master</code> branch that is checked out automatically,
 so you don't need to do anything other than <code>git clone git://github.com/scalamacros/kepler.git</code> (read-only snapshot of the repository) or
 <code>git clone git@github.com:scalamacros/kepler.git</code> (read-write snapshot, if you have the permissions).</p>
 
 <h2>1. Prerequisites</h2>
 
-<p>While the contents of the repo are being downloaded (it takes a while), it's time to review the prerequisites for the development environment. 
-To put it in a nutshell, you need to have: 
-1) <a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk-6u29-download-513648.html">JDK 1.6</a> (currently, Scala cannot be built with 1.7), 
+<p>While the contents of the repo are being downloaded (it takes a while), it's time to review the prerequisites for the development environment.
+To put it in a nutshell, you need to have:
+1) <a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk-6u29-download-513648.html">JDK 1.6</a> (currently, Scala cannot be built with 1.7),
 2) <a href="http://eclipse.org/downloads/packages/eclipse-classic-362/heliossr2">Eclipse 3.6.2 "Helios"</a> (Scala plugin also supports Eclipse 3.7, but everyone in our team uses 3.6),
 3) <a href="http://download.scala-ide.org/">a nightly build of ScalaIDE</a>.</p>
 
-<p>Any popular operating system will do (for example, in our team we have people working on Windows, Linuxes and Macs), 
+<p>Any popular operating system will do (for example, in our team we have people working on Windows, Linuxes and Macs),
 however, screenshots in this tutorial will cover the setup from the perspective of a Windows user.
 Most things are cross-platform, but there are a few that need to be treated differently across platforms.
 Keep an eye on those!</p>
@@ -26,7 +26,7 @@ Keep an eye on those!</p>
 <p><a href="/media/images/getinvolved/prerequisites-step1.png"><img src="/media/images/getinvolved/prerequisites-step1.png" /></a></p>
 <p><a href="/media/images/getinvolved/prerequisites-step2.png"><img src="/media/images/getinvolved/prerequisites-step2.png" /></a></p>
 
-<p>To install ScalaIDE plugin for Eclipse, use "Help > Install New Software..." menu option. 
+<p>To install ScalaIDE plugin for Eclipse, use "Help > Install New Software..." menu option.
 After being presented with the dialog shown below, be sure to enter the nightly repository of ScalaIDE
 (that is imperative, since we're working with nightly versions of Scala trunk).</p>
 
@@ -76,11 +76,11 @@ We recommend to start with a fresh workspace, since the old one might have some 
 (remember, building Scala with JDK 1.7 is not supported yet).</p>
 
 <p>NB! When creating a new project, choose the "Java project" option. Despite of Kepler being written in Scala, it, essentially, represents a new version of a Scala compiler,
-so regular idioms of building Scala projects do not apply to it.</p> 
+so regular idioms of building Scala projects do not apply to it.</p>
 
 <p><a href="/media/images/getinvolved/create-scalac-project-step1.png"><img src="/media/images/getinvolved/create-scalac-project-step1.png" /></a></p>
 <p><a href="/media/images/getinvolved/create-scalac-project-step2 (jdk 1.6!).png"><img src="/media/images/getinvolved/create-scalac-project-step2 (jdk 1.6!).png" /></a></p>
-  
+
 <p>The repository already contains a template of an Eclipse project (the <code>.project</code> and <code>.classpath</code> files in the root of the repo),
 so after you've clicked "Next" in the window shown in the previous screenshot, everything should be set up automatically.
 However, do verify that the aforementioned "everything" looks as follows:</p>
@@ -96,18 +96,18 @@ If everything is fine, then you're done with setting up the project, otherwise r
 A: If that's the only error, then you're fine. It can be safely ignored.</p>
 
 <p>Q: You get parser errors from Scala on every non-ASCII symbol.<br/>
-A: The <code>.project</code> file uses the platform encoding, which on the Mac is MacRoman. 
+A: The <code>.project</code> file uses the platform encoding, which on the Mac is MacRoman.
 Either change each project, if you have a reason to keep that default, or change the default to UTF-8.
 Note that you must restart Eclipse in order to have the Scala compiler use that new encoding default.
 <a href="https://www.assembla.com/spaces/scala-ide/wiki/Known_Issues#scala_errors_on_all_unicode_arrows">Learn more</a>.</p>
 
 <p>Q: Omg, panic! The IDE gives a lot of errors: &lt;long list of weird stuff&gt;.<br/>
-A: Try "Project > Clean...". If that does not work, try <code>ant all.clean</code> followed by <code>ant</code>. 
+A: Try "Project > Clean...". If that does not work, try <code>ant all.clean</code> followed by <code>ant</code>.
 If that does not work, let us know at <a href="mailto:dev@scalamacros.org">dev@scalamacros.org</a>.</p>
 
 <h2>4. Working with the IDE</h2>
 
-<p>To perform a test run you need to create a run configuration that will compile a test snippet with Kepler and display the result to the console. 
+<p>To perform a test run you need to create a run configuration that will compile a test snippet with Kepler and display the result to the console.
 Here's how that can be done (hint: if you're stuck at the second dialog, you need to double click that "Java Application" menu entry):</p>
 
 <p><a href="/media/images/getinvolved/play-with-scalac-step1.png"><img src="/media/images/getinvolved/play-with-scalac-step1.png" /></a></p>
@@ -133,13 +133,13 @@ If everything is okay, you will see something like that (if it's not, proceed wi
 
 <p><a href="/media/images/getinvolved/play-with-scalac-step5.png"><img src="/media/images/getinvolved/play-with-scalac-step5.png" /></a></p>
 
-<p>You can even debug the Kepler compiler. Just put a breakpoint (say, at <code>def run()</code> in <code>Global.scala</code>) 
+<p>You can even debug the Kepler compiler. Just put a breakpoint (say, at <code>def run()</code> in <code>Global.scala</code>)
 and then launch the debugging using the very same run configuration that you've used before:</p>
 
 <p><a href="/media/images/getinvolved/play-with-scalac-step6.png"><img src="/media/images/getinvolved/play-with-scalac-step6.png" /></a></p>
 
 <h2>5. Contributing to Kepler</h2>
 
-<p>Now you're all set and can hack Kepler! To find out what can be useful for the project, 
-take a look at the <a href="/documentation.html">documentation</a> and 
+<p>Now you're all set and can hack Kepler! To find out what can be useful for the project,
+take a look at the <a href="/documentation.html">documentation</a> and
 write to us at <a href="mailto:dev@scalamacros.org">dev@scalamacros.org</a>.</p>

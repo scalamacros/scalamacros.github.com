@@ -22,5 +22,5 @@ layout: nil
       <description>{{ entry.content | xml_escape }}</description>
     </item>
     {% endfor %}
-  </channel> 
+  </channel>
 </rss>
