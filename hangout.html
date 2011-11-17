@@ -88,11 +88,24 @@ Hint: use <code>git status</code> to verify that everything is okay:</p>
 <p><a href="/media/images/hangout/workspace-step1.png"><img src="/media/images/hangout/workspace-step1.png" /></a></p>
 <p><a href="/media/images/hangout/workspace-step2.png"><img src="/media/images/hangout/workspace-step2.png" /></a></p>
 
-<p>Finally, symlink both checkouts directly into your workspace and add both projects into the workspace exactly from the symlinked locations
-(this sounds like magic, but it's IMPERATIVE for making Saros working - don't know whether this is a bug or a feature, but who cares):</p>
+<p>Saros is very picky about synchronization of the files between parties, that's why special attention should be paid to invisible parts of text files.
+First of all, make sure that both Git and Eclipse agree upon encoding (UTF-8) and line endings (Unix):</p>
 
 <p><a href="/media/images/hangout/workspace-step3.png"><img src="/media/images/hangout/workspace-step3.png" /></a></p>
 <p><a href="/media/images/hangout/workspace-step4.png"><img src="/media/images/hangout/workspace-step4.png" /></a></p>
+<p><a href="/media/images/hangout/workspace-step5.png"><img src="/media/images/hangout/workspace-step5.png" /></a></p>
+
+<p>Secondly, documentation of Saros explicitly asks to pay attention to tab symbols. We set up our tabs to be replaced by 2 whitespaces.
+Here are the relevant configuration dialogs (note that you need to set up both Java and Scala code styles):</p>
+
+<p><a href="/media/images/hangout/workspace-step6.png"><img src="/media/images/hangout/workspace-step6.png" /></a></p>
+<p><a href="/media/images/hangout/workspace-step7.png"><img src="/media/images/hangout/workspace-step7.png" /></a></p>
+<p><a href="/media/images/hangout/workspace-step8.png"><img src="/media/images/hangout/workspace-step8.png" /></a></p>
+
+<p>Finally, symlink both checkouts directly into your workspace and add both projects into the workspace exactly from the symlinked locations
+(this sounds like magic, but it's IMPERATIVE for making Saros working - don't know whether this is a bug or a feature, but who cares):</p>
+
+<p><a href="/media/images/hangout/workspace-step9.png"><img src="/media/images/hangout/workspace-step9.png" /></a></p>
 
 <h2>3. Hang out</h2>
 
