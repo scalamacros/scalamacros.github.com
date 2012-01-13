@@ -1,0 +1,135 @@
+\documentclass{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel}  
+\usepackage[parfill]{parskip}
+
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{listings}
+
+\definecolor{linkblue}{RGB}{49,57,174}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+ 
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield,
+    macro},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}
+ 
+\lstset{frame=tb,
+  language=scala,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=3
+}
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{План}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\title{$\alpha$-Кеплер}
+\author{Евгений Бурмако}
+\institute{EPFL, LAMP}
+\date{14 января 2012}
+
+\begin{document}
+
+\section{Проект ``Кеплер''}
+
+\maketitle
+
+\begin{frame}[t]
+\frametitle{Вступительные слова}
+
+Меня зовут Евгений Бурмако, с прошлой осени я работаю в Scala Team и параллельно учусь в аспирантуре EPFL на кафедре Мартина Одерского.
+
+Сегодня мы обсудим прогресс проекта ``Кеплер'', в рамках которого реализуются \textbf{макросы} и \textbf{квазицитаты} - средства метапрограммирования времени компиляции для Скалы. В процессе общения мы реализуем одну штуку, о которой я мечтал со времен знакомства с Немерле. Также мы поговорим о том, какие незапланированные применения макросов нашлись в процессе работы над проектом.
+
+В \text{\color{linkblue}\href{http://scalamacros.org/news/2011-10-29-talk-at-scalaby-meetup.html}{предыдущем выступлении о макросах}} я рассматривал макросы с теоретической точки зрения, а сегодня будет, в основном, практика. Поэтому перед тем, как продолжить, может быть полезно зачесть {\color{linkblue}\href{http://scalamacros.org/talks/2011-10-29-RuProjectKepler.pdf}{слайды прошлого рассказа}}.
+\end{frame}
+
+\begin{frame}[t]
+\frametitle{Важное замечание}
+
+Уже очень долгое время макросы в популярных языках программирования ассоциируются с макросами С/С++. Неудивительно, что многие автоматически воспринимают слово ``макрос'' в штыки.
+
+В отличие от макросов препроцессора, наши макросы:
+\begin{itemize}
+\item Представляют собой код на полноценной Скале
+\item Работают с высокоуровневыми и типизированными деревьями выражений
+\item Выполняются в контексте компилятора, поэтому имеют доступ ко всей семантической информации, доступной компилятору
+\item Не изменяют синтаксис Скалы
+\end{itemize}
+
+Наши макросы напоминают макросы Лиспа, доработанные для поддержки богатого синтаксиса и статической типизации.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Начнем издалека}
+
+Одной из моих недавних задач в разработке scalac было допиливание \texttt{Code.lift}. 
+
+Лифт - это такая магическая функция, которая принимает на вход один-единственный аргумент и возвращает AST, которое соответствует этому аргументу. Например:
+
+\begin{lstlisting}[language=scala]
+scala> lift{a + b}
+
+val fv_a = freeVar("a", staticClass("scala.Int"), a)
+val fv_b = freeVar("b", staticClass("scala.Int"), b)
+Apply(Select(Ident(fv_a), newTermName("$plus")), List(Ident(fv_b))))
+\end{lstlisting}%$
+
+Если что, лифт практически незаменим для создания разного рода доменно-специфичных языков - от больших (запросы в OR/M) до маленьких (урлы в MVC фреймворках).
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Баг в лифте}
+
+Текущая реализация лифта имеет один недостаток - если попробовать реифицировать выражение, содержащее операции над константами, то константы схлопнутся из-за того, что \texttt{doTypedApply} (функция, типизирующая применение методов) вызывает \texttt{constfold}. 
+
+\begin{lstlisting}[language=scala]
+scala> lift{2 * 2}
+
+Literal(Constant(4))
+\end{lstlisting}
+
+Эта оптимизация полезна при генерации исполняемого кода, но для нас она не подходит, ибо код обычно лифтят, когда хотят узнать и проанализировать точную структуру кода.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Фиксим баг}
+
+Чтобы починить этот досадный недостаток, я залез в \texttt{Typers} и немножко подпилил \texttt{doTypedApply}. Теперь перед сверткой констант тайпер убеждается в том, что он не находится в \texttt{Code.lift}, и вот - проблема решена.
+
+\end{frame}
+
+\end{document}
