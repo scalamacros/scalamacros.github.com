@@ -1,12 +1,14 @@
-\documentclass{beamer}
+\documentclass[hyperref={bookmarks=false}]{beamer}
 
 \usepackage[utf8]{inputenc}
 \usepackage[english,russian]{babel}  
 \usepackage[parfill]{parskip}
 
-\usepackage{hyperref}
 \usepackage{color}
 \usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Project Kepler},pdftitle={Alpha Kepler}}
+\title{Alpha Kepler}
 
 \definecolor{linkblue}{RGB}{49,57,174}
 \definecolor{dkgreen}{rgb}{0,0.6,0}
@@ -56,19 +58,18 @@
   \end{frame}
 }
 
+\begin{document}
+
 \title{$\alpha$-Кеплер}
 \author{Евгений Бурмако}
 \institute{EPFL, LAMP}
 \date{14 января 2012}
-
-\begin{document}
-
 \maketitle
 
 \begin{frame}[t,fragile]
 \frametitle{$\alpha$-Кеплер}
 
-Меня зовут Евгений Бурмако, с прошлой осени я работаю в Scala Team и параллельно учусь в аспирантуре EPFL на кафедре Мартина Одерского.
+Здравствуйте! Меня зовут Евгений Бурмако, с прошлой осени я работаю в Scala Team и параллельно учусь в аспирантуре EPFL на кафедре Мартина Одерского.
 
 Сегодня мы обсудим прогресс проекта ``Кеплер'', в рамках которого реализуются \textbf{макросы} и \textbf{квазицитаты} - средства метапрограммирования времени компиляции для Скалы. В процессе общения мы реализуем одну штуку, о которой я мечтал со времен знакомства с Немерле. Также мы поговорим о том, какие незапланированные применения макросов нашлись в процессе работы над проектом.
 
