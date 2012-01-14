@@ -1,7 +1,7 @@
 \documentclass[hyperref={bookmarks=false}]{beamer}
 
 \usepackage[utf8]{inputenc}
-\usepackage[english,russian]{babel}  
+\usepackage[english,russian]{babel}
 \usepackage[parfill]{parskip}
 
 \usepackage{color}
@@ -14,7 +14,7 @@
 \definecolor{dkgreen}{rgb}{0,0.6,0}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
 \definecolor{mauve}{rgb}{0.58,0,0.82}
- 
+
 \lstdefinelanguage{scala}{
   morekeywords={abstract,annotation,case,catch,class,def,%
     do,else,extends,false,final,finally,%
@@ -31,7 +31,7 @@
   morestring=[b]',
   morestring=[b]"""
 }
- 
+
 \lstset{frame=tb,
   language=scala,
   aboveskip=3mm,
@@ -69,7 +69,7 @@
 \begin{frame}[t,fragile]
 \frametitle{$\alpha$-Кеплер}
 
-Здравствуйте! Меня зовут Евгений Бурмако, с прошлой осени я работаю в Scala Team и параллельно учусь в аспирантуре EPFL на кафедре Мартина Одерского.
+Всем привет! Меня зовут Евгений Бурмако, с прошлой осени я работаю в Scala Team и параллельно учусь в аспирантуре EPFL на кафедре Мартина Одерского.
 
 Сегодня мы обсудим прогресс проекта ``Кеплер'', в рамках которого реализуются \textbf{макросы} и \textbf{квазицитаты} - средства метапрограммирования времени компиляции для Скалы. В процессе общения мы реализуем одну штуку, о которой я мечтал со времен знакомства с Немерле. Также мы поговорим о том, какие незапланированные применения макросов нашлись в процессе работы над проектом.
 
@@ -81,7 +81,7 @@
 \begin{frame}[t,fragile]
 \frametitle{Начнем издалека}
 
-Одним из интересных событий этой осени в мире Скалы стало обсуждение \text{\color{linkblue}\href{https://docs.google.com/document/d/1NdxNxZYodPA-c4MLr33KzwzKFkzm9iW9POexT9PkJsU/edit?hl=en_US&pli=1}{интерполяции строк}}. 
+Одним из интересных событий этой осени в мире Скалы стало обсуждение \text{\color{linkblue}\href{https://docs.google.com/document/d/1NdxNxZYodPA-c4MLr33KzwzKFkzm9iW9POexT9PkJsU/edit?hl=en_US&pli=1}{интерполяции строк}}.
 
 Эта функциональность встречается во многих скриптовых языках (bash, Perl, Ruby) и предоставляет возможность встраивать в строки переменные из лексического окружения.
 
@@ -163,7 +163,7 @@ macro annotation Serializable(implicit ctx: Context) = ...
 \begin{frame}[t,fragile]
 \frametitle{Отклик}
 
-За несколько месяцев жизни проекта ``Кеплер'' нашлось немало практических задач, которые сильно упрощаются при наличии макросов. 
+За несколько месяцев жизни проекта ``Кеплер'' нашлось немало практических задач, которые сильно упрощаются при наличии макросов.
 
 Уже есть желающие использовать макросы для реализации языка запросов в O/RM, я слышал о планах использовать макро-аннотации в линзах, есть идеи насчет применения макро-типов для генерации бойлерплейта, необходимого для вычислений на типах. Буквально позавчера Мартин \text{\color{linkblue}\href{https://github.com/odersky/scala/commit/35b36229b189a840756330049fa1c7094a309036}{реализовал прототип оптимизатора}}, который использует макросы для ускорения \texttt{Range.foreach}.
 
@@ -192,10 +192,9 @@ macro annotation Serializable(implicit ctx: Context) = ...
 
 \section{Макрос для регулярных выражений}
 
-\begin{frame}[t,fragile]
-\frametitle{Макрос для регулярных выражений}
-
-Демонстрация
+\begin{frame}
+\frametitle{Демонстрация}
+(В оффлайновой версии слайдов тут будет транскрипт нашей сессии кодинга)
 \end{frame}
 
 \section{Заключение}
