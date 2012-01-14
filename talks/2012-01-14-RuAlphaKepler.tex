@@ -158,8 +158,6 @@ macro annotation Serializable(implicit ctx: Context) = ...
 \end{lstlisting}
 \end{frame}
 
-\section{Статус проекта ``Кеплер''}
-
 \begin{frame}[t,fragile]
 \frametitle{Отклик}
 
@@ -180,6 +178,76 @@ macro annotation Serializable(implicit ctx: Context) = ...
 Мы опубликовали сайт \text{\color{linkblue}\href{http://scalamacros.org}{scalamacros.org}}, на котором собраны материалы по нашему проекту. Особый интерес, на наш взгляд, составляет раздел \text{\color{linkblue}\href{http://scalamacros.org/usecases.html}{``Use Cases''}}, в котором рассматриваются области применения макросов.
 \end{frame}
 
+\section{Пишем макрос для регулярок}
+
+\begin{frame}
+\frametitle{Демонстрация}
+(В оффлайновой версии слайдов тут будет транскрипт нашей сессии кодинга)
+\end{frame}
+
+\section{Пару слов о квазицитатах}
+
+\begin{frame}[t,fragile]
+\frametitle{Квазицитаты}
+
+В процессе демонстрации был задан вопрос. "Собирать деревья вручную неудобно. Но ведь парсер компилятора умеет преобразовывать код на Скале в деревья. Почему бы не создавать деревья, пользуясь их строковым представлением?"
+
+Ответ на этот вопрос положительный - действительно, можно упростить создание AST с помощью языковой фичи, известной под названием "квазицитирование". 
+
+Я хотел обойти эту тему стороной потому, что дизайн квазицитат (в отличие от макросов) даже близко не завершен, поэтому финальная версия может радикально отличаться от текущего прототипа. 
+
+Однако предоставляемый квазицитатами функционал действительно очень важен, поэтому мы немного поговорим на эту тему на следующих слайдах. Более подробно теория разобрана в \text{\color{linkblue}\href{http://scalamacros.org/news/2011-10-29-talk-at-scalaby-meetup.html}{предыдущем выступлении}}.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Что умеют квазицитаты?}
+
+Квазицитаты превращают строки с кодом в эквивалентные синтаксические деревья:
+
+\begin{lstlisting}[language=scala]
+val two = scala"2"
+Literal(Constant(2))
+\end{lstlisting}
+
+Маленькие квазицитаты можно вставлять в большие при помощи сплайсинга:
+
+\begin{lstlisting}[language=scala]
+val four = scala"$two + $two"
+Apply(Select(two, newTermName("$plus")), List(two))
+\end{lstlisting}%$
+
+Квазицитаты можно использовать слева от стрелочки при паттерн-матчинге:
+
+\begin{lstlisting}[language=scala]
+four match { case "2 + $x" => println(showRaw(x)) }
+Literal(Constant(2))
+\end{lstlisting}%$
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Обобщенные квазицитаты}
+Механизм квазицитирования можно обобщить для встраивания совершенно чужеродных доменно-специфических языков.
+
+Реализовав парсинг, сплайсинг (и, возможно, паттерн-матчинг) для DSL, программист обеспечивает тесную интеграцию языка с Scala. Для использования провайдера необходимо просто задать идентификатор провайдера перед строчкой с квазицитатой.
+
+Провайдер квазицитаты выполняется во время компиляции, поэтому он может использовать семантическую информацию о программе (таблицы символов, сервис проверки типов, и т.д.), а также выполнять прекомпиляцию (аналогично тому, как мы это делали для регексов).
+
+Интересные способы применения квазицитат для создания доменно-специфических языков рассматриваются в работе \text{\color{red}\href{TODO!}{Why It’s Nice to be Quoted: Quasiquoting for Haskell}}.
+
+\end{frame}
+
+\section{Заключение}
+
+\begin{frame}[t,fragile]
+\frametitle{Резюме}
+\begin{itemize}
+\item Механизм макросов предоставляет прозрачные точки расширения компилятора. С помощью макросов можно  анализировать и оптимизировать код, генерировать бойлерплейт и \text{\color{linkblue}\href{http://scalamacros.org/usecases.html}{многое другое}}.
+\item Макросы в Скале - это уже реальность. В ближайшем будущем мы выпустим бета-версию и представим пропоузал по добавлению макросов в 2.10.
+\item Интересное направление исследования - квазицитаты. Они не только упрощают работу с макросами, но и позволяют интегрировать в Скалу внешние DSL. Эта фича находится на более ранней стадии по сравнению с макросами, но мы постараемся успеть допилить ее к 2.10.
+\item По шагам нашей демонстрации уже сейчас можно поэкспериментировать со своими собственными макросами. Если что-то не получится - напишите мне на \text{\color{linkblue}\href{mailto:eugene.burmako@epfl.ch}{eugene.burmako@epfl.ch}}, разберемся вместе.
+\end{itemize}
+\end{frame}
+
 \begin{frame}[t,fragile]
 \frametitle{Что дальше?}
 
@@ -188,40 +256,8 @@ macro annotation Serializable(implicit ctx: Context) = ...
 Вместе с бета-версией мы опубликуем документы в рамках Scala Improvement Process, в которых предложим включить макросы и, возможно, квазицитаты в версию 2.10 (которая выйдет в первой половине года).
 
 За новостями можно следить по следующим направлениям: \text{\color{linkblue}\href{http://scalamacros.org/news.html}{новости на scalamacros.org}} (официальные объявления), \text{\color{linkblue}\href{http://xeno-by.livejournal.com/tag/macros2011}{посты в моем ЖЖ}} (дизайн-заметки и майлстоуны), \text{\color{linkblue}\href{http://www.twitter.com/\#!/xeno_by}{мессаги в моем твиттере}} (с этим все понятно :)).
-\end{frame}
 
-\section{Макрос для регулярных выражений}
-
-\begin{frame}
-\frametitle{Демонстрация}
-(В оффлайновой версии слайдов тут будет транскрипт нашей сессии кодинга)
-\end{frame}
-
-\section{Заключение}
-
-\begin{frame}[t]
-\frametitle{Резюме}
-\begin{itemize}
-\item Механизм макросов предоставляет прозрачные точки расширения компилятора. С помощью макросов можно расширять семантику Скалы - анализировать и оптимизировать код, генерировать бойлерплейт и \text{\color{linkblue}\href{http://scalamacros.org/usecases.html}{многое другое}}.
-\item Макросы в Скале - это уже реальность. В ближайшем будущем мы выпустим бета-версию и представим пропоузал по добавлению макросов в 2.10.
-\item По шагам нашей демонстрации уже сейчас можно поэкспериментировать со своими собственными макросами. Если что-то не получится - напишите мне на \text{\color{linkblue}\href{mailto:eugene.burmako@epfl.ch}{eugene.burmako@epfl.ch}}, разберемся вместе.
-\end{itemize}
-\end{frame}
-
-\begin{frame}[t]
-\frametitle{Ссылки}
-\begin{itemize}
-
-\item Project Kepler, Compile-Time Metaprogramming for Scala\\
-\text{\color{linkblue}\href{https://github.com/scalamacros/kepler}{https://github.com/scalamacros/kepler}}
-
-\item Официальный сайт, документация и примеры\\
-\text{\color{linkblue}\href{http://scalamacros.org/}{http://scalamacros.org}}
-
-\item Живой журнал на русском, обновляется чаще всего\\
-\text{\color{linkblue}\href{http://xeno-by.livejournal.com/tag/macros2011}{http://xeno-by.livejournal.com/tag/macros2011}}
-
-\end{itemize}
+Наконец, за развитием проекта можно наблюдать на гитхабе: \text{\color{linkblue}\href{https://github.com/scalamacros/kepler}{https://github.com/scalamacros/kepler}}.Основная разработка ведется в \texttt{topic/macros}, экспериментальные вещи (вроде квазицитат) имеют собственные бранчи.
 \end{frame}
 
 \begin{frame}[c, fragile]
