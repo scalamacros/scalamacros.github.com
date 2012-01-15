@@ -73,7 +73,7 @@
 
 Сегодня мы обсудим прогресс проекта ``Кеплер'', в рамках которого разрабатываются \textbf{макросы} и \textbf{квазицитаты} - средства метапрограммирования времени компиляции для Скалы.
 
-В \text{\color{linkblue}\href{http://scalamacros.org/news/2011-10-29-talk-at-scalaby-meetup.html}{предыдущем выступлении}} я рассматривал макросы с теоретической точки зрения, а сегодня будет, в основном, практика. Поэтому перед тем, как продолжить чтение, может быть полезно просмотреть {\color{linkblue}\href{http://scalamacros.org/talks/2011-10-29-RuProjectKepler.pdf}{слайды прошлого рассказа}}.
+В \text{\color{linkblue}\href{http://scalamacros.org/news/2011/10/29/talk-at-scalaby-meetup.html}{предыдущем выступлении}} я рассматривал макросы с теоретической точки зрения, а сегодня будет, в основном, практика. Поэтому перед тем, как продолжить чтение, может быть полезно просмотреть {\color{linkblue}\href{http://scalamacros.org/talks/2011-10-29-RuProjectKepler.pdf}{слайды прошлого рассказа}}.
 
 После небольшого введения мы реализуем одну штуку, о которой я мечтал со времен знакомства с Немерле - конечно же, в виде макроса. Также в плане обсуждение абстрактных синтаксических деревьев Скалы в контексте разработки макросов. Приятного чтения!
 \end{frame}
@@ -103,11 +103,11 @@ hello world!
 
 Несмотря на свою простоту, интерполяция не поддается библиотечной реализации, так как она оперирует лексическим окружением, которое в явном виде недоступно.
 
-В рамках смелого научного эксперимента нам придется открыть \texttt{\color{red}\href{TODO!}{doTypedApply}} (функцию, которая типизирует применение методов) и вставить проверку на метод интерполяции. Внутри компилятора у нас есть полный доступ ко всей семантической информации о программе, чем мы и воспользуемся.
+В рамках смелого научного эксперимента нам придется открыть \texttt{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/compiler/scala/tools/nsc/typechecker/Typers.scala\#L2263}{doTypedApply}} (функцию, которая типизирует применение методов) и вставить проверку на метод интерполяции. Внутри компилятора у нас есть полный доступ ко всей семантической информации о программе, чем мы и воспользуемся.
 
 В тайпере возможно получить строковый литерал, который требуется проинтерполировать, и прямо на месте распарсить этот литерал. После этого, пройдясь по дереву контекстов, несложно составить словарь видимых переменных и превратить вызов метода \texttt{s} в обычную конкатенацию строк.
 
-Если очень интересно, детали реализации можно посмотреть \text{\color{red}\href{TODO!}{у меня в репозитории}}, а пока что пойдем дальше.
+Если очень интересно, детали реализации можно посмотреть \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/compiler/scala/tools/nsc/typechecker/Quasiquoter.scala\#L94}{у меня в репозитории}}, а пока что пойдем дальше.
 \end{frame}
 
 \begin{frame}[t,fragile]
@@ -200,7 +200,7 @@ s.forAllMatches("""^(?<key>.*?)=(?<value>.*)$""", println("key = %s, value = %s"
 \begin{frame}[t,fragile]
 \frametitle{Интерактивная презентация}
 
-За ходом реализации макроса можно проследить вживую. Для этого клонируем \text{\color{red}\href{https://github.com/xeno-by/alphakeplerdemo}{https://github.com/xeno-by/alphakeplerdemo}} и выбираем бранч \texttt{skeleton}.
+За ходом реализации макроса можно проследить вживую. Для этого клонируем \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo}{https://github.com/xeno-by/alphakeplerdemo}} и выбираем бранч \texttt{skeleton}.
 
 \begin{lstlisting}[language=bash]
 > git clone git@github.com:xeno-by/alphakeplerdemo.git
@@ -215,7 +215,7 @@ s.forAllMatches("""^(?<key>.*?)=(?<value>.*)$""", println("key = %s, value = %s"
 \begin{frame}[t,fragile]
 \frametitle{Знакомимся со скелетом макроса}
 
-Откроем \text{\color{red}\href{TODO!}{Rx.scala}}, в котором уже определен макрос в виде икстеншн-метода (да, так можно делать!) с телом, содержащим три вопросика (вы знали о такое фиче?):
+Откроем \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/skeleton/Rx.scala\#L25}{Rx.scala}}, в котором уже определен макрос в виде икстеншн-метода (да, так можно делать!) с телом, содержащим три вопросика (вы знали о такое фиче?):
 
 \begin{lstlisting}[language=scala]
 object Rx {
@@ -225,8 +225,9 @@ object Rx {
 }
 
 class Mx(val s: String) {
-  def macro forAllMatches(pattern: String, f: _): Unit =
+  def macro forAllMatches(pattern: String, f: _): Unit = {
     ???
+  }
 }
 \end{lstlisting}
 \end{frame}
@@ -265,7 +266,7 @@ s.forAllMatches("""^(?<key>.*?)=(?<value>.*)$""", println("key = %s, value = %s"
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Типизация аргументов макроса}
+\frametitle{Типизация аргументов макросов}
 
 На самом деле мы не можем типизировать выражение с \texttt{println} потому, что оно использует переменные \texttt{foo} и \texttt{bar}, которых еще нет в лексическом окружении - они будут магическим образом сгенерированы макросом.
 
@@ -288,7 +289,7 @@ if (inExprModeButNot(mode, FUNmode) && tree.symbol != null && tree.symbol.isMacr
 }
 \end{lstlisting}
 
-Временный отказ от типизации неприятен - в худшем случае ошибки в аргументах макроса будут обработаны позже, чем следовало бы, и в другом контексте, что может привести к путанице. Но эта жертва необходима для должной гибкости (см. \text{\color{red}\href{TODO!}{ретроспективу по Template Haskell}} насчет деталей).
+Временный отказ от типизации неприятен - в худшем случае ошибки в аргументах макроса будут обработаны позже, чем следовало бы, и в другом контексте, что может привести к путанице. Но эта жертва необходима для должной гибкости (см. \text{\color{linkblue}\href{http://hackage.haskell.org/trac/ghc/blog/Template\%20Haskell\%20Proposal}{ретроспективу по Template Haskell}} насчет деталей).
 \end{frame}
 
 \begin{frame}[t,fragile]
@@ -350,7 +351,7 @@ scala.NotImplementedError: an implementation is missing
 
 Начнем исследование с изучения того, какие параметры приходят в макрос. Для этого определимся, во что именно макрос компилируется.
 
-Для этого можно посмотреть в файл \text{\color{red}\href{TODO!}{Macros.scala}}, а можно запустить компиляцию макроса с флагом \texttt{-Ydebug}, в результате чего распечатается развернутый макрос:
+Для этого можно посмотреть в файл \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/compiler/scala/tools/nsc/typechecker/Macros.scala\#L32}{Macros.scala}}, а можно запустить компиляцию макроса с флагом \texttt{-Ydebug}, в результате чего распечатается развернутый макрос:
 
 \begin{lstlisting}[language=sh]
 > scalac -Xmacros -Ydebug Rx.scala
@@ -414,7 +415,7 @@ f: Apply(Ident(newTermName("println")), List(Apply(Select(Literal(Constant("..."
 
 Во-первых, имена дампер печатает в виде обычных строк, но в компиляторе они представляются объектами типа \texttt{Name}. Соответственно, эти строки надо оборачивать в \texttt{newTermName} или \texttt{newTypeName} в зависимости от контекста.
 
-Во-вторых, списки объектов выделяются отступами, а конструктор \texttt{List(...)} на печать не выводится. Чтобы узнать, что именно необходимо оборачивать в списки, лучше всего проконсультироваться с объявлениями подклассов \texttt{Tree} (\text{\color{red}\href{TODO!}{ссылка на Trees.scala}}).
+Во-вторых, списки объектов выделяются отступами, а конструктор \texttt{List(...)} на печать не выводится. Чтобы узнать, что именно необходимо оборачивать в списки, лучше всего проконсультироваться с объявлениями подклассов \texttt{Tree} (\text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/library/scala/reflect/api/Trees.scala}{ссылка на Trees.scala}}).
 
 Наконец, модификаторы выводятся в не очень наглядном виде. Мы не будем подробно останавливаться на этом моменте, только отметиим, что \texttt{Modifiers()} создает пустой объект-модификатор.
 \end{frame}
@@ -422,7 +423,7 @@ f: Apply(Ident(newTermName("println")), List(Apply(Select(Literal(Constant("..."
 \begin{frame}[t,fragile]
 \frametitle{PROFIT!}
 
-Вооружившись полученными знаниями и терпением, можно дописать макрос и получить долгожданный результат (подсказка находится в файлике \text{\color{red}\href{TODO!}{Rx.scala}} бранча \texttt{result}).
+Вооружившись полученными знаниями и терпением, можно дописать макрос и получить долгожданный результат (подсказка находится в файлике \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/result/Rx.scala\#L24}{Rx.scala}} бранча \texttt{result}).
 
 \begin{lstlisting}[language=bash]
 > scalac -Xmacros Rx.scala
@@ -451,7 +452,7 @@ s.forAllMatches(pattern, println(...))
 
 Я хотел обойти эту тему стороной потому, что дизайн квазицитат (в отличие от макросов) даже близко не завершен, поэтому финальная версия может радикально отличаться от текущего прототипа.
 
-Однако предоставляемый квазицитатами функционал действительно очень важен, поэтому мы немного поговорим на эту тему на следующих слайдах. Более подробно квазицитаты разобраны в \text{\color{linkblue}\href{http://scalamacros.org/news/2011-10-29-talk-at-scalaby-meetup.html}{предыдущем выступлении}}.
+Однако предоставляемый квазицитатами функционал действительно очень важен, поэтому мы немного поговорим на эту тему на следующих слайдах. Более подробно квазицитаты разобраны в \text{\color{linkblue}\href{http://scalamacros.org/news/2011/10/29/talk-at-scalaby-meetup.html}{предыдущем выступлении}}.
 \end{frame}
 
 \begin{frame}[t,fragile]
