@@ -475,7 +475,7 @@ Apply(Select(two, newTermName("$plus")), List(two))
 Квазицитаты можно использовать слева от стрелочки при паттерн-матчинге:
 
 \begin{lstlisting}[language=scala]
-four match { case "2 + $x" => println(showRaw(x)) }
+four match { case scala"2 + $x" => println(showRaw(x)) }
 Literal(Constant(2))
 \end{lstlisting}%$
 \end{frame}
