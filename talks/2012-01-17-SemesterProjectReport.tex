@@ -1,0 +1,342 @@
+\documentclass{llncs}
+
+\usepackage{color}
+\usepackage{amstext}
+
+\begin{document}
+\pagestyle{empty}
+\mainmatter
+
+\title{Project Kepler: Compile-Time Metaprogramming for Scala}
+\author{Eugene Burmako}
+\institute{\'{E}cole Polytechnique F\'{e}d\'{e}rale de Lausanne}
+\maketitle
+
+\begin{center}
+Semester project report, Fall 2011-2012
+\end{center}
+
+\begin{abstract}
+Metaprogramming is a powerful technique of software development, which allows to
+automate program generation. Applications of metaprogramming range from improving
+expressiveness of a programming language via deep embedding of domain-specific languages \cite{czar04}
+to boosting performance of produced code by providing programmer with fine-grained
+control over compilation \cite{seefried04}. In this report we introduce macros and quasiquotations,
+facilities that enable compile-time metaprogramming in Scala programming language.
+\end{abstract}
+
+\section{Introduction}
+
+As its name suggests, Scala (which stands for ``scalable language'' \cite{odersky10}) has been built from the ground up with extensibility in mind.
+Such features as abstract type members, explicit selftypes and modular mixin composition enable the programmer to compose programs
+as systems of reusable components \cite{odersky05}.
+
+The symbiosis of language features employed by Scala allows the code written in it to reach impressive
+levels of modularity \cite{odersky09}, however there is still some room for improvement. For example, the semantic gap between high-level abstractions and
+the runtime model of Java Virtual Machine brings performance issues that become apparent in high-performance scenarios \cite{hale11,dragos08}.
+Another example is state of the art in data access techniques. Recently established standards in this domain \cite{box07}
+cannot be readily expressed in Scala, which represents a disadvantage for enterprise software development.
+
+Compile-time metaprogramming has been recognized as a valuable tool for enabling such programming techniques as:
+\emph{language virtualization} (overloading/overriding semantics of the original programming language to enable deep embedding of DSLs) \cite{mccool02},
+\emph{program reification} (providing programs with means to inspect their own code) \cite{skalski05,attardi01},
+\emph{self-optimization} (self-application of domain-specific optimizations based on program reification) \cite{seefried04,cross02},
+\emph{algorithmic program construction} (generation of code that is tedious to write with the abstractions supported by a programming language) \cite{sheard02,skalski05}.
+
+Our research introduces new concepts to Scala programming languages (several flavors of macros along with quasiquotations)
+enabling metaprogramming techniques that address modern development challenges in an approachable and structured way \cite{kepler12a}.
+
+\section{Proposed extensions to Scala}
+
+We propose to enrich Scala with three flavors of type-safe compile-time macros: macro defs, macro types and macro annotations.
+These kinds of macros can be used wherever their vanilla analogues are used, but they are treated differently by the compiler,
+providing novel ways to analyze and generate code \cite{kepler12a}.
+
+Conceptually, macros \cite{sheard02,skalski05,steele90} are very close to compiler plugins \cite{spoon08}.
+Similarly to compiler plugins, macros run inside the compiler and operate on code as data in the form of abstract syntax trees.
+However, macros are more lightweight (don't require wrapping in boilerplate) and less universal (can inject into the compiler only in predefined extension points).
+
+Along with macros, our proposal suggests to extend Scala with quasiquotations \cite{skalski05,bawden99,mainland07} - special kinds of string literals that are parsed by Scala compiler
+and get transformed into abstract syntax trees. Quasiquotes can also be composed and decomposed in a simple fashion, which simplifies development of macros
+that are typically heavy on AST manipulations.
+
+\subsection{Macro defs}
+
+Macro defs are used to morph programs during the compile-time. Whenever a compiler sees an invocation of a method declared as a macro def,
+it calls the implementation of the macro with the arguments being the ASTs that correspond to the arguments of the original invocation.
+After the macro returns, its result gets inlined into the call site.
+
+The following example describes a type-safe \texttt{printf} function. Being a macro, \texttt{printf} formats the output during the compile-time,
+which provides safety guarantees inaccessible to regular approaches. This notion can be generalized to serve the needs of many other domains,
+the topic that is dwelled upon later in this section when discussing quasiquotations.
+
+\noindent
+\begin{verbatim}
+macro def printf(format: String, params: Any*) {
+  val (evals, refs) = parse(format, params)
+  val seq = evals + refs.map(x => scala"print($x)")
+  scala"$seq"
+}
+
+printf("Value = %d", 123 + 877)
+\end{verbatim}
+\noindent
+
+Macro defs are called as regular functions, as illustrated by the example.
+They run during the compile-time and operates on abstract syntax trees.
+\texttt{format}, \texttt{params} and the return value are of type \texttt{Tree}, which represents Scala ASTs.
+Macros can call arbitrary functions - for example, \texttt{parse} is a normal Scala method.
+
+\subsection{Macro types}
+
+Macro types are used to parametrically generate classes and traits that can be utilized directly, extended or mixed in, similarly to vanilla Scala classes and traits.
+Moreover, macro types can also declare new package objects full of definitions to be imported using regular Scala import syntax.
+
+After creating a suitable macro type for such domains as database access, inter-process interoperability, web services,
+the programmer is relieved from the necessity to generate and foster boilerplate classes.
+Since macro types integrate into Scala type system, they provide more flexibility than ad-hoc approaches to these problems.
+
+\noindent
+\begin{verbatim}
+macro trait MySqlDb(connString: String) = ...
+type MyDb = Base with MySqlDb("Server=127.0.0.1;Database=Foo;")
+
+import MyDb._
+val products = new MyDb().products
+products.filter(p => p.name.startsWith("foo")).toList
+\end{verbatim}
+\noindent
+
+Macro types are, in essence, very similar to macro defs - they are also functions that take ASTs and produce ASTs.
+Macro types generate fields, methods, inner classes and whatever members are supported by Scala.
+As shown in the code snippet, this virtual code can be used as if it were written manually.
+
+\subsection{Macro annotations}
+
+Macro annotations can be used to perform postprocessing on program elements (classes, methods, expressions, etc).
+Macro annotations are written in the very same way as regular annotations do, however, they are not just static participants of the compilation pipeline,
+but can actively participate in it.
+
+Potential areas of applicability of this feature include aspect-oriented programming,
+implementing new idioms (e.g. with macro annotations it's possible to introduce \texttt{@lazy} parameters or even work on sub-method level to, say, bless certain variables) and
+automatizing chores on a small scale.
+
+The example below features the \texttt{@Serializable} macro that reflects upon the members of the annotated class, generates serialization/deserialization routines and
+implements the \texttt{Serializable} interface that exposes them (compiler API used here is completely fictional, and is provided solely for demonstrational purposes).
+
+\noindent
+\begin{verbatim}
+macro annotation Serializable(implicit ctx: AnnotationContext) = ...
+
+@Serializable
+case class Person(name: String) extends Entity { ... }
+\end{verbatim}
+\noindent
+
+\subsection{Quasiquotations}
+
+Macros introduced in previous sections are all about manipulating abstract syntax trees: most of their parameters are ASTs,
+they manipulate ASTs and, finally, their return values are ASTs. However, even in languages with algebraic data types and pattern-matching,
+dealing with ASTs is cumbersome and tedious.
+
+This situation can be remedied by quasiquotations, a DSL for AST manipulation. Quasiquotes let the programmer express abstract syntax trees
+in the very language these trees describe and also provide support for composition and pattern-matching of ASTs.
+
+The first and foremost function of quasiquoting is to transform literal strings into full-fledged abstract syntax trees
+(this and other code snippets in this subsection print out ASTs in internal format of \texttt{scalac} described in \cite{stocker10}).
+
+\noindent
+\begin{verbatim}
+val two = scala"2"
+Literal(Constant(2))
+\end{verbatim}
+\noindent
+
+Quasiquotations also provide means to embed smaller ASTs into larger ones by the means of splicing.
+When mentioned in a splice, a variable or an expression that evaluates to an AST will be inserted into the resulting quasiquote.
+
+\noindent
+\begin{verbatim}
+val four = scala"$two + $two"
+Apply(Select(two, newTermName("$plus")), List(two))
+\end{verbatim}
+\noindent
+
+Finally, quasiquotes can be used in pattern matching against abstract syntax trees.
+In that case splices in quasiquote patterns denote variables that will be bound during the match.
+
+\noindent
+\begin{verbatim}
+four match { case scala"2 + $x" => println(showRaw(x)) }
+Literal(Constant(2))
+\end{verbatim}
+\noindent
+
+Finally, the mechanism of quasiquotations as processed strings can be generalized to embrace arbitrary external domain-specific languages.
+By implementing parsing, splicing and possibly pattern-matching for a DSL, the programmer enjoys tight integration of the DSL with Scala.
+String processors, being implemented as macros, can use compiler services (symbol tables, typechecker, etc) and perform precompilation,
+which proves useful in real-world programming tasks \cite{mainland07}.
+
+\section{Progress and future work}
+
+Project Kepler has been developed as a fork of the Scala compiler \cite{scala12}.
+At the moment, prototypes of macro defs and generalized quasiquotations are implemented in the project's public repository \cite{kepler12b}.
+
+Since its inception the project has received positive feedback from the community \cite{scalauser11}.
+It is a great pleasure for me to mention that Martin Odersky, the creator of Scala, has used macros to improve performance characteristics of \texttt{Range.foreach}
+from Scala standard library \cite{odersky12}.
+
+Our future work involves implementing the rest of the proposal and formalizing it as an extension to Scala.
+Other research areas include employing compile-time metaprogramming facilities to implement type manifests \cite{dubochet11}
+and to enable structured means of type-level programming.
+
+\begin{thebibliography}{99}
+
+\bibitem{czar04}
+  Czarnecki, K., Donnell, J. O., and Taha, W.,
+  \emph{DSL Implementation in MetaOCaml, Template Haskell and C++}.
+  DomainSpecific Program Generation,
+  2004.
+
+\bibitem{seefried04}
+  Seefried, S., Chakravarty, M., and Keller, G.,
+  \emph{Optimising Embedded DSLs using Template Haskell}.
+  Generative Programming and Component Engineering,
+  2004.
+
+\bibitem{odersky10}
+  Odersky, M., Spoon L., and Venners B.,
+  \emph{Programming in Scala, Second Edition}.
+  Artima Press,
+  2010.
+
+\bibitem{odersky05}
+  Odersky, M., and Zenger M.,
+  \emph{Scalable Component Abstractions}.
+  ACM Sigplan Notices,
+  2005.
+
+\bibitem{odersky09}
+  Odersky, M., and Moors, A.,
+  \emph{Fighting Bit Rot with Types (Experience Report: Scala Collections)}.
+  Theoretical Computer Science,
+  2009.
+
+\bibitem{box07}
+  Box, D., and Hejlsberg, A.,
+  \emph{LINQ: .NET Language-Integrated Query},
+  Retrieved from http://msdn.microsoft.com/en-us/library/bb308959.aspx,
+  2007.
+
+\bibitem{hale11}
+  Hale C.,
+  \emph{Private correspondence with Donald Fischer and Martin Odersky},
+  Retrieved from http://codahale.com/downloads/email-to-donald.txt,
+  2011.
+
+\bibitem{dragos08}
+  Dragos I.,
+  \emph{Optimizing Higher-Order Functions in Scala},
+  Third International Workshop on Implementation Compilation Optimization of ObjectOriented Languages Programs and Systems,
+  2008.
+
+\bibitem{mccool02}
+  McCool, M. D., Qin, Z., and Popa, T. S.,
+  \emph{Shader metaprogramming},
+  Proceedings of the ACM SIGGRAPHEUROGRAPHICS conference on Graphics hardware,
+  2002.
+
+\bibitem{sheard02}
+  Sheard, T., and Peyton Jones, S.,
+  \emph{Template Meta-programming for Haskell},
+  Haskell Workshop,
+  2002.
+
+\bibitem{skalski05}
+  Skalski K.,
+  \emph{Syntax-extending and type-reflecting macros in an object-oriented language},
+  Master Thesis,
+  2005.
+
+\bibitem{kepler12a}
+  Scala Macros,
+  \emph{Use cases},
+  Retrieved from http://scalamacros.org/usecases.html,
+  2012.
+
+\bibitem{attardi01}
+  Attardi, G., and Cisternino, A.,
+  \emph{Reflection support by means of template metaprogramming},
+  Time,
+  2001.
+
+\bibitem{cross02}
+  Cross, J., and Schmidt, D.,
+  \emph{Meta-Programming Techniques for Distributed Real-time and Embedded Systems},
+  7th IEEE Workshop on Object-oriented Real-time Dependable Systems,
+  2002.
+
+\bibitem{steele90}
+  Steele, G.,
+  \emph{Common LISP. The Language. Second Edition},
+  Digital Press,
+  1990.
+
+\bibitem{spoon08}
+  Spoon, L.,
+  \emph{Writing Scala Compiler Plugins},
+  Retrieved from http://www.scala-lang.org/node/140,
+  2008.
+
+\bibitem{bawden99}
+  Bawden, A.,
+  \emph{Quasiquotation in Lisp},
+  Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and SemanticsBased Program Manipulation,
+  1999.
+
+\bibitem{mainland07}
+  Mainland, G.,
+  \emph{Why it's Nice to be Quoted: Quasiquoting for Haskell},
+  Applied Sciences,
+  2007.
+
+\bibitem{stocker10}
+  Stocker, M.,
+  \emph{Scala Refactoring},
+  Master Thesis,
+  2010.
+
+\bibitem{scala12}
+  The Scala Programming Language,
+  \emph{The Scala programming language repository, GitHub},
+  Retrieved from https://github.com/scala/scala,
+  2012.
+
+\bibitem{kepler12b}
+  Scala Macros,
+  \emph{Project Kepler: Compiler-Time Metaprogramming for Scala, GitHub},
+  Retrieved from https://github.com/scalamacros/kepler,
+  2012.
+
+\bibitem{scalauser11}
+  Scala-user mailing list,
+  \emph{Implementing macros for Scala, looking for feedback!},
+  Retrieved from http://groups.google.com/group/scala\-user/browse\_thread/thread/800353f4a9ce36b9,
+  2011.
+
+\bibitem{odersky12}
+  The Scala Programming Language,
+  \emph{Replace Range.foreach by a while loop.},
+  Retrieved from https://github.com/odersky/scala/commit/35b36229b189a,
+  2012.
+
+\bibitem{dubochet11}
+  Dubochet, G.,
+  The Scala Programming Language,
+  \emph{Embedded Domain-Specific Languages using Libraries and Dynamic Metaprogramming},
+  PhD Thesis,
+  2011.
+
+\end{thebibliography}
+
+\end{document}
