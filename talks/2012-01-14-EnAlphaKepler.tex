@@ -179,16 +179,16 @@ We are also actively developing \text{\color{linkblue}\href{http://xeno-by.livej
 We have put up \text{\color{linkblue}\href{http://scalamacros.org}{scalamacros.org}}, a site that serves as a centralized source of information regarding our project. In our opinion, of significant interest is its \text{\color{linkblue}\href{http://scalamacros.org/usecases.html}{``Use Cases''}} section that elaborates on the areas of applicability of macros.
 \end{frame}
 
-\section{Пишем макрос для регулярок}
+\section{Hacking a regex macro}
 
 \begin{frame}[t,fragile]
-\frametitle{Постановка задачи}
+\frametitle{Problem statement}
 
-В Скале существует несколько способов использования регексов для нахождения фрагментов текста, удовлетворяющих определенным условиям.
+Scala provides several ways of using regexes to extract text fragments of certain shapes.
 
-Во-первых, это использование императивного \texttt{Match.group}, по старинке. Во-вторых, можно воспользоваться декларативным паттерн-матчингом при помощи \texttt{Regex.unapply}. Однако оба подхода имеют один и тот же недостаток. При использовании в регексах именованных групп имена придется писать дважды - один раз в регексе и второй раз при обработке матча.
+First of all, one can use vanilla imperative \texttt{Match.group}. Secondly, Scala library provides an extractor for regexes, so it's possible to extract matched groups using a pattern match. However, both approaches share the same shortcoming. When using named groups, one has to write the names twice - one time inside a regex (to name a group) and another time when processing a match (to declare a bound variable).
 
-Хочется, чтобы имена групп в регексе автоматически маппились на переменные в лексическом скоупе, то есть, чтобы можно было сделать вот так:
+It would be great to have group names automatically mapped onto variables in the lexical scope of a match processor, i.e. to be able to write as follows:
 
 \begin{lstlisting}[language=scala]
 val s = "foo=bar"
@@ -197,24 +197,24 @@ s.forAllMatches("""^(?<key>.*?)=(?<value>.*)$""", println("key = %s, value = %s"
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Интерактивная презентация}
+\frametitle{Interactive presentation}
 
-За ходом реализации макроса можно проследить вживую. Для этого клонируем \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo}{https://github.com/xeno-by/alphakeplerdemo}} и выбираем бранч \texttt{skeleton}.
+You can follow the implementation of a macro in interactive mode. To do that, clone \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo}{https://github.com/xeno-by/alphakeplerdemo}} and check out the \texttt{skeleton} branch.
 
 \begin{lstlisting}[language=bash]
 > git clone git@github.com:xeno-by/alphakeplerdemo.git
 > git checkout skeleton
 \end{lstlisting}
 
-Скелет содержит всю необходимую обвязку, оставляя нереализованным лишь тело макроса. Исходники надо компилировать именно компилятором, который лежит рядом, так как они используют фичи, которых еще нет в апстриме.
+Skeleton hosts all the necessary boilerplate, with the macro body left not implemented. Source files have to be compiled by the particular compiler that resides next to the sources, since we will use features that aren't in the upstream yet.
 
-И еще одно замечание. Java до версии 1.7 не поддерживает именованные группы внутри макросов, поэтому я написал небольшой воркараунд. Этот подход не годится для продакшена (неправильно работает с вложенными группами), но вполне неплох для демки.
+And one more remark. Before version 1.7, Java didn't support named groups inside regexes, so I've coded up a small workaround for that. My approach won't work for in a production setting (it fails on nested groups), but it's good enough for a demo.
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Знакомимся со скелетом макроса}
+\frametitle{Meeting the skeleton}
 
-Откроем \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/skeleton/Rx.scala\#L25}{Rx.scala}}, в котором уже определен макрос в виде икстеншн-метода (да, так можно делать!) с телом, содержащим три вопросика (вы знали о такое фиче?):
+Let's open \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/skeleton/Rx.scala\#L25}{Rx.scala}} that defines the macro as an extension method (yeh, it's possible to do that!) with the body featuring three question marks (did you know about that feature?):
 
 \begin{lstlisting}[language=scala]
 object Rx {
@@ -232,17 +232,17 @@ class Mx(val s: String) {
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Сигнатура макроса}
+\frametitle{Signature of the macro}
 
-В сигнатуре макроса нет ничего необычного, кроме одного момента - подчеркивания вместо типа параметра \texttt{f}.
+Macro signature is pretty much vanilla, except one thingie - the underscore that takes the place of a parameter type for \texttt{f}.
 
 \begin{lstlisting}[language=scala]
 def macro forAllMatches(pattern: String, f: _): Unit
 \end{lstlisting}
 
-Подчеркивание обозначает тот факт, что параметр не будет типизироваться тайпером, а сразу будет передан в макрос (эта нотация весьма свежая, поэтому есть шанс, что к релизу она изменится, но пока что будем использовать именно ее).
+The underscore denotes the fact that the parameter won't be typed by the typer and will be passed to the macro verbatim (this notation is very experimental, so there's a good chance that beta release will change it, but so far let's use the underscore).
 
-Но зачем это надо? Почему бы не указать тип \texttt{f: => Unit}, аналогично тому, как это сделано в обычном \texttt{foreach}?
+But why do we need this? Why not write \texttt{f: => Unit}, similarly to what is done in regular \texttt{foreach} from the collection API?
 
 \begin{lstlisting}[language=scala]
 def foreach(f: A => Unit): Unit
@@ -250,37 +250,37 @@ def foreach(f: A => Unit): Unit
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Как раскрываются макросы}
+\frametitle{Macro expansion}
 
-Обычная последовательность обработки макроса аналогична таковой для обработки вызова функции: вначале типизируются аргументы, после чего раскрывается макрос (что такое раскрытие макроса? это вызов его тела c набором AST, которые соответствуют его параметрам).
+Normal routine of expanding a macro is similar to the one that is employed for typing a method call: the arguments get typechecked first, and then the macro gets expanded (what is macro expansion? it is invoking a macro implementation using ASTs that corresponds to its parameters).
 
-Рассмотрим этот механизм на примере нашего гипотетического макроса:
+Let's study this mechanism for our hypothetical macro:
 
 \begin{lstlisting}[language=scala]
 val s = "foo=bar"
 s.forAllMatches("""^(?<key>.*?)=(?<value>.*)$""", println("key = %s, value = %s".format(key, value)))
 \end{lstlisting}%$
 
-С паттерном все понятно - он будет типизирован как обычная строка, но что делать с функцией? Можем ли мы ее типизировать?
+Processing the pattern is pretty much obvious - it will be typed as a regular string, but what do we do with the function (the expession that involves \texttt{println})? Can we type it?
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Типизация аргументов макросов}
+\frametitle{Typing macro arguments}
 
-На самом деле мы не можем типизировать выражение с \texttt{println} потому, что оно использует переменные \texttt{foo} и \texttt{bar}, которых еще нет в лексическом окружении - они будут магическим образом сгенерированы макросом.
+Actually we cannot type the expession that involves \texttt{println}, because it uses \texttt{foo} and \texttt{bar}, the variables that are not present in lexical scope - they will be magically generated by a macro.
 
-Конечно, в нашем случае живой человек мог бы догадаться, что эти переменные имеют тип \texttt{String}, но для компилятора макрос абсолютно непрозрачен (так как он выполняется уже после типизации аргументов). Возможно, в зависимости от фазы луны макрос будет возвращать то строки, то инты  - что тогда делать?
+Of course, in our case a human would infer these variables being strings, but to the compiler macros are completely opaque (since they represent dynamic pieces of code). For example, a weird macro could nondeterministically return either strings or ints - what would we do then?
 
-Поэтому в данном случае компилятор вынужден пропустить типизацию выражения, передаваемого в макрос. Означает ли это, что макросы отменяют статическую проверку типов?
+Therefore in this case the compiler has to give up typing the expression that is passed to a macro. Does this mean that macros overrule compile-time type checks?
 \end{frame}
 
 
 \begin{frame}[t,fragile]
-\frametitle{Типобезопасность макросов}
+\frametitle{Type safety of macros}
 
-Со статической проверкой типов все в порядке, так как AST, которое вернет макрос в результате раскрытия, будет сразу же тайпчекнуто.
+Type safety doesn't get violated, since the AST that is returned by a macro expansion, gets typechecked right away.
 
-Для интереса вот фрагмент из Typers.scala, который демонстрирует эту логику.
+Just for fun, here's a snippet from Typers.scala that demonstrates expansion/typechecking logic.
 \begin{lstlisting}[language=scala]
 if (inExprModeButNot(mode, FUNmode) && tree.symbol != null && tree.symbol.isMacro && !tree.isDef) {
   val tree1 = expandMacro(tree)
@@ -288,34 +288,34 @@ if (inExprModeButNot(mode, FUNmode) && tree.symbol != null && tree.symbol.isMacr
 }
 \end{lstlisting}
 
-Временный отказ от типизации неприятен - в худшем случае ошибки в аргументах макроса будут обработаны позже, чем следовало бы, и в другом контексте, что может привести к путанице. Но эта жертва необходима для должной гибкости (см. \text{\color{linkblue}\href{http://hackage.haskell.org/trac/ghc/blog/Template\%20Haskell\%20Proposal}{ретроспективу по Template Haskell}} насчет деталей).
+Cheating a typechecker feels bad - in our case this might lead to misleading error messages (after being rehashed by a macro, errors in ASTs that represent macro arguments might manifest themselves in wildly different contexts). However, this sacrifice is necessary for flexibility purposes (see \text{\color{linkblue}\href{http://hackage.haskell.org/trac/ghc/blog/Template\%20Haskell\%20Proposal}{a restrospective on Template Haskell}} for more details).
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Тестовый запуск}
-Теперь, когда мы разобрались с точкой отсчета, попробуем запустить код как есть и посмотреть что случится. Наверняка, будет кое-что интересное.
+\frametitle{Test run}
+Now, when we're settled down with the starting point, let's try executing the code as is and seeing what happens. Undoubtedly, this is going to be something interesting.
 
 \begin{lstlisting}[language=bash]
 > scalac -Xmacros Rx.scala Test.scala
 Test.scala:5: error: macro implementation not found: forAllMatches
 \end{lstlisting}
 
-Упс! Результат занимательный, но не очень вдохновляющий. Мы наткнулись на проблему совместной компиляции макросов и их клиентов.
+Oops! The result is though-provoking, but not very inspiring. We've stumbled upon the problem of joint compilation of macros and their clients.
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Раздельная компиляция}
-Дело вот в чем. Как упоминалось раньше, макросы - это мини-плагины к компилятору, которые загружаются из classpath и выполняются во время компиляции.
+\frametitle{Separate compilation}
+Here's the deal. As we've mentioned earlier, macros are mini-plugins to the compiler that are loaded from the classpath and executed during the compile-time.
 
-Но как компилятор загрузит \texttt{forAllMatches}, если тот еще не скомпилировался?
+But how is the compiler going to load \texttt{forAllMatches}, if this function hasn't been compiled yet?
 
-Можно теоретически представить себе компилятор, который автоматически анализирует зависимости и вначале компилирует макросы, после чего принимается за обычный код, но наш компилятор (пока что) так не умеет.
+It's theoretically possible to imagine a compiler that automatically analyzes the dependencies, compiles macros first and only then proceeds with the normal code, however our compiler isn't (yet) capable of that.
 
-Поэтому на текущий момент макросы надо компилировать отдельно от основной программы. При этом для компиляции программы надо не забыть добавить классы макросов в пользовательский classpath (\texttt{-cp}). На этих слайдах я не указываю путь к макросам явно, так как моя переменная окружения CLASSPATH содержит текущую папку.
+Thus for the moment macros have to be compiled separately from the rest of the application. Also one has to remember to add macro classes to the library classpath (\texttt{-cp}). On these slides, I don't specify the paths explicitly, because my CLASSPATH environment variable is configured to contain current directory.
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Первые результаты}
+\frametitle{First results}
 
 \begin{lstlisting}[language=bash]
 > scalac -Xmacros Rx.scala
@@ -327,30 +327,30 @@ scala.NotImplementedError: an implementation is missing
   at java.lang.reflect.Method.invoke(Method.java:597)
   at scala.reflect.runtime.Mirror.invoke(Mirror.scala:46)
   at ...Macros$class.macroExpand(Macros.scala:135)
-\end{lstlisting}
+\end{lstlisting}%$
 
-Уже лучше! Макрос действительно вызывается - и падает с \texttt{NotImplementedError}.
+Much better! The macro is invoked - and, of course, crashes with \texttt{NotImplementedError}.
 
-Заметим, что это исключение не рушит компилятор, а обрабатывается как обычная ошибка типизации (можно даже увидеть позицию, указывающую на макрос, при раскрытии которого произошла ошибка).
+Note that this exception doesn't blow the compiler up, but rather gets processed as a normal type erorr (one can even see the position that points to a macro call that has caused the error).
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Создаем деревья}
-Теперь приступим к написанию логики макроса. Как уже упоминалось, макросы работают на уровне абстрактных синтаксических деревьев, поэтому на входе у нас будут AST и на выходе мы тоже должны сгенерировать AST. Это весьма пугающий факт - формат AST нигде не документирован, что же нам делать?
+\frametitle{Creating the trees}
+Let's proceed with implementing the meat of the macro. As we've seen, macros work on the level of abstract syntax trees, so macro arguments will be ASTs and we'll have to generate an AST as a return value. This is scary - the exact format of ASTs is not documented, so what should we do?
 
-Нам помогут встроенные средства scalac по логгированию и преттипринтингу своих структур данных.
+We'll make good use of built-in logging and prettyprinting facilities of \texttt{scalac}.
 
-С одной стороны, у \texttt{Tree} (базового класса нодов AST Скалы) перегружен метод \texttt{toString}, которые печатает деревья в виде симпатично отформатированного кода на Скале. С другой стороны, при помощи \texttt{showRaw} можно детально проинспектировать структуру AST.
+On the one hand, \texttt{Tree} (the base class of Scala AST nodes) has \texttt{toString} overriden to print its contents as a nicely formatted code in Scala. On the other hand, with the help of \texttt{showRaw} one can get a detailed inspection of the structure of an input AST.
 
-Эта функциональность также доступна через такие флаги компилятора как \texttt{-Xshow-phases} и \texttt{-Yshow-trees}.
+This functionality is also available via \texttt{-Xshow-phases} and \texttt{-Yshow-trees} compiler flags.
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Параметры макроса}
+\frametitle{Parameters of the macro}
 
-Начнем исследование с изучения того, какие параметры приходят в макрос. Для этого определимся, во что именно макрос компилируется.
+Let's start the investigation from studying the parameters that get passed to the macro. To do that, let's inspect the exact shape of macro's binary representation.
 
-Для этого можно посмотреть в файл \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/compiler/scala/tools/nsc/typechecker/Macros.scala\#L32}{Macros.scala}}, а можно запустить компиляцию макроса с флагом \texttt{-Ydebug}, в результате чего распечатается развернутый макрос:
+One approach to that is looking into \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/compiler/scala/tools/nsc/typechecker/Macros.scala\#L32}{Macros.scala}}. Another approach involves running compilation of the macro with \texttt{-Ydebug}, which will print the desugaring of the macro:
 
 \begin{lstlisting}[language=sh]
 > scalac -Xmacros -Ydebug Rx.scala
@@ -364,23 +364,23 @@ macro def: def defmacro$forAllMatches
   $qmark$qmark$qmark
 }
 added to module class Mx: method defmacro$forAllMatches
-\end{lstlisting}
+\end{lstlisting}%$
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Параметры макроса}
+\frametitle{Parameters of the macro}
 
-Начнем по порядку. Во-первых, в макрос передается контекст компилятора - переменная \texttt{glob} типа \texttt{Universe} (публичный срез API компилятора, который содержит самые важные фичи вроде деревьев и типов).
+First things first. Our macro gets the compiler context - the \texttt{glob} of type \texttt{Universe} (public aspect of the compiler API that exposes the most important functionality, e.g. trees and types).
 
-Во-вторых (надеюсь, к этому моменту это уже не новость), параметры макроса приходят в виде AST: \texttt{pattern}, \texttt{f} и даже \texttt{\_this} (макрос вызывается как инстанс метод, поэтому у него должен быть \texttt{this}).
+Secondly (I hope, this is old news by now), macro parameters come into a macro in the form of abstract syntax trees. This includes \texttt{pattern}, \texttt{f} and even \texttt{\_this} (our macro gets called as an instance method, so it has to have its \texttt{this}).
 
-Еще один интересный момент - и параметры, и возвращаемое значение имеют path-dependent типы, которые зависят от контекста. Это сделано неслучайно - деревья компилятора мутабельные, поэтому нужно предотвратить их расшаривание между разными экземплярами компиляторов.
+Another interesting point - both the parameters and the return value have path-dependent types that are parameterized with the context. This is done on purpose - most of compiler data structures (including trees) are mutable, so we need to prevent their sharing between different compiler instances.
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Исследование параметров}
+\frametitle{Inspecting parameters}
 
-Наконец, можно посмотреть, что же именно приходит в параметры макроса. Для этого воспользуемся проверенным методом - вставим в тело макроса печать деревьев при помощи \texttt{showRaw}.
+Finally, we can take a look at what exactly gets passed in macro parameters. To do that, we'll use good old tracing and insert a couple of \texttt{showRaw}'s in the body of the macro.
 
 \begin{lstlisting}[language=scala]
 _this: Apply(Select(Ident(newTermName("Rx")), newTermName("string2mx")), List(Select(This(newTypeName("Test")), newTermName("s"))))
@@ -392,9 +392,9 @@ f: Apply(Ident(newTermName("println")), List(Apply(Select(Literal(Constant("..."
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Генерация результата}
+\frametitle{Generation of the result}
 
-После того, как мы получили представление о входных параметрах, давайте решим, во что именно будет раскрываться макрос. Мне нравится вот такой код:
+After getting the idea about the shape of the input parameters, let's decide on what exactly the macro will be expanded into. I like the following template:
 
 \begin{lstlisting}[language=scala]
 "...".findAllIn(s).matchData.foreach(m => {
@@ -404,25 +404,25 @@ f: Apply(Ident(newTermName("println")), List(Apply(Select(Literal(Constant("..."
 }))
 \end{lstlisting}
 
-Чтобы определить, какие деревья нужны для того, чтобы сгенерировать требуемый код, можно воспользоваться упомянутым выше трюком с \texttt{-Xprint:parser}. Флаг \texttt{-Yshow-trees} почти дословно покажет код, необходимый для создания деревьев вручную.
+To find out what trees we need to emit the required code, we can use the aforementioned trick with \texttt{-Xprint:parser}. Flag \texttt{-Yshow-trees} will almost verbatimly show the code that is necessary to hand-craft the trees.
 \end{frame}
 
 \begin{frame}[t,fragile]
-\frametitle{Замечание о работе \texttt{-Yshow-trees}}
+\frametitle{Notes on \texttt{-Yshow-trees}}
 
-\texttt{-Yshow-trees} очень полезен, но к нему зачастую приходится применять ментальный постпроцессинг.
+\texttt{-Yshow-trees} is very useful, but quite often one has to apply mental postprocessing to its results.
 
-Во-первых, имена дампер печатает в виде обычных строк, но в компиляторе они представляются объектами типа \texttt{Name}. Соответственно, эти строки надо оборачивать в \texttt{newTermName} или \texttt{newTypeName} в зависимости от контекста.
+Firstly, the names get printer as regular string, but the compiler represents them with the objects of type \texttt{Name}. Consequently, printed strings have to be wrapped in \texttt{newTermName} or \texttt{newTypeName} (depending on the context).
 
-Во-вторых, списки объектов выделяются отступами, а конструктор \texttt{List(...)} на печать не выводится. Чтобы узнать, что именно необходимо оборачивать в списки, лучше всего проконсультироваться с объявлениями подклассов \texttt{Tree} (\text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/library/scala/reflect/api/Trees.scala}{ссылка на Trees.scala}}).
+Secondly, lists of objects get marked only by indentation, whereas the \texttt{List(...)} constructor doesn't get printed at all. To find out what exactly has to be wrapped in lists, one has to consult the declarations of \texttt{Tree} subclasses (\text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/library/scala/reflect/api/Trees.scala}{link to Trees.scala}}).
 
-Наконец, модификаторы выводятся в не очень наглядном виде. Мы не будем подробно останавливаться на этом моменте, только отметиим, что \texttt{Modifiers()} создает пустой объект-модификатор.
+Finally, modifiers get dumped in a not very intuitive way. We won't discuss this point here and will just mention that \texttt{Modifiers()} creates an empty modifiers object, which is sufficient for the purposes of the demo.
 \end{frame}
 
 \begin{frame}[t,fragile]
 \frametitle{PROFIT!}
 
-Вооружившись полученными знаниями и терпением, можно дописать макрос и получить долгожданный результат (подсказка находится в файлике \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/result/Rx.scala\#L24}{Rx.scala}} бранча \texttt{result}).
+Having acquired all the aforementioned knowledge, we can implement the body of the macro and get the long-awaited result (or we can cheat and peek into \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/result/Rx.scala\#L24}{Rx.scala}} in the \texttt{result} branch).
 
 \begin{lstlisting}[language=bash]
 > scalac -Xmacros Rx.scala
@@ -431,7 +431,7 @@ f: Apply(Ident(newTermName("println")), List(Apply(Select(Literal(Constant("..."
 key = foo, value = bar
 \end{lstlisting}
 
-Вопрос на засыпку. Попробуйте предсказать, что получится, если строчку-регекс вынести во временную переменную, то есть написать вот так:
+Final question. Try to predict what will happen, if you move the regex literal into a local variable, i.e. if you write as follows:
 
 \begin{lstlisting}[language=scala]
 val s = "foo=bar"
