@@ -460,21 +460,21 @@ However, the functionality provided by quasiquotes is truly important in the con
 Quasiquotes turn strings with code into equivalent abstract syntax trees:
 
 \begin{lstlisting}[language=scala]
-val two = scala"2"
+val two = c"2"
 Literal(Constant(2))
 \end{lstlisting}
 
 Smaller quasiquotes can be inserted into bigger ones by the virtue of splicing:
 
 \begin{lstlisting}[language=scala]
-val four = scala"$two + $two"
+val four = c"$two + $two"
 Apply(Select(two, newTermName("$plus")), List(two))
 \end{lstlisting}%$
 
 Quasiquotes can be used as patterns to match the structure of syntax trees and bind the parts of ASTs to variables:
 
 \begin{lstlisting}[language=scala]
-four match { case scala"2 + $x" => println(showRaw(x)) }
+four match { case c"2 + $x" => println(showRaw(x)) }
 Literal(Constant(2))
 \end{lstlisting}%$
 \end{frame}
