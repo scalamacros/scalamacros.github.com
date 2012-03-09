@@ -24,8 +24,7 @@ let heightOfMyOfficeWindow = 3.5<m>
 let speedOfImpact = sqrt(2.0 * gravityOnEarth * heightOfMyOfficeWindow)
 {% endhighlight %}
 
-<p>With current version of <a href="/sips/macros.html">macro proposal</a> (that might change before the final release of the SIP)
-one will be able to write the code like that:</p>
+<p>With macro types it becomes possible to write the code like that:</p>
 
 {% highlight scala %}
 val gravityOnEarth = u(9.81, "m/s^2")
@@ -33,7 +32,7 @@ val heightOfMyOfficeWindow = u(3.5, "m")
 val speedOfImpact = sqrt(2.0 * gravityOnEarth * heightOfMyOfficeWindow)
 {% endhighlight %}
 
-<p></code>u</code> is a macro def that takes a number and wraps it in a macro type that depends on the unit of measure passed.
+<p></code>u</code> is a <code>macro def</code> that takes a number and wraps it in a macro type that depends on the unit of measure passed.
 That macro type hosts all necessary stuff that overloads relevant operations (<code>arithmetic</code>, <code>math._</code> stuff, so on).
 These operations upon units of measure would themselves be macros that produce new types as necessary.</p>
 

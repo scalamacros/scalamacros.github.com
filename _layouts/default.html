@@ -38,21 +38,17 @@
               {% if page.url == "/index.html" %}<li class="current">Overview</li>{% else %}
               <li><a href="/index.html">Overview</a></li>{% endif %}
 
+              {% if page.url == "/future.html" %}<li class="current">Future</li>{% else %}
+              <li><a href="/future.html">Future</a></li>{% endif %}
+
               {% if page.url == "/talks.html" %}<li class="current">Talks</li>{% else %}
               <li><a href="/talks.html">Talks</a></li>{% endif %}
 
               {% if page.url == "/usecases.html" %}<li class="current">Use cases</li>{% else %}
               <li><a href="/usecases.html">Use cases</a></li>{% endif %}
 
-              {% if page.url == "/documentation.html" or page.url == "/sips/index.html" %}<li class="current">Documentation</li>{% else %}
+              {% if page.url == "/documentation.html" %}<li class="current">Documentation</li>{% else %}
               <li><a href="/documentation.html">Documentation</a></li>{% endif %}
-
-              {% if page.url == "/documentation.html" or page.url == "/sips/index.html" or page.url == "/sips/macros.html" or page.url == "/sips/quasiquotations.html" %}
-                {% if page.url == "/sips/macros.html" %}<li class="current">Macros</li>{% else %}
-                <li><a href="/sips/macros.html">Macros</a></li>{% endif %}
-                {% if page.url == "/sips/quasiquotations.html" %}<li class="current">Quasiquotations</li>{% else %}
-                <li><a href="/sips/quasiquotations.html">Quasiquotations</a></li>{% endif %}
-              {% endif %}
 
               {% if page.url == "/download.html" %}<li class="current">Download</li>{% else %}
               <li><a href="/download.html">Download</a></li>{% endif %}
@@ -96,7 +92,7 @@
       </div>
       </div>
       <div id="footer">
-        ScalaMacros.org site &copy; 2011 <a href="http://xeno.by">Eugene Burmako</a>.
+        ScalaMacros.org site &copy; 2011-2012 <a href="http://xeno.by">Eugene Burmako</a>.
       </div>
     </div>
   </body>

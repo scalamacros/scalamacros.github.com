@@ -13,7 +13,7 @@ layout: nil
     <lastBuildDate>{{ site.time | date: "%a, %d %b %Y %H:%M:%S %Z" }}</lastBuildDate>
 
     {% for post in site.posts %}
-      {% if post.categories contains "news" or post.categories contains "usecases" or post.categories contains "sips" %}
+      {% if post.categories contains "news" or post.categories contains "usecases" %}
         <item>
           <title>{{ post.title }}</title>
           <link>{{ site.url }}{{ post.url }}</link>

@@ -24,13 +24,7 @@ Often, it's the most obvious and the only accessible one. The aforementioned cas
 
 <p>However, there are situations when generating a single type will not save the day. Sometimes the way to go is to create multiple types and/or functions at once.
 We considered to introduce macro packages, but decided that macro types will be enough, since Scala <code>objects</code>
-already represent an abstraction equivalent to packages (and even supercede them, because objects can be nested and, as of such, can capture values from the enclosing lexical scope).
-See more details on macro objects in <a href="/sips/macros.html">the proposal</a>.</p>
-
-<p>Generating piles of code is greatly simplified by quasiquotations. As outlined in one of our walkthroughs (<a href="/talks/2011-09-27-ProjectKepler.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>), quasiquotations:
-1) let the programmer express ASTs in the syntax of the target language,
-2) excel in composability by supporting splicing - a special operator that inserts one/several small ASTs into a big one,
-3) trivialize pattern matching against ASTs. See an example and more detailed dicussion in the <a href="/usecases/type-providers.html">"Type providers"</a> case study.</p>
+already represent an abstraction equivalent to packages (and even supercede them, because objects can be nested and, as of such, can capture values from the enclosing lexical scope).</p>
 
 <p>There are plenty of other situations when convenient facilities for boilerplate generation may come in handy.
 Just off the top of my head: enums, serialization/deserialization, <a href="http://www.scala-lang.org/node/9707">lenses</a>,

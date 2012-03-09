@@ -9,8 +9,7 @@ tag: important
 paper by Geoffrey B. Mainland describes an astonishing concept of embedding and integrating arbitrary languages into a sufficiently capable host language.</p>
 
 <p>One of the most impressive examples in the paper involves a <a href="http://en.wikipedia.org/wiki/Peephole_optimization">peephole optimizer</a> for x86 assembly language.
-The example exhibits such prominent features of quasiquoting as: 1) expressing ASTs in native syntax, 2) easy composition, 3) enjoyable pattern matching
-(read more about quasiquotations in our walkthroughs: <a href="/talks/2011-09-27-ProjectKepler.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>).</p>
+The example exhibits such prominent features of quasiquoting as: 1) expressing ASTs in native syntax, 2) easy composition, 3) enjoyable pattern matching.</p>
 
 {% highlight haskell %}
 peep :: [Asm] -> [Asm]
@@ -24,19 +23,17 @@ peep [:asm | mov&s $&r1, &r2
 ...
 {% endhighlight %}
 
-<p>The point here is that a language with quasiquotations (which constitute <a href="/sips/quasiquotations.html">a part of our proposal</a>) can subsume and embed
-arbitrary external domain-specific languages, granted someone implement quasiquoting services (parsing, splicing, pattern matching) for that language.</p>
-
-<p>Taken to the extreme by the developers of <a href="http://code.google.com/p/nemerle-2/">Nemerle 2.0</a>, this idea might lead to the very host language and its type system
-being implemented in such a fashion. In Nemerle 2.0, RSDN guys plan to implement high-level DSLs for syntax and typing rules, so that the compiler, effectively,
-becomes a metacircular metacompiler. Though, I digress.</p>
+<p>The point here is that a language with quasiquotations can subsume and embed arbitrary external domain-specific languages,
+granted someone implements quasiquoting services (parsing, splicing, pattern matching) for that language.</p>
 
 <p>Beauty of this concept from the pragmatic standpoint comes from the fact that these external DSLs
 can be processed (for example, validated) by macros, which are evaluated during the compile time.
 This means that format strings, regexes, XML (less relevant for Scala), HTML, JavaScript - all those can be to certain extent validated during the compilation of the application,
 bringing additional static safety to the program.</p>
 
+<p>With the syntax introduced by (an unrelated) <a href="https://docs.google.com/document/d/1NdxNxZYodPA-c4MLr33KzwzKFkzm9iW9POexT9PkJsU/edit?hl=en_US&pli=1">SIP: String interpolation and formatting</a>,
+it becomes possible to write quasiquotations in Scala, and with macros it becomes possible to process these quasiquotations during the compile-time.</p>
+
 <p>Another useful application of this notion is convenient notation for new kinds of literals.
-For example, with the syntax introduced by <a href="https://docs.google.com/document/d/1NdxNxZYodPA-c4MLr33KzwzKFkzm9iW9POexT9PkJsU/edit?hl=en_US&pli=1">SIP: String interpolation and formatting</a>
-one could write <code>b"10001"</code> to express an integer literal <code>17</code>.
+For example, using the syntax from the aforementioned string interpolation SIP one could write <code>b"10001"</code> to express an integer literal <code>17</code>.
 The interpolation would be processed by a macro during the compile-time, which means that the programmer wouldn't pay any runtime penalty for the convenience.</p>

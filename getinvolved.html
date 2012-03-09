@@ -5,10 +5,10 @@ comments: true
 plusone: true
 ---
 
-<p>Start with cloning the git repository at <a href="https://github.com/scalamacros/kepler">https://github.com/scalamacros/kepler</a>.
-Currently the development is being performed in the <code>topic/macros</code> branch that is checked out automatically,
-so you don't need to do anything other than <code>git clone git://github.com/scalamacros/kepler.git</code> (read-only snapshot of the repository) or
-<code>git clone git@github.com:scalamacros/kepler.git</code> (read-write snapshot, if you have the permissions).</p>
+<p>Start with cloning the git repository at <a href="{{site.github.url}}">{{site.github.url}}</a>.
+Currently the development is being performed in the <code>develop</code> branch that is checked out automatically,
+so you don't need to do anything other than <code>git clone {{site.github.clone_url.read_only}}</code> (read-only snapshot of the repository) or
+<code>git clone {{site.github.clone_url.read_write}}</code> (read-write snapshot, if you have the permissions).</p>
 
 <h2>1. Prerequisites</h2>
 
@@ -103,7 +103,7 @@ Note that you must restart Eclipse in order to have the Scala compiler use that 
 
 <p>Q: Omg, panic! The IDE gives a lot of errors: &lt;long list of weird stuff&gt;.<br/>
 A: Try "Project > Clean...". If that does not work, try <code>ant all.clean</code> followed by <code>ant</code>.
-If that does not work, let us know at <a href="mailto:dev@scalamacros.org">dev@scalamacros.org</a>.</p>
+If that does not work, let us know at <a href="mailto:{{site.email}}">{{site.email}}</a>.</p>
 
 <h2>4. Working with the IDE</h2>
 
@@ -142,4 +142,4 @@ and then launch the debugging using the very same run configuration that you've 
 
 <p>Now you're all set and can hack Kepler! To find out what can be useful for the project,
 take a look at the <a href="/documentation.html">documentation</a> and
-write to us at <a href="mailto:dev@scalamacros.org">dev@scalamacros.org</a>.</p>
+write to us at <a href="mailto:{{site.email}}">{{site.email}}</a>.</p>

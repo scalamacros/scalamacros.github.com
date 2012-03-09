@@ -50,34 +50,11 @@ and, finally, they can be used as first-class modules (<code>objects</code> in S
 (see the <a href="/usecases/generation-of-boilerplate.html">"Generation of boilerplate"</a> case study).</p>
 
 {% highlight scala %}
-macro trait MySqlDb(connString: String) = ...
+type MySqlDb(connString: String) = macro ...
 type MyDb = Base with MySqlDb("Server=127.0.0.1;Database=Foo;")
 
 val products = new MyDb().products
 products.filter(p => p.name.startsWith("foo")).toList
-{% endhighlight %}
-
-<p>The ellipses in the implementation of <code>MySqlDb</code> hide another interesting concept.
-Runtime flavor of code generation (e.g. <code>System.Reflection.Emit</code>, <code>ASM</code> and likes) lifts the burden of maintenance of generated code,
-but still does not solve readability and composability issues with the generators themselves.
-To the contrast, compile-time metaprogramming with macros offers the programmer a domain-specific language targeted at code generation - so called,
-<a href="/sips/quasiquotations.html">quasiquotations</a>.</p>
-
-<p>As outlined in one of our walkthroughs (<a href="/talks/2011-09-27-ProjectKepler.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>), quasiquotations:
-1) let the programmer express ASTs in the syntax of the target language,
-2) excel in composability by supporting splicing - a special operator that inserts one/several small ASTs into a big one,
-3) trivialize pattern matching against ASTs:</p>
-
-{% highlight scala %}
-macro trait MySqlDb(connString: String) = {
-  val schema = getSchema(connString)
-  c"""
-    class ${schema.Name} {
-      val connString = $connString
-      ${schema.Tables map generateClassForTable}
-    }
-  """
-}
 {% endhighlight %}
 
 <p>All in all, macro types solve common problems with code generation by providing flexible extension points into the generation process

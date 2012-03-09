@@ -36,17 +36,20 @@ var q =
 <p>This happens because the lifting scheme is hardcoded to be shallow - lifting only processes the expression it sees and does not recursively generate ASTs for the functions used in the query.
 There exist several solutions to this problem (one of those is described in the aforementioned blog post), but they are not especially elegant.</p>
 
-<p>In <a href="/sips/macros.html">our proposal</a> LINQ can be implemented as follows (below we omit the discussion of LINQ infrastructure, and focus on
-the lifting part of the implementation). If certain aspects of the code are unclear, consult our walkthroughs
-(<a href="/talks/2011-10-18-WhatsUp.pdf">English</a>, <a href="/talks/2011-10-29-RuProjectKepler.pdf">Russian</a>):</p>
+<p>In <a href="/documentation.html">our proposal</a> LINQ can be implemented as follows (below we omit the discussion of LINQ infrastructure, and focus on
+the lifting part of the implementation):</p>
 
 {% highlight scala %}
 class Queryable[T, Repr](query: Query) {
-  macro def filter(p: T => Boolean): Repr = c"""
-    val b = $this.newBuilder
-    b.query = Filter($this.query, $reify(p))
+  def filter(p: T => Boolean): Repr = Impl.filter[T, Repr]
+}
+
+object Impl {
+  def filter[T: c.TypeTag, Repr: c.TypeTag](c: Context)(p: c.Expr[T => Boolean]) = reify {
+    val b = c.prefix.value.newBuilder
+    b.query = Filter(c.prefix.value.query, c.reifyTree(p))
     b.result
-  """
+  }
 }
 {% endhighlight %}
 
