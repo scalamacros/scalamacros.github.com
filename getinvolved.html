@@ -75,13 +75,16 @@ A: This happens when you try to build Kepler with JDK 1.7. Java 7 is not support
 We recommend to start with a fresh workspace, since the old one might have some traces of JDK 1.7, which will certainly mess up the things in the future
 (remember, building Scala with JDK 1.7 is not supported yet).</p>
 
+<p>Before creating a project, download our Eclipse configuration files: <a href="https://gist.github.com/2375580">.project</a> and <a href="https://gist.github.com/2375582">.classpath</a>, and put them in the root of the repo.
+They will help Eclipse create the project correctly, so that it uses only the files it needs, and that it doesn't use a built-in Scala IDE builder, which might be lagging behind Kepler's progress.</p>
+
 <p>NB! When creating a new project, choose the "Java project" option. Despite of Kepler being written in Scala, it, essentially, represents a new version of a Scala compiler,
 so regular idioms of building Scala projects do not apply to it.</p>
 
 <p><a href="/media/images/getinvolved/create-scalac-project-step1.png"><img src="/media/images/getinvolved/create-scalac-project-step1.png" /></a></p>
 <p><a href="/media/images/getinvolved/create-scalac-project-step2 (jdk 1.6!).png"><img src="/media/images/getinvolved/create-scalac-project-step2 (jdk 1.6!).png" /></a></p>
 
-<p>The repository already contains a template of an Eclipse project (the <code>.project</code> and <code>.classpath</code> files in the root of the repo),
+<p>The repository already contains a template of an Eclipse project (the <code>.project</code> and <code>.classpath</code> files that you just put in the root of the repo),
 so after you've clicked "Next" in the window shown in the previous screenshot, everything should be set up automatically.
 However, do verify that the aforementioned "everything" looks as follows:</p>
 
@@ -89,21 +92,9 @@ However, do verify that the aforementioned "everything" looks as follows:</p>
 <p><a href="/media/images/getinvolved/create-scalac-project-step4.png"><img src="/media/images/getinvolved/create-scalac-project-step4.png" /></a></p>
 <p><a href="/media/images/getinvolved/create-scalac-project-step5.png"><img src="/media/images/getinvolved/create-scalac-project-step5.png" /></a></p>
 
-<p>Here comes the most brittle part of the setup. Hit the "Build" action (either via package explorer's context menu or via main menu) and cross your fingers.
-If everything is fine, then you're done with setting up the project, otherwise read the following Q&A section:</p>
-
-<p>Q: After the compilation I've got exactly one error, something about <code>build.properties</code>.<br/>
-A: If that's the only error, then you're fine. It can be safely ignored.</p>
-
-<p>Q: You get parser errors from Scala on every non-ASCII symbol.<br/>
-A: The <code>.project</code> file uses the platform encoding, which on the Mac is MacRoman.
-Either change each project, if you have a reason to keep that default, or change the default to UTF-8.
-Note that you must restart Eclipse in order to have the Scala compiler use that new encoding default.
-<a href="https://www.assembla.com/spaces/scala-ide/wiki/Known_Issues#scala_errors_on_all_unicode_arrows">Learn more</a>.</p>
-
-<p>Q: Omg, panic! The IDE gives a lot of errors: &lt;long list of weird stuff&gt;.<br/>
-A: Try "Project > Clean...". If that does not work, try <code>ant all.clean</code> followed by <code>ant</code>.
-If that does not work, let us know at <a href="mailto:{{site.email}}">{{site.email}}</a>.</p>
+<p>Here comes the most brittle part of the setup. Reopen Eclipse to be sure, try to open a random file from <code>src/library</code> or <code>src/compiler</code>
+(e.g. <code>src/compiler/scala/tools/nsc/typechecker</code>) and do some Ctrl+clicking on the identifiers. If this successfully jumps you to definitions, then you're good.
+Otherwise, drop us a line at <a href="mailto:{{site.email}}">{{site.email}}</a>, and we will try to assist you with setting up the IDE.</p>
 
 <h2>4. Working with the IDE</h2>
 
