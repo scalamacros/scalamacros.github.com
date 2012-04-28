@@ -150,6 +150,10 @@ phase name  id  description
      typer   4  the meat and potatoes: type the trees
    pickler   7  serialize symbol tables
 \end{lstlisting}
+
+I'll do my best to explain these concepts, but it's barely possible to do it better than Paul Phillips.
+Be absolutely sure to watch the \text{\color{linkblue}\href{http://skillsmatter.com/podcast/scala/scalac-internals}
+{Inside the Sausage Factory}} talk (when the video is up).
 \end{frame}
 
 \begin{frame}[fragile]
@@ -238,6 +242,19 @@ members, type arguments, higher kinds, path dependencies, erasures, etc.
 \begin{frame}[fragile]
 \frametitle{Learn to learn}
 
+\begin{itemize}
+\item -Xprint:typer
+\item -Xprint-types
+\item -explaintypes
+\item :type -v
+\item asSeenFrom
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Learn to learn}
+
 \begin{lstlisting}[language=XML]
 scala> :type -v def impl[T: c.TypeTag](c: Context) = ???
 // Type signature
@@ -257,19 +274,6 @@ PolyType(
   )
 )
 \end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Learn to learn}
-
-\begin{itemize}
-\item -Xprint:typer
-\item -Xprint-types
-\item -explaintypes
-\item :type -v
-\item asSeenFrom
-\end{itemize}
-
 \end{frame}
 
 \begin{frame}[fragile]
