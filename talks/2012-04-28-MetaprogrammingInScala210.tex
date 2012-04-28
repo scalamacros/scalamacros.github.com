@@ -1,0 +1,451 @@
+\documentclass[hyperref={bookmarks=false}]{beamer}
+
+\usepackage[parfill]{parskip}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Metaprogramming in Scala 2.10},pdftitle={Metaprogramming in Scala 2.10}}
+\title{Metaprogramming in Scala 2.10}
+
+\definecolor{linkblue}{RGB}{49,57,174}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,annotation,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield,
+    macro},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/}
+%  morestring=[b]",
+%  morestring=[b]',
+%  morestring=[b]"""
+}
+
+\lstset{frame=tb,
+  language=scala,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=3
+}
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{Agenda}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\title{Metaprogramming in Scala 2.10}
+\author{Eugene Burmako}
+\institute{EPFL, LAMP}
+\date{28 April 2012}
+\maketitle
+
+\section{Intro}
+
+\begin{frame}[fragile]
+\frametitle{Metaprogramming}
+
+\begin{quote}
+Metaprogramming is the writing of computer programs that write or manipulate other programs or themselves as their data.
+\end{quote}
+
+\begin{flushright}
+\textemdash Wikipedia
+\end{flushright}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Compiler}
+
+Q: How to enable metaprogramming?
+
+A: Who has more data about a program than a compiler?
+
+Let's expose the compiler to the programmer.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reflection}
+
+In 2.10 we expose data about programs via reflection API.
+
+The API is spread between scala-library.jar (interfaces), scala-reflect.jar (implementations) and scala-compiler.jar \\ (runtime compilation).
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Let Martin speak}
+
+Design of the reflection API is explained in great detail in a recent talk by Martin Odersky:
+
+\text{\color{linkblue}\href{http://channel9.msdn.com/Events/Lang-NEXT/Lang-NEXT-2012/Reflection-and-Compilers}
+{channel9.msdn.com/Lang-NEXT-2012/Reflection-and-Compilers}}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hands on}
+
+Today we will learn the fundamentals of reflection API and learn to learn more about it
+via a series of hands-on examples.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros}
+
+Q: Hey! What about macros?
+
+A: Reflection is at the core of macros, reflection provides macros with an API, reflection enables macros.
+Our focus today is understanding reflection, macros are just a tiny bolt-on.
+
+For more information about macros, their philosophy and applications, take a look at my Scala Days talk:
+\text{\color{linkblue}\href{http://scalamacros.org/talks/2012-04-18-ScalaDays2012.pdf}
+{http://scalamacros.org/talks/2012-04-18-ScalaDays2012.pdf}}.
+
+\end{frame}
+
+\section{Reflection}
+
+\begin{frame}[fragile]
+\frametitle{Core data structures}
+
+\begin{itemize}
+\item Trees
+\item Symbols
+\item Types
+\end{itemize}
+
+\begin{lstlisting}[language=XML]
+C:\Projects\Kepler>scalac -Xshow-phases
+phase name  id  description
+----------  --  -----------
+    parser   1  parse source into ASTs, simple desugaring
+     namer   2  resolve names, attach symbols to named trees
+     typer   4  the meat and potatoes: type the trees
+   pickler   7  serialize symbol tables
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Trees}
+
+Short-lived, mostly immutable, mostly plain case classes.
+
+\begin{lstlisting}[language=Scala]
+Apply(Ident("println"), List(Literal(Constant("hi!"))))
+\end{lstlisting}
+
+Comprehensive list of public trees can be found here:
+\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Trees.scala}
+{scala/reflect/api/Trees.scala}}
+(be sure to take a look at the "standard pattern match" section in the end of the file).
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Learn to learn}
+
+\begin{itemize}
+\item -Xprint:parser
+\item -Yshow-trees and its cousins
+\item scala.reflect.mirror.showRaw(scala.reflect.mirror.reify(...))
+\end{itemize}
+
+Q: Where do I pull these compiler flags from?
+
+A: \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/compiler/scala/tools/nsc/settings/ScalaSettings.scala}
+{scala/tools/nsc/settings/ScalaSettings.scala}}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Symbols}
+
+Link definitions and references to definitions.
+Long-lived, mutable.
+Declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Symbols.scala}
+{scala/reflect/api/Symbols.scala}} (very much in flux!)
+
+\begin{lstlisting}[language=Scala]
+def foo[T: TypeTag](x: Any) = x.asInstanceOf[T]
+foo[Long](42)
+\end{lstlisting}
+
+foo, T, x introduce symbols (T actually produces two different symbols).
+DefDef, TypeDef, ValDef - all of those subtype DefTree.
+
+TypeTag, x, T, foo, Long refer to symbols.
+They are all represented by Idents, which subtype RefTree.
+
+Symbols are long-lived. This means that any
+reference to Int (from a tree or from a type) will point to the
+same symbol instance.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Learn to learn}
+
+\begin{itemize}
+\item -Xprint:namer
+\item -Yshow-trees and its cousins
+\item -Yshow-syms and \text{\color{linkblue}\href{http://groups.google.com/group/scala-internals/browse_thread/thread/c068bc0ed331430f}
+{much more}}
+\item :type -v (see next slides)
+\item -uniqid
+\item kind and -Yshow-symkinds
+\item Don't create them by yourself. Just don't, leave it to Namer.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Types}
+
+Immutable, long-lived, sometimes cached case classes declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Types.scala}{scala/reflect/api/Types.scala}}.
+
+Store the information about the full wealth of the Scala type system:
+members, type arguments, higher kinds, path dependencies, erasures, etc.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Learn to learn}
+
+\begin{lstlisting}[language=XML]
+scala> :type -v def impl[T: c.TypeTag](c: Context) = ???
+// Type signature
+[T](c: scala.reflect.makro.Context)(implicit evidence$1: c.TypeTag[T])Nothing
+
+// Internal Type structure
+PolyType(
+  typeParams = List(TypeParam(T))
+  resultType = MethodType(
+    params = List(TermSymbol(c: ...))
+    resultType = MethodType(
+      params = List(TermSymbol(implicit evidence$1: ...))
+      resultType = TypeRef(
+        TypeSymbol(final abstract class Nothing)
+      )
+    )
+  )
+)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Big picture}
+
+\begin{itemize}
+\item Trees are created naked by Parser.
+\item Both definitions and references (expressed as ASTs) get their symbols filled in by Namer (tree.symbol).
+\item When creating symbols, Namer also creates their completers, lazy thunks that know how to populate symbol types (symbol.info).
+\item Typer inspects trees, uses their symbols to transform trees and assign types to them (tree.tpe).
+\item Shortly afterwards Pickler kicks in and serializes reachable symbols along with their types into ScalaSignature annotations.
+\end{itemize}
+\end{frame}
+
+\section{Universes}
+
+\begin{frame}[fragile]
+\frametitle{Universes}
+
+Universes are environments that pack together trees, symbols and their types.
+
+\begin{itemize}
+\item Compiler (scala.tools.nsc.Global) is a universe.
+\item Reflective mirror (scala.reflect.mirror) is a universe too.
+\item Macro context (scala.reflect.makro.Context) holds a reference to a universe.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Symbol tables}
+
+Universes abstract population of symbol tables.
+
+\begin{itemize}
+\item Compiler loads symbols from pickles using its own *.class parser.
+\item Reflective mirror uses Java reflection to load and parse ScalaSignatures.
+\item Macro context refers to the compiler's symbol table.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Entry points}
+
+Using a universe depends on your scenario.
+
+\begin{itemize}
+\item You can play with compiler's universe (aka global) in REPL's :power mode.
+\item With mirrors you go through the \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Mirror.scala}{Mirror}}
+interface, e.g. symbolOfInstance or classToType.
+\item In a macro context, you import c.mirror.\_ and can use imported factories to create trees and types (don't create symbols manually, remember?).
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Path dependency}
+
+An important quirk is that all universe artifacts are path-dependent on their universe.
+
+\begin{lstlisting}{language=Scala}
+def reify[T](expr: T): Expr[T] = macro Universe.reify[T]
+def reify[T]
+  (cc: Context{ type PrefixType = Universe })
+  (expr: cc.Expr[T])
+  : cc.Expr[cc.prefix.value.Expr[T]] = ???
+\end{lstlisting}
+
+Hence to pass artifacts around outside the cake, you need to also carry the universe with you.
+Or create your own cake using the technique outlined in
+\text{\color{linkblue}\href{http://groups.google.com/group/scala-internals/msg/c861229693043723}{scala-internals discussion}}.
+\end{frame}
+
+\section{Demo}
+
+\begin{frame}[fragile]
+\frametitle{Reflection}
+
+\begin{lstlisting}{language=XML}
+scala> import scala.reflect.mirror
+import scala.reflect.mirror
+
+scala> trait X { def foo: String }
+defined trait X
+
+scala> typeTag[X]
+res1: TypeTag[X] = ConcreteTypeTag[X]
+
+scala> res1.tpe.members
+res2: Iterable[reflect.mirror.Symbol] = List(method $asInstanceOf, method $isInstanceOf, method sync
+hronized, method ##, method !=, method ==, method ne, method eq, constructor Object, method notifyAl
+l, method notify, method clone, method getClass, method hashCode, method toString, method equals, me
+thod wait, method wait, method wait, method finalize, method asInstanceOf, method isInstanceOf, meth
+od !=, method ==, method foo)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Dynamic}
+
+\begin{lstlisting}{language=Scala}
+val d = new DynamicProxy{ val dynamicProxyTarget = x }
+d.noargs
+d.noargs()
+d.nullary
+d.value
+d.-
+d.$("x")
+d.overloaded("overloaded with object")
+d.overloaded(1)
+val car = new Car
+d.typeArgs(car) // inferred
+d.default(1, 3)
+d.default(1)
+d.named(1, c=3, b=2) // works, wow
+\end{lstlisting}
+
+More examples at \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/test/files/run/dynamic-proxy.scala}{test/files/run/dynamic-proxy.scala}}.
+Implementation is at \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/DynamicProxy.scala}{scala/reflect/DynamicProxy.scala}}.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Runtime compilation}
+
+\begin{lstlisting}{language=Scala}
+import scala.reflect.mirror._
+val tree = Apply(Select(Ident("Macros"), newTermName("foo")), List(Literal(Constant(42))))
+println(Expr(tree).eval)
+\end{lstlisting}
+
+Eval creates a toolbox under the covers (universe.mkToolBox), which is a full-fledged compiler.
+
+Toolbox wraps the input AST, sets its phase to Namer (skipping Parser) and performs the compilation into an in-memory directory.
+
+After the compilation is finished, toolbox fires up a classloader that loads and lauches the code.
+
+\end{frame}
+
+\section{Macros}
+
+\begin{frame}[fragile]
+\frametitle{Macros}
+
+In our hackings above, we used the runtime mirror (scala.reflect.mirror) to reflect against program structure.
+
+We can do absolutely the same during the compile time.
+The universe is already there (the compiler itself), the API is there as well
+(scala.reflect.api.Universe inside the macro context).
+
+We only need to ask the compiler to call ourselves during the compilation
+(currently, our trigger is macro application and the hook is the macro keyword).
+
+The end.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{No, really}
+
+That's it.
+
+\end{frame}
+
+\section{Summary}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item In 2.10 you can have all the information about your program that the compiler has (well, almost).
+\item This information includes trees, symbols and types. And annotations. And positions.
+\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Universe.scala}{And more}}.
+\item You can reflect at runtime (scala.reflect.mirror) or at compile-time (macros).
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Status}
+
+We're already there. Nightlies already feature reflection and macros.
+In a few days we will release 2.10.0 M3.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Thanks!}
+
+\centering
+\text{\color{linkblue}\href{mailto:eugene.burmako@epfl.ch}{eugene.burmako@epfl.ch}}
+
+\end{frame}
+
+\end{document}
