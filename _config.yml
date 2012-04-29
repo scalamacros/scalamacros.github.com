@@ -8,8 +8,8 @@ google:
   api_key: "ABQIAAAAuDWGyZwnd1HI_IKK_OZ_gxSlgV6YuvoTRjHOTp1xlrRBa9pa2xTsqy3ur_UxfDbs8609KXWnUooOjQ"
   analytics_key: "UA-26914933-1"
   group:
-    url: "http://groups.google.com/group/scala-sips"
-    feed: "https://groups.google.com/group/scala-sips/feed/rss_v2_0_msgs.xml"
+    url: "http://groups.google.com/group/scala-user"
+    feed: "https://groups.google.com/group/scala-user/feed/rss_v2_0_msgs.xml"
 
 github:
   url: "https://github.com/scalamacros/kepler"

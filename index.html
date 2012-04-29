@@ -6,67 +6,28 @@ plusone: true
 ---
 
 <p>
-  This is the home page of the project Kepler, an ongoing effort towards bringing <b>compile-time metaprogramming</b> to Scala.
+  This is the home page of the project Kepler, an ongoing effort towards bringing compile-time metaprogramming to Scala.
   Our flavor of macros is reminiscent of Lisp macros, adapted to incorporate type safety and rich syntax.
   Unlike infamous C/C++ preprocessor macros, Scala macros: 1) are written in full-fledged Scala,
   2) work with expression trees, not with raw strings, 3) cannot change syntax of Scala.
 </p>
 
 <p>
-  We propose to enrich the Scala programming language with macro defs.
-  To the programmer macro defs look like normal methods, to the library developer macro defs provide a way to plug into the compiler.
-  Whenever a compiler sees an invocation of a method declared as a <code class="scala"><span class="n">macro def</span></code>,
-  it immediately calls its implementation that analyzes the program and/or generates new code at the call site (so called "macro expansion").
-  Read up more on that in <b><a href="/documentation.html">our Scala improvement proposal</a></b>,
-  which has a reference implementation at <a href="{{site.github.url}}">{{site.github.url}}</a>.
+  Macros are functions that are called by the compiler during compilation.
+  Within these functions the programmer has access to compiler APIs.
+  For example, it is possible to generate, analyze and typecheck code.
+  Learn more about macros in our <a href="/documentation/index.html">Documentation</a> section.
 </p>
 
 <p>
-  The following example describes a type-safe <code>printf</code> function.
-  Being a macro, <code>printf</code> formats the output during the compile-time, which provides safety guarantees inaccessible to regular approaches.
-  This notion can be generalized to serve the needs of many other domains, the topic that is dwelled upon in the
-  <a href="/usecases/integration-of-external-dsls.html">"Integration of external DSLs"</a> case study on this site.
-  If some aspects of the code are unclear, ask us on the <a href="{{site.google.group.url}}">mailing list</a>
-  or drop us a line at <a href="mailto:{{site.email}}">{{site.email}}</a>:
+  <b>Macros are now officially a part of the Scala language</b>.
+  Upcoming milestone release Scala 2.10.0 M3 will include macros that can be enabled
+  with <code class="scala">import language.experimental.macros</code> on per-file basis
+  or with <code class="scala">-language:experimental.macros</code> on per-compilation basis.
 </p>
 
-{% highlight scala %}
-// printf is a macro def, its body references the implementation declared below
-// signatures of macro defs and their implementations must match
-def printf(format: String, params: Any*): Unit = macro printf_impl
-
-// printf_impl implements the printf macro declared above
-// it is a regular Scala function that operates on ASTs that correspond to macro args
-// it must be defined in a statically acessible object to be callable during the compilation
-// the parameter of type Context provides restricted compiler API
-def printf_impl(c: Context)(format: c.Expr[String], params: c.Expr[Any]*): c.Expr[Unit] = {
-  // macros can call arbitrary functions, e.g. stuff from Scala library
-  // parse is a custom function of type (Expr[String], Expr[Any]*) => (Expr[Any]*, Expr[Any]*)
-  // evals and refs are regular Scala values and can be manipulated as usual
-  val (evals, refs) = parse(format, params)
-
-  // to construct the result of the macro you can:
-  // 1) hand-craft the ASTs using factories from Context.mirror
-  // 2) compose trees in a WYSIWYG fashion using reify and eval
-  // read the details on the latter in the proposal linked above
-  import c.mirror._
-  import c.reify
-  Block(evals ++ refs.map(ref => reify(println(ref.eval))))
-}
-
-// macro defs are called as regular functions
-// it's also possible to declare macro defs as class members
-// and invoke them using infix syntax
-printf("Value = %d", 42)
-
-// the code below represents the expansion of the above one-liner
-val p1 = 42: Int
-print("Value = ")
-print(p1)
-{% endhighlight %}
-
 <p>
-  Macros significantly <b>simplify code analysis and code generation</b>, which makes them a tool of choice for a multitude of <a href="/usecases.html">real-world use cases</a>.
+  Macros significantly simplify code analysis and code generation, which makes them a tool of choice for a multitude of <a href="/usecases.html">real-world use cases</a>.
   Scenarios that traditionally involve writing and maintaining boilerplate can be addressed with macros in concise and maintainable way.
   Therefore we believe that macros are a valuable asset to Scala programming language.
 </p>

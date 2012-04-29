@@ -32,32 +32,35 @@
         <ol>
           <li>
             <ol>
-              {% if page.url == "/news.html" or page.url == "/news/index.html" %}<li class="current">News</li>{% else %}
+              {% if page.url == "/news.html" or page.url == "/news/index.html" %}<li class="current"><a href="/news.html">News</a></li>{% else %}
               <li><a href="/news.html">News</a></li>{% endif %}
 
-              {% if page.url == "/index.html" %}<li class="current">Overview</li>{% else %}
+              {% if page.url == "/index.html" %}<li class="current"><a href="/index.html">Overview</a></li>{% else %}
               <li><a href="/index.html">Overview</a></li>{% endif %}
 
-              {% if page.url == "/future.html" %}<li class="current">Future</li>{% else %}
+              {% if page.url == "/future.html" %}<li class="current"><a href="/future.html">Future</a></li>{% else %}
               <li><a href="/future.html">Future</a></li>{% endif %}
 
-              {% if page.url == "/talks.html" %}<li class="current">Talks</li>{% else %}
+              {% if page.url == "/talks.html" %}<li class="current"><a href="/talks.html">Talks</a></li>{% else %}
               <li><a href="/talks.html">Talks</a></li>{% endif %}
 
-              {% if page.url == "/usecases.html" %}<li class="current">Use cases</li>{% else %}
+              {% if page.url == "/usecases.html" or page.url == "/usecases/index.html" %}<li class="current"><a href="/usecases.html">Use cases</a></li>{% else %}
               <li><a href="/usecases.html">Use cases</a></li>{% endif %}
 
-              {% if page.url == "/documentation.html" %}<li class="current">Documentation</li>{% else %}
+              {% if page.url == "/documentation.html" or page.url == "/documentation/howtocontribute.html" %}<li class="current"><a href="/documentation.html">Documentation</a></li>{% else %}
               <li><a href="/documentation.html">Documentation</a></li>{% endif %}
 
-              {% if page.url == "/download.html" %}<li class="current">Download</li>{% else %}
+              {% if page.url == "/documentation.html" or page.url == "/documentation/index.html" or page.url == "/documentation/specification.html" or page.url == "/documentation/reference.html" or page.url == "/documentation/gettingstarted.html" or page.url == "/documentation/howtocontribute.html" %}
+                {% if page.url == "/documentation/gettingstarted.html" %}<li class="current"><a href="/documentation/gettingstarted.html">Getting started</a></li>{% else %}
+                <li><a href="/documentation/gettingstarted.html">Getting started</a></li>{% endif %}
+                {% if page.url == "/documentation/specification.html" %}<li class="current"><a href="/documentation/specification.html">Specification</a></li>{% else %}
+                <li><a href="/documentation/specification.html">Specification</a></li>{% endif %}
+                {% if page.url == "/documentation/reference.html" %}<li class="current"><a href="/documentation/reference.html">Reference</a></li>{% else %}
+                <li><a href="/documentation/reference.html">Reference</a></li>{% endif %}
+              {% endif %}
+
+              {% if page.url == "/download.html" %}<li class="current"><a href="/download.html">Download</a></li>{% else %}
               <li><a href="/download.html">Download</a></li>{% endif %}
-
-              {% if page.url == "/getinvolved.html" %}<li class="current">Get involved</li>{% else %}
-              <li><a href="/getinvolved.html">Get involved</a></li>{% endif %}
-
-              {% if page.url == "/feedback.html" %}<li class="current">Feedback</li>{% else %}
-              <li><a href="/feedback.html">Feedback</a></li>{% endif %}
             </ol>
           </li>
         </ol>
