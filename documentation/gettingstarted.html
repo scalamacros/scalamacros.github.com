@@ -83,7 +83,7 @@ object Macros {
 <p>Ready to go? Type <code>scalac Macros.scala</code>, and let's have some fun.</p>
 
 {% highlight bash %}
-C:\Projects\Kepler\sandbox>scalac Macros.scala
+C:/Projects/Kepler/sandbox>scalac Macros.scala
 Macros.scala:8: error: macro definition needs to be enabled
 by making the implicit value language.experimental.macros visible.
 This can be achieved by adding the import clause 'import language.experimental.macros'
@@ -100,7 +100,7 @@ Do that either with <code>import language.experimental.macros</code> on per-file
 or with <code>-language:experimental.macros</code> (providing a compiler switch) on per-compilation basis.</p>
 
 {% highlight bash %}
-C:\Projects\Kepler\sandbox>scalac -language:experimental.macros Macros.scala
+C:/Projects/Kepler/sandbox>scalac -language:experimental.macros Macros.scala
 <scalac has exited with code 0>
 {% endhighlight %}
 
@@ -117,10 +117,10 @@ object Test extends App {
 {% endhighlight %}
 
 {% highlight bash %}
-C:\Projects\Kepler\sandbox>scalac Test.scala
+C:/Projects/Kepler/sandbox>scalac Test.scala
 <scalac has exited with code 0>
 
-C:\Projects\Kepler\sandbox>scala Test
+C:/Projects/Kepler/sandbox>scala Test
 hello
 world
 !
@@ -131,9 +131,9 @@ world
 if you're curious give them a try):</p>
 
 {% highlight bash %}
-C:\Projects\Kepler\sandbox>scalac -Ymacro-debug-lite Test.scala
+C:/Projects/Kepler/sandbox>scalac -Ymacro-debug-lite Test.scala
 typechecking macro expansion Macros.printf("hello %s!", "world") at
-source-C:\Projects\Kepler\sandbox\Test.scala,line-3,offset=52
+source-C:/Projects/Kepler/sandbox\Test.scala,line-3,offset=52
 {
   val eval$1: String = "world";
   scala.this.Predef.println("hello ");
@@ -168,7 +168,7 @@ That's because only declaring macros is hidden behind a flag, calling macros is 
 Thus macro implementations need to be compiled before the main compilation, otherwise you might see the following error:</p>
 
 {% highlight bash %}
-C:\Projects\Kepler\sandbox>scalac -language:experimental.macros Macros.scala Test.scala
+C:/Projects/Kepler/sandbox>scalac -language:experimental.macros Macros.scala Test.scala
 Test.scala:3: error: macro implementation not found: printf (the most common reason for that is that
 you cannot use macro implementations in the same compilation run that defines them)
 if you do need to define macro implementations along with the rest of your program,
@@ -188,10 +188,10 @@ Therefore always go for separate compilation, unless you're well aware of what y
 For example, let's crash our macro by providing invalid input:</p>
 
 {% highlight bash %}
-C:\Projects\Kepler\sandbox>scalac -language:experimental.macros Macros.scala
+C:/Projects/Kepler/sandbox>scalac -language:experimental.macros Macros.scala
 <scalac has exited with code 0>
 
-C:\Projects\Kepler\sandbox>scala
+C:/Projects/Kepler/sandbox>scala
 Welcome to Scala version 2.10.0-20120428-232041-e6d5d22d28 (Java HotSpot(TM) 64-Bit Server VM, Java 1.6.0_25).
 Type in expressions to have them evaluated.
 Type :help for more information.
