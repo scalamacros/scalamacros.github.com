@@ -1,5 +1,5 @@
 auto: true
-pygments: true
+pygments: false
 
 url: "http://scalamacros.org"
 email: "dev@scalamacros.org"
