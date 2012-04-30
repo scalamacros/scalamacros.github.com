@@ -99,7 +99,7 @@ The API is spread between scala-library.jar (interfaces), scala-reflect.jar (imp
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Let Martin speak}
+\frametitle{Martin knows better}
 
 Design of the reflection API is explained in great detail in a recent talk by Martin Odersky:
 
@@ -176,7 +176,8 @@ Comprehensive list of public trees can be found here:
 \frametitle{Learn to learn}
 
 \begin{itemize}
-\item -Xprint:parser
+\item -Xprint:parser (for naked trees)
+\item -Xprint:typer (for typechecked trees)
 \item -Yshow-trees and its cousins
 \item scala.reflect.mirror.showRaw(scala.reflect.mirror.reify(...))
 \end{itemize}
@@ -189,12 +190,59 @@ A: \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/co
 \end{frame}
 
 \begin{frame}[fragile]
+\frametitle{-Yshow-trees}
+
+\begin{lstlisting}[language=XML]
+// also try -Yshow-trees-stringified
+// and -Yshow-trees-compact (or both simultaneously)
+>scalac -Xprint:parser -Yshow-trees HelloWorld.scala
+[[syntax trees at end of parser]]// Scala source: HelloWorld.scala
+PackageDef(
+  "<empty>"
+  ModuleDef(
+    0
+    "Test"
+    Template(
+      "App" // parents
+      ValDef(
+        private
+        "_"
+        <tpt>
+        <empty>
+      )
+      ...
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{showRaw}
+
+\begin{lstlisting}[language=XML]
+scala> scala.reflect.mirror.reify{object Test {
+  println("Hello World!")
+}}
+res0: reflect.mirror.Expr[Unit] = ...
+
+scala> scala.reflect.mirror.showRaw(res0.tree)
+res1: String = Block(List(ModuleDef(
+  Modifiers(),
+  newTermName("Test"),
+  Template(List(Ident(newTypeName("Object"))), List(
+    DefDef(Modifiers(), newTermName("<init>"), List(), List(List()), TypeTree(), Block(List(Apply(Select(Super(This(newTypeName("")), newTypeName("")), newTermName("<init>")), List())), Literal(Constant(())))),
+    Apply(Select(Select(This(newTypeName("scala")), newTermName("Predef")), newTermName("println")), List(Literal(Constant("Hello World!")))))))),
+Literal(Constant(())))
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
 \frametitle{Symbols}
 
 Link definitions and references to definitions.
 Long-lived, mutable.
 Declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Symbols.scala}
-{scala/reflect/api/Symbols.scala}} (very much in flux!)
+{scala/reflect/api/Symbols.scala}} (very much in flux right now!)
 
 \begin{lstlisting}[language=Scala]
 def foo[T: TypeTag](x: Any) = x.asInstanceOf[T]
@@ -217,15 +265,50 @@ same symbol instance.
 \frametitle{Learn to learn}
 
 \begin{itemize}
-\item -Xprint:namer
-\item -Yshow-trees and its cousins
-\item -Yshow-syms and \text{\color{linkblue}\href{http://groups.google.com/group/scala-internals/browse_thread/thread/c068bc0ed331430f}
-{much more}}
-\item :type -v (see next slides)
+\item -Xprint:namer or -Xprint:typer
 \item -uniqid
-\item kind and -Yshow-symkinds
-\item Don't create them by yourself. Just don't, leave it to Namer.
+\item symbol.kind and -Yshow-symkinds
+\item :type -v
+\item Don't create them by yourself. Just don't, leave it to Namer. In macros most of the time you create naked trees, and Typer will take care of the rest.
 \end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{-uniqid and -Yshow-symkinds}
+
+\begin{lstlisting}[language=XML]
+>cat Foo.scala
+def foo[T: TypeTag](x: Any) = x.asInstanceOf[T]
+foo[Long](42)
+
+// there is a mysterious factoid hidden in this printout!
+>scalac -Xprint:typer -uniqid -Yshow-symkinds Foo.scala
+[[syntax trees at end of typer]]// Scala source: Foo.scala
+def foo#8339#METH
+  [T#8340#TPE >: Nothing#4658#CLS <: Any#4657#CLS]
+  (x#9529#VAL: Any#4657#CLS)
+  (implicit evidence$1#9530#VAL: TypeTag#7861#TPE[T#8341#TPE#SKO])
+  : T#8340#TPE =
+  x#9529#VAL.asInstanceOf#6023#METH[T#8341#TPE#SKO];
+
+Test#14#MODC.this.foo#8339#METH[Long#1641#CLS](42)
+(scala#29#PK.reflect#2514#PK.`package`#3414#PKO
+.mirror#3463#GET.TypeTag#10351#MOD.Long#10361#GET)
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{:type -v}
+
+We have just seen how to discover symbols used in trees.
+
+However, symbols are also used in types.
+
+Thanks to Paul (who hacked this during one of Scala Nights)
+there's an easy way to inspect types as well.
+Corresponding REPL incantation is shown on one of the next slides.
 
 \end{frame}
 
@@ -245,15 +328,22 @@ members, type arguments, higher kinds, path dependencies, erasures, etc.
 \begin{itemize}
 \item -Xprint:typer
 \item -Xprint-types
-\item -explaintypes
 \item :type -v
-\item asSeenFrom
+\item -explaintypes
 \end{itemize}
 
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Learn to learn}
+\frametitle{-Xprint-types}
+
+-Xprint-types is yet another option that modifies tree printing.
+Nothing very fancy, let's move on to something really cool.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{:type -v}
 
 \begin{lstlisting}[language=XML]
 scala> :type -v def impl[T: c.TypeTag](c: Context) = ???
@@ -273,6 +363,32 @@ PolyType(
     )
   )
 )
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{-explaintypes}
+
+\begin{lstlisting}[language=XML]
+>cat Test.scala
+class Foo { class Bar; def bar(x: Bar) = ??? }
+
+object Test extends App {
+  val foo1 = new Foo
+  val foo2 = new Foo
+  foo2.bar(new foo1.Bar)
+}
+
+// prints explanations of type mismatches
+>scalac -explaintypes Test.scala
+Test.foo1.Bar <: Test.foo2.Bar?
+  Test.foo1.type <: Test.foo2.type?
+    Test.foo1.type = Test.foo2.type?
+    false
+  false
+false
+Test.scala:6: error: type mismatch;
+...
 \end{lstlisting}
 \end{frame}
 
@@ -331,24 +447,25 @@ interface, e.g. symbolOfInstance or classToType.
 \frametitle{Path dependency}
 
 An important quirk is that all universe artifacts are path-dependent on their universe.
+Note the "reflect.mirror" prefix in the type of the result printed below.
 
-\begin{lstlisting}{language=Scala}
-def reify[T](expr: T): Expr[T] = macro Universe.reify[T]
-def reify[T]
-  (cc: Context{ type PrefixType = Universe })
-  (expr: cc.Expr[T])
-  : cc.Expr[cc.prefix.value.Expr[T]] = ???
+\begin{lstlisting}{language=XML}
+scala> scala.reflect.mirror.reify(2.toString)
+res0: reflect.mirror.Expr[String] = Expr[String](2.toString())
 \end{lstlisting}
 
-Hence to pass artifacts around outside the cake, you need to also carry the universe with you.
-Or create your own cake using the technique outlined in
-\text{\color{linkblue}\href{http://groups.google.com/group/scala-internals/msg/c861229693043723}{scala-internals discussion}}.
+When you deal with runtime reflection, you simply import scala.reflect.mirror.\_, and enjoy,
+because typically there is only one runtime mirror.
+
+However with macros it's more complicated. To pass artifacts around (e.g. into helper functions),
+you need to also carry the universe with you. Or you can employ the technique outlined in
+\text{\color{linkblue}\href{http://groups.google.com/group/scala-internals/msg/c861229693043723}{a discussion at scala-internals}}.
 \end{frame}
 
 \section{Demo}
 
 \begin{frame}[fragile]
-\frametitle{Reflection}
+\frametitle{Inspect members}
 
 \begin{lstlisting}{language=XML}
 scala> import scala.reflect.mirror
@@ -370,7 +487,7 @@ od !=, method ==, method foo)
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Dynamic}
+\frametitle{Analyze, typecheck and invoke members}
 
 \begin{lstlisting}{language=Scala}
 val d = new DynamicProxy{ val dynamicProxyTarget = x }
@@ -389,13 +506,35 @@ d.default(1)
 d.named(1, c=3, b=2) // works, wow
 \end{lstlisting}
 
+The proxy uses reflection that is capable of resolving all these calls.
 More examples at \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/test/files/run/dynamic-proxy.scala}{test/files/run/dynamic-proxy.scala}}.
 Implementation is at \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/DynamicProxy.scala}{scala/reflect/DynamicProxy.scala}}.
 
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Runtime compilation}
+\frametitle{Defeat erasure}
+
+\begin{lstlisting}{language=XML}
+scala> def foo[T](x: T) = x.getClass
+foo: [T](x: T)Class[_ <: T]
+
+scala> foo(List(1, 2, 3))
+res0: Class[_ <: List[Int]] = class scala.collection.immutable.$colon$colon
+
+scala> def foo[T: TypeTag](x: T) = typeTag[T]
+foo: [T](x: T)(implicit evidence$1: TypeTag[T])TypeTag[T]
+
+scala> foo(List(1, 2, 3))
+res1: TypeTag[List[Int]] = ConcreteTypeTag[List[Int]]
+
+scala> res1.tpe
+res2: reflect.mirror.Type = List[Int]
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Compile at runtime}
 
 \begin{lstlisting}{language=Scala}
 import scala.reflect.mirror._
