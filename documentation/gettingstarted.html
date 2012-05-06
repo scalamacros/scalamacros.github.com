@@ -72,7 +72,7 @@ object Macros {
     // now we combine all the code we have generated into a Block
     // note the call to reify, which provides a shortcut for creating ASTs
     // learn more about reify in our documentation
-    val stats = evals ++ refs.map(ref => c.reify(println(Expr(ref).eval)).tree)
+    val stats = evals ++ refs.map(ref => c.reify(print(Expr(ref).eval)).tree)
     Expr[Unit](Block(stats.toList, Literal(Constant(()))))
   }
 }
@@ -121,9 +121,7 @@ C:/Projects/Kepler/sandbox>scalac Test.scala
 <scalac has exited with code 0>
 
 C:/Projects/Kepler/sandbox>scala Test
-hello
-world
-!
+hello world!
 {% endhighlight %}
 
 <p>Wow, it seems to work! Let's see what happens under the covers by enabling <code>-Ymacro-debug-lite</code> compiler flag
