@@ -1,0 +1,409 @@
+\documentclass[hyperref={bookmarks=false}]{beamer}
+
+\usepackage[parfill]{parskip}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{pdfauthor={Scala Macros, a Technical Report},pdfsubject={Scala Macros, a Technical Report},pdftitle={Scala Macros, a Technical Report}}
+\title{Scala Macros, a Technical Report}
+
+\definecolor{linkblue}{RGB}{49,57,174}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,annotation,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield,
+    macro},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/}
+%  morestring=[b]",
+%  morestring=[b]',
+%  morestring=[b]"""
+}
+
+\lstset{frame=tb,
+  language=scala,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=3
+}
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\title{Scala Macros}
+\author{Eugene Burmako}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne}
+\date{09 July 2012 / Meta 2012}
+\maketitle
+
+\begin{frame}[fragile]
+\frametitle{What is this talk about?}
+Compile-time metaprogramming with AST transformers (called "macros" in Scala and in several other languages).
+
+Practice-oriented research we've done in Scala macrology: evolution of our design, problems we've faced and solved,
+open questions.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Behind the scenes}
+Applications of advanced features of Scala's type system to macros (cross-stage path-dependent types, type inference in presence of macros).
+
+Design of Scala reflection library, which exposes slices of the compiler API enabling programs to inspect themselves at compile-time and runtime.
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}[fragile]
+\frametitle{Project Kepler}
+
+The project was started in October 2011 with the following goals in mind:
+\begin{itemize}
+\item To democratize metaprogramming (at the moment there's a lot of hype that the future is multicore; along the similar lines my belief is that the future is meta).
+\item To solve several hot problems in Scala: insufficient control over inlining, need for reification in domain-specific languages.
+\end{itemize}
+
+Since April 2012 (milestone pre-release 2.10.0-M3) macros are a part of Scala. Several practical (data access facility, unit testing framework, library for numeric computations) and research projects are already using macros.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros in Scala}
+\begin{lstlisting}[language=scala]
+def assert(cond: Boolean, msg: Any) = macro assertImpl
+def assertImpl(c: Context)
+    (cond: c.Expr[Boolean], msg: c.Expr[Any]) =
+  if (assertionsEnabled)
+    <[ if (!$cond) raise($msg) ]>
+  else
+    <[ () ]>
+
+import assert
+assert(2 + 2 == 4, "weird arithmetic")
+\end{lstlisting}
+
+\begin{itemize}
+\item Metalanguage = target language
+\item Work with ASTs rather than with text
+\item Are type-aware and type-safe
+\end{itemize}
+
+Note: quasiquoting syntax used in this snippet is fictional. This is to avoid spoiling the fun from a discovery.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Putting macros in perspective}
+\begin{itemize}
+\item Text generators (C/C++ preprocessor, M4). Unaware of semantics of the target language. Typically metalanguage is different from the target language.
+\item Syntax extenders (CamlP4, SugarHaskell, Marco). Let the programmer define new productions and non-terminals for the original language grammar. Have hard time integrating with the compiler (bindings, type system).
+\item Deeply embedded DSLs (Virtualized Scala, LMS). Enjoy integration with the typechecker, yet can bend a lot of semantic rules of the host language.
+\item Macros (LISP, Scheme, MacroML, Template Haskell, \emph{Nemerle}, etc). Integrated into the compiler, expand during compilation, typically have access to the compiler API.
+\item Metalanguages (N2). Every aspect of a language (parser, type checker, code generation, IDE integration) is customizable.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Why this talk is interesting}
+\begin{itemize}
+\item Metacomputations (because metaprogramming is cool)
+\item Linguistics (several notational problems and solutions w.r.t metaprogramming)
+\item Metamacros (macro-generating macros, notation macros, self-cleaning macros)
+\end{itemize}
+\end{frame}
+
+\section{Notation}
+
+\begin{frame}[fragile]
+\frametitle{Notation for extension points}
+
+Function application:
+\begin{lstlisting}[language=scala]
+macro def assert(cond: Boolean, msg: Any) = ...
+assert(2 + 2 == 4, "weird arithmetic")
+\end{lstlisting}
+
+Type construction:
+\begin{lstlisting}[language=scala]
+macro type MySqlDb(connString: String) = ...
+type MyDb = Base with MySqlDb("Server=127.0.0.1")
+\end{lstlisting}
+
+Postprocessor for typechecking:
+\begin{lstlisting}[language=scala]
+macro annotation Serializable = ...
+@Serializable class Person(...)
+\end{lstlisting}
+
+Choice of extension points feels arbitrary and ad-hoc. To do better we need integration with the parser (Nemerle, SugarHaskell).
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Notation for metacode}
+v1:
+\begin{lstlisting}[language=scala]
+macro def assert(cond: Boolean, msg: Any) =
+  if (assertionsEnabled)
+    <[ if (!$cond) raise($msg) ]>
+  else
+    <[ () ]>
+\end{lstlisting}
+
+\begin{itemize}
+\item Minimalistic and appealing at a glance
+\item Transparent to the user, as the signature doesn't reveal the underlying magic
+\item Lexical scopes that work across stages look good
+\item Too good to be true
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Problem with notation v1}
+\begin{lstlisting}[language=scala]
+class Queryable[T, Repr](query: Query) {
+  macro def filter(p: T => Boolean): Repr = <[
+    val b = $newBuilder
+    b.query = Filter($query, ${reify(p)})
+    b.result
+  ]>
+}
+\end{lstlisting}
+
+\begin{itemize}
+\item p being used in the quasiquote is okay, since it comes from the same metalevel.
+\item But what about query? This is a runtime value, so we cannot splice it into a macro expansion.
+\item Adapting closure conversion we could make it work, but that would bring significant technical and cognitive problems.
+\item Neither Template Haskell, nor Nemerle allow that.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Notation for metacode}
+
+v2:
+\begin{lstlisting}[language=scala]
+def assert(cond: Boolean, msg: Any) = macro assertImpl
+def assertImpl
+    (c: Context)
+    (cond: c.Expr[Boolean], msg: c.Expr[Any]) =
+  if (assertionsEnabled)
+    <[ if (!$cond) raise($msg) ]>
+  else
+    <[ () ]>
+\end{lstlisting}
+
+\begin{itemize}
+\item Splits macro definitions and macro implementations. The latter are only allowed in static contexts.
+\item As a pleasant side effect, macro parameter magic is gone, and macro implementations are now first-class.
+\item Much more verbose and involves elaborate types (can be remedied with macro-generating macros).
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Notation for embedded code}
+
+An obvious approach is to introduce new syntax, following multiple languages which have done that:
+
+\begin{lstlisting}[language=scala]
+<[ if (!$cond) raise($msg) ]>
+\end{lstlisting}
+
+Being obvious this design decision is also suboptimal. It adds extra burden on the language spec, complicates parsing, is opaque to existing tools.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Notation for embedded code}
+
+When macros started brewing, Scala has experienced an explosion of new ideas after Martin Odersky announced a call for proposals to be included in Scala 2.10.
+
+By hijacking a string interpolation proposal, we have been able to extend it significantly. In a nutshell, code like this:
+
+\begin{lstlisting}[language=scala]
+scala"if (!$cond) raise($msg)"
+\end{lstlisting}
+
+Gets desugared by the parser into the following snippet:
+
+\begin{lstlisting}[language=scala]
+StringContext("if (!", ") raise (", ")").scala(cond, msg)
+\end{lstlisting}
+
+Now quasiquoting doesn't require any changes to the compiler, is modular (anyone can "pimp" the scala method onto StringContext with implicit conversions) and is, at least, partially amenable to automatic analysis.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metamacros}
+
+The approach outlined above has a minor deficiency. Parsing of quasiquoted Scala code is done at runtime:
+
+\begin{lstlisting}[language=scala]
+StringContext("if (!", ") raise (", ")").scala(cond, msg)
+\end{lstlisting}
+
+But why not make "scala" a macro? Then quasiquotes will be parsed at compile-time, and the overhead will be gone.
+
+This is a petty application of macros, and I'm almost embarassed to use the huge "metamacro" word to describe it, but the pomp helps to feel the significance of the example. It shows that macros trivialize ad-hoc metaprogramming.
+\end{frame}
+
+\section{Reification}
+
+\begin{frame}[fragile]
+\frametitle{A discovery}
+
+Macro-based string interpolation expressing quasiquotes is nice, being minimalistic, expressive and performant. What's even more important, it's conventional.
+
+\begin{lstlisting}[language=scala]
+scala"if (!$cond) raise($msg)"
+\end{lstlisting}
+
+A key insight, however, was ditching this good enough solution to explore and find something that's even better:
+
+\begin{lstlisting}[language=scala]
+reify(if (!cond.eval) raise(msg.eval))
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reified trees}
+
+\begin{lstlisting}[language=scala]
+reify(if (!cond.eval) raise(msg.eval))
+\end{lstlisting}
+
+Reify is a macro.
+
+It takes an AST that represents an expression (which in Scala can be even a declaration or a sequence of declarations) and generates a tree that will re-create that AST at runtime.
+
+eval method of the Expr class is marker that tells reify to splice the target expression into the resulting AST.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reify}
+
+Being a convenient way to produce ASTs, reify provides a quasiquoting facility that doesn't require new language features and immediately works with existing tools.
+
+More importantly, reify solves the problem of inadvertent name captures that can happen in macro-generated code (so called hygiene problem). Since reify has full control over the AST it generates, it can perform alpha renaming if necessary.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metamacros}
+Apparently macros are sufficiently powerful to bootstrap themselves into non-trivial functionality: quasiquoting and hygiene, which are traditionally introduced as separate features in macro-enabled languages.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Staging}
+
+Another curious fact is that reify enables staging.
+
+Macros can implement staging primitives from Walid Taha's MetaML thesis:
+\begin{itemize}
+\item Brackets are implemented by reify
+\item Escape is implemented inside reify by treating eval functions in a special way
+\item Run maps onto compilation and macro expansions (for nested reify calls)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Related work}
+
+\emph{Macros as Multi-Stage Computations} Ganz, Sabry \& Taha
+
+\emph{Staged Notational Definitions} Taha \& Johann
+
+Taha et al. build a macro system atop a staged language.
+
+We build a staged system atop a macro language.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reified types}
+
+Reify brings saves syntax trees and brings them to the next metalevel. Exactly the same can be done for types.
+
+There is a good reason to do that except plain curiosity. Type reification can defeat erasure.
+
+Scala (similarly to most functional languages) erases type arguments of polymorphic functions and type constructors. Hence types arguments cannot be inspected at runtime. With macros and reification it becomes possible to partially overcome this limitation.
+
+And again this can help writing macros.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Polymorphic macros}
+
+\begin{lstlisting}[language=scala]
+def serialize[T](x: T) = macro serializeImpl
+
+def serializeImpl[T: c.TypeTag](c: Context)(x: c.Expr[T])
+  // inspects T to find out internal structure of T
+  // and generate the serialization code
+\end{lstlisting}
+
+\begin{itemize}
+\item c.TypeTag is a context bound. Scala translates context bounds into implicit parameters. For example, this one will be compiled down to (implicit evidence\$1: c.TypeTag[T]).
+\item When an implicit parameter to a method is not provided, Scala launches implicit search that traverses scopes from the inside out and ends up at the outermost system scope.
+\item System scope defines a macro that reifies the requested type, providing runtime representation of T to be used within a macro (or in any other method).
+\end{itemize}
+
+\end{frame}
+
+\section{Wrapping up}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item The notion of macros is more interesting than what's implemented in C/C++ preprocessor
+\item Macros enable and encourage ad-hoc metaprogramming
+\item Being as ad-hoc as they are, macros are nevertheless powerful enough to implement such fundamental concepts as hygiene and staging
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Future work}
+
+Rephrasing Philip Wadler. How to make ad-hoc metaprogramming less ad-hoc?
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Thanks!}
+
+\centering
+
+\text{\color{linkblue}\href{mailto:eugene.burmako@epfl.ch}{eugene.burmako@epfl.ch}}
+
+\text{\color{linkblue}\href{http://scalamacros.org}{http://scalamacros.org}}
+
+\end{frame}
+
+\end{document}
