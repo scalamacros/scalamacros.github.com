@@ -20,7 +20,7 @@
 \usepackage{color}
 \usepackage{listings}
 \usepackage{hyperref}
-\hypersetup{pdfauthor={Scala Macros, a Technical Report},pdfsubject={Scala Macros},pdftitle={Scala Macros}}
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Scala Macros},pdftitle={Scala Macros}}
 \title{Scala Macros}
 
 \definecolor{linkblue}{RGB}{49,57,174}
@@ -227,7 +227,7 @@ class Queryable[T, Repr](query: Query) {
 \item \emph{p} being used in a macro expansion is okay, since it comes from the same metalevel.
 \item But what about \emph{query}? This is a runtime value, so we cannot splice it into the result of macro expansion.
 \item Adapting closure conversion we could make it work, but that would bring significant technical and cognitive problems.
-\item To avoid this problem \text{\color{red}{Template Haskell}} and Nemerle only allow macros in top-level definitions!
+\item To avoid this problem Template Haskell and Nemerle only allow macros in top-level definitions!
 \end{itemize}
 \end{frame}
 
@@ -350,7 +350,7 @@ object Test extends App {
 \emph{reify} can also express staging:
 
 \begin{itemize}
-\item Brackets are implemented by \emph{reify} itself \text{\color{red}{(what about lift?)}}
+\item Brackets are implemented by \emph{reify} itself
 \item Escape is implemented inside \emph{reify} by treating \emph{eval} functions in a special way
 \item Run is implicitly carried out by compilation and macro expansion (for nested \emph{reify} calls)
 \end{itemize}
