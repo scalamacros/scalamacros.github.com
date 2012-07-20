@@ -60,7 +60,7 @@
 \title{Metaprogramming in Scala 2.10}
 \author{Eugene Burmako}
 \institute{EPFL, LAMP}
-\date{28 April 2012}
+\date{28 April 2012 \\ (updated to accommodate changes in 2.10.0-M4 and M5)}
 \maketitle
 
 \section{Intro}
@@ -166,9 +166,9 @@ Apply(Ident("println"), List(Literal(Constant("hi!"))))
 \end{lstlisting}
 
 Comprehensive list of public trees can be found here:
-\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Trees.scala}
-{scala/reflect/api/Trees.scala}}
-(be sure to take a look at the "standard pattern match" section in the end of the file).
+\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/base/Trees.scala}{scala/reflect/base/Trees.scala}}. Also take a look at the cousin of the linked file at \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Trees.scala}{scala/reflect/api/Trees.scala}}.
+
+Why the split between base and api? The former is available everywhere, the latter requires scala-reflect.jar.
 
 \end{frame}
 
@@ -179,7 +179,8 @@ Comprehensive list of public trees can be found here:
 \item -Xprint:parser (for naked trees)
 \item -Xprint:typer (for typechecked trees)
 \item -Yshow-trees and its cousins
-\item scala.reflect.mirror.showRaw(scala.reflect.mirror.reify(...))
+\item ru.showRaw(ru.reify(...)) // where ru stands for scala.reflect.runtime.universe
+\item also check out the optional parameters of showRaw!
 \end{itemize}
 
 Q: Where do I pull these compiler flags from?
@@ -219,16 +220,15 @@ PackageDef(
 \frametitle{showRaw}
 
 \begin{lstlisting}[language=XML]
-scala> scala.reflect.mirror.reify{object Test {
-  println("Hello World!")
-}}
-res0: reflect.mirror.Expr[Unit] = ...
+// ru stands for scala.reflect.runtime.universe
+scala> ru.reify{ object Test { println("Hello World!") } }
+res0: reflect.runtime.universe.Expr[Unit] = ...
 
-scala> scala.reflect.mirror.showRaw(res0.tree)
+scala> ru.showRaw(res0.tree)
 res1: String = Block(List(ModuleDef(
   Modifiers(),
   newTermName("Test"),
-  Template(List(Ident(newTypeName("Object"))), List(
+  Template(List(Ident(newTypeName("AnyRef"))), List(
     DefDef(Modifiers(), newTermName("<init>"), List(), List(List()), TypeTree(), Block(List(Apply(Select(Super(This(newTypeName("")), newTypeName("")), newTermName("<init>")), List())), Literal(Constant(())))),
     Apply(Select(Select(This(newTypeName("scala")), newTermName("Predef")), newTermName("println")), List(Literal(Constant("Hello World!")))))))),
 Literal(Constant(())))
@@ -241,15 +241,16 @@ Literal(Constant(())))
 
 Link definitions and references to definitions.
 Long-lived, mutable.
-Declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Symbols.scala}
-{scala/reflect/api/Symbols.scala}} (very much in flux right now!)
+Declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/base/Symbols.scala}
+{scala/reflect/base/Symbols.scala}} and \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Symbols.scala}
+{scala/reflect/api/Symbols.scala}}
 
 \begin{lstlisting}[language=Scala]
 def foo[T: TypeTag](x: Any) = x.asInstanceOf[T]
 foo[Long](42)
 \end{lstlisting}
 
-foo, T, x introduce symbols (T actually produces two different symbols).
+foo, T, x introduce symbols (T actually produces two different symbols, but that's a different story).
 DefDef, TypeDef, ValDef - all of those subtype DefTree.
 
 TypeTag, x, T, foo, Long refer to symbols.
@@ -269,7 +270,8 @@ same symbol instance.
 \item -uniqid
 \item symbol.kind and -Yshow-symkinds
 \item :type -v
-\item Don't create them by yourself. Just don't, leave it to Namer. In macros most of the time you create naked trees, and Typer will take care of the rest.
+\item showRaw(tree, printIds = true, printKinds = true)
+\item Don't create them by yourself. Just don't, leave it to Namer. In macros most of the time you create naked trees, and Typer will take care of the rest. Sometimes it inevitable, though: \text{\color{linkblue}\href{http://stackoverflow.com/questions/11208790/how-can-i-reuse-definition-ast-subtrees-in-a-macro}{http://stackoverflow.com/questions/11208790}}.
 \end{itemize}
 
 \end{frame}
@@ -310,12 +312,16 @@ Thanks to Paul (who hacked this during one of Scala Nights)
 there's an easy way to inspect types as well.
 Corresponding REPL incantation is shown on one of the next slides.
 
+Starting from 2.10.0-M5 you can also use showRaw (defined in all universes:
+the scala.reflect.runtime.universe, all macro context universes)
+to print out raw structure of types.
+
 \end{frame}
 
 \begin{frame}[fragile]
 \frametitle{Types}
 
-Immutable, long-lived, sometimes cached case classes declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Types.scala}{scala/reflect/api/Types.scala}}.
+Immutable, long-lived, sometimes cached case classes declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/base/Types.scala}{scala/reflect/base/Types.scala}} and \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Types.scala}{scala/reflect/api/Types.scala}}.
 
 Store the information about the full wealth of the Scala type system:
 members, type arguments, higher kinds, path dependencies, erasures, etc.
@@ -329,6 +335,7 @@ members, type arguments, higher kinds, path dependencies, erasures, etc.
 \item -Xprint:typer
 \item -Xprint-types
 \item :type -v
+\item showRaw(type, printIds = true, printKinds = true)
 \item -explaintypes
 \end{itemize}
 
@@ -363,6 +370,28 @@ PolyType(
     )
   )
 )
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{showRaw (available since 2.10.0-M5)}
+
+\begin{lstlisting}[language=XML]
+scala> object O {
+  def impl[T: c.TypeTag](c: Context) = ???
+}
+defined module O
+
+scala> val meth = ru.reify(O).staticTpe.typeSymbol.
+  typeSignature.member(newTermName("impl"))
+meth: reflect.runtime.universe.Symbol = method impl
+
+scala> println(showRaw(meth.typeSignature))
+PolyType(
+  List(newTypeName("T")),
+  MethodType(List(newTermName("c")),
+    MethodType(List(newTermName("evidence$1")),
+      TypeRef(ThisType(scala), scala.Nothing, List()))))
 \end{lstlisting}
 \end{frame}
 
@@ -413,19 +442,21 @@ Universes are environments that pack together trees, symbols and their types.
 
 \begin{itemize}
 \item Compiler (scala.tools.nsc.Global) is a universe.
-\item Reflective mirror (scala.reflect.mirror) is a universe too.
+\item Reflection runtime (scala.reflect.runtime.universe) is a universe too.
 \item Macro context (scala.reflect.makro.Context) holds a reference to a universe.
 \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Symbol tables}
+\frametitle{Mirrors}
 
-Universes abstract population of symbol tables.
+Mirrors abstract population of symbol tables.
+
+Each universe can have multiple mirrors, which can share symbols within their parent universe. \text{\color{linkblue}\href{https://docs.google.com/document/d/1Z1VhhNPplbUpaZPIYdc0_EUv5RiGQ2X4oqp0i-vz1qw/edit}{Scala Reflection writeup}} elaborates on this in more detail.
 
 \begin{itemize}
-\item Compiler loads symbols from pickles using its own *.class parser.
-\item Reflective mirror uses Java reflection to load and parse ScalaSignatures.
+\item Compiler loads symbols from pickles using its own *.class parser. It has only one mirror, the rootMirror.
+\item Reflective mirror uses Java reflection to load and parse ScalaSignatures. Every classloader corresponds to its own mirror created with ru.runtimeMirror(classloader).
 \item Macro context refers to the compiler's symbol table.
 \end{itemize}
 \end{frame}
@@ -437,9 +468,9 @@ Using a universe depends on your scenario.
 
 \begin{itemize}
 \item You can play with compiler's universe (aka global) in REPL's :power mode.
-\item With mirrors you go through the \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Mirror.scala}{Mirror}}
-interface, e.g. symbolOfInstance or classToType.
-\item In a macro context, you import c.mirror.\_ and can use imported factories to create trees and types (don't create symbols manually, remember?).
+\item With runtime reflection you typically go through the \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Mirror.scala}{Mirror}}
+interface, e.g. scala.reflect.runtime.currentMirror, then cm.reflect and then you can get/set fields, invoke methods, etc. Read up more on \text{\color{linkblue}\href{http://stackoverflow.com/questions/11020746/get-companion-object-instance-with-new-scala-reflection-api}{stackoverflow}}.
+\item In a macro context, you import c.universe.\_ and can use imported factories to create trees and types (don't create symbols manually, remember?).
 \end{itemize}
 \end{frame}
 
@@ -447,15 +478,15 @@ interface, e.g. symbolOfInstance or classToType.
 \frametitle{Path dependency}
 
 An important quirk is that all universe artifacts are path-dependent on their universe.
-Note the "reflect.mirror" prefix in the type of the result printed below.
+Note the reflect.runtime.universe prefix in the type of the result printed below.
 
 \begin{lstlisting}{language=XML}
-scala> scala.reflect.mirror.reify(2.toString)
-res0: reflect.mirror.Expr[String] = Expr[String](2.toString())
+scala> ru.reify(2.toString)
+res0: reflect.runtime.universe.Expr[String] = Expr[String](2.toString())
 \end{lstlisting}
 
-When you deal with runtime reflection, you simply import scala.reflect.mirror.\_, and enjoy,
-because typically there is only one runtime mirror.
+When you deal with runtime reflection, you simply import scala.reflect.runtime.universe.\_, and enjoy,
+because typically there is only one runtime universe.
 
 However with macros it's more complicated. To pass artifacts around (e.g. into helper functions),
 you need to also carry the universe with you. Or you can employ the technique outlined in
@@ -468,47 +499,29 @@ you need to also carry the universe with you. Or you can employ the technique ou
 \frametitle{Inspect members}
 
 \begin{lstlisting}{language=XML}
-scala> import scala.reflect.mirror
-import scala.reflect.mirror
+scala> import scala.reflect.runtime.{universe => ru}
+import scala.reflect.runtime.{universe=>ru}
 
 scala> trait X { def foo: String }
 defined trait X
 
-scala> typeTag[X]
-res1: TypeTag[X] = ConcreteTypeTag[X]
+scala> ru.typeOf[X]
+res0: reflect.runtime.universe.Type = X
 
-scala> res1.tpe.members
-res2: Iterable[reflect.mirror.Symbol] = List(method $asInstanceOf, method $isInstanceOf, method sync
-hronized, method ##, method !=, method ==, method ne, method eq, constructor Object, method notifyAl
-l, method notify, method clone, method getClass, method hashCode, method toString, method equals, me
-thod wait, method wait, method wait, method finalize, method asInstanceOf, method isInstanceOf, meth
-od !=, method ==, method foo)
+scala> res0.members
+res1: Iterable[reflect.runtime.universe.Symbol] = List(method $asInstanceOf, method $isIn
+stanceOf, method synchronized, method ##, method !=, method ==, method ne, method eq, constructor Ob
+ject, method notifyAll, method notify, method clone, method getClass, method hashCode, method toStri
+ng, method equals, method wait, method wait, method wait, method finalize, method asInstanceOf, meth
+od isInstanceOf, method !=, method ==, method foo)
 \end{lstlisting}
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Analyze, typecheck and invoke members}
+\frametitle{Analyze and invoke members}
 
-\begin{lstlisting}{language=Scala}
-val d = new DynamicProxy{ val dynamicProxyTarget = x }
-d.noargs
-d.noargs()
-d.nullary
-d.value
-d.-
-d.$("x")
-d.overloaded("overloaded with object")
-d.overloaded(1)
-val car = new Car
-d.typeArgs(car) // inferred
-d.default(1, 3)
-d.default(1)
-d.named(1, c=3, b=2) // works, wow
-\end{lstlisting}
-
-The proxy uses reflection that is capable of resolving all these calls.
-More examples at \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/test/files/run/dynamic-proxy.scala}{test/files/run/dynamic-proxy.scala}}.
-Implementation is at \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/DynamicProxy.scala}{scala/reflect/DynamicProxy.scala}}.
+Daniel Sobral got it all covered in his series of articles about reflection:
+\text{\color{linkblue}\href{http://dcsobral.blogspot.ch/2012/07/json-serialization-with-reflection-in.html}{JSON serialization with reflection in Scala!}}
 
 \end{frame}
 
@@ -522,14 +535,11 @@ foo: [T](x: T)Class[_ <: T]
 scala> foo(List(1, 2, 3))
 res0: Class[_ <: List[Int]] = class scala.collection.immutable.$colon$colon
 
-scala> def foo[T: TypeTag](x: T) = typeTag[T]
-foo: [T](x: T)(implicit evidence$1: TypeTag[T])TypeTag[T]
+scala> def foo[T: ru.TypeTag](x: T) = ru.typeOf[T]
+foo: [T](x: T)(implicit evidence$1: ru.TypeTag[T])ru.Type
 
 scala> foo(List(1, 2, 3))
-res1: TypeTag[List[Int]] = ConcreteTypeTag[List[Int]]
-
-scala> res1.tpe
-res2: reflect.mirror.Type = List[Int]
+res1: reflect.runtime.universe.Type = List[Int]
 \end{lstlisting}
 \end{frame}
 
@@ -537,12 +547,14 @@ res2: reflect.mirror.Type = List[Int]
 \frametitle{Compile at runtime}
 
 \begin{lstlisting}{language=Scala}
-import scala.reflect.mirror._
-val tree = Apply(Select(Ident("Macros"), newTermName("foo")), List(Literal(Constant(42))))
-println(Expr(tree).eval)
+import scala.reflect.runtime.universe._
+import scala.tools.reflect.ToolBox
+val tree = Apply(Select(Literal(Constant(40)), newTermName("$plus")), List(Literal(Constant(2))))
+val cm = ru.runtimeMirror(getClass.getClassLoader)
+println(cm.mkToolBox().runExpr(tree))
 \end{lstlisting}
 
-Eval creates a toolbox under the covers (universe.mkToolBox), which is a full-fledged compiler.
+Toolbox is a full-fledged compiler (the scala.tools.reflect.ToolBox import requires scala-compiler.jar on the classpath). Unlike the regular compiler, it uses Java reflection encapsulated in the provided mirror to populate its symbol table.
 
 Toolbox wraps the input AST, sets its phase to Namer (skipping Parser) and performs the compilation into an in-memory directory.
 
@@ -555,7 +567,7 @@ After the compilation is finished, toolbox fires up a classloader that loads and
 \begin{frame}[fragile]
 \frametitle{Macros}
 
-In our hackings above, we used the runtime mirror (scala.reflect.mirror) to reflect against program structure.
+In our hackings above, we used the runtime universe (scala.reflect.runtime.universe) to reflect against program structure.
 
 We can do absolutely the same during the compile time.
 The universe is already there (the compiler itself), the API is there as well
@@ -583,8 +595,8 @@ That's it.
 \begin{itemize}
 \item In 2.10 you can have all the information about your program that the compiler has (well, almost).
 \item This information includes trees, symbols and types. And annotations. And positions.
-\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Universe.scala}{And more}}.
-\item You can reflect at runtime (scala.reflect.mirror) or at compile-time (macros).
+\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Universe.scala}{And more}}.
+\item You can reflect at runtime (scala.reflect.runtime.universe) or at compile-time (macros).
 \end{itemize}
 \end{frame}
 
@@ -593,7 +605,7 @@ That's it.
 
 We're already there.
 
-Recently released 2.10.0-M3 includes reflection and macros.
+Since 2.10.0-M3 Scala includes reflection and macros.
 
 \end{frame}
 
