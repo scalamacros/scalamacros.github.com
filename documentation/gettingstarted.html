@@ -169,8 +169,6 @@ Thus macro implementations need to be compiled before the main compilation, othe
 C:/Projects/Kepler/sandbox>scalac -language:experimental.macros Macros.scala Test.scala
 Test.scala:3: error: macro implementation not found: printf (the most common reason for that is that
 you cannot use macro implementations in the same compilation run that defines them)
-if you do need to define macro implementations along with the rest of your program,
-consider two-phase compilation with -Xmacro-fallback-classpath in the second phase
 pointing to the output of the first phase
   printf("hello %s!", "world")
         ^
