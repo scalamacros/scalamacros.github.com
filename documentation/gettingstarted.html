@@ -30,8 +30,8 @@ object Macros {
   // if the compiler is unhappy, it will print the signature it wants in the error message
   def printf_impl(c: Context)(format: c.Expr[String], params: c.Expr[Any]*): c.Expr[Unit] = {
     // compiler API is exposed in scala.reflect.makro.Context
-    // its most important part, reflection API, is accessible via c.mirror
-    // it's customary to import c.mirror._, because it includes a lot of routinely used stuff
+    // its most important part, reflection API, is accessible via c.universe
+    // it's customary to import c.universe._, because it includes a lot of routinely used stuff
     import c.universe._
 
     // first of all, we parse the provided format string
@@ -72,7 +72,7 @@ object Macros {
     // now we combine all the code we have generated into a Block
     // note the call to reify, which provides a shortcut for creating ASTs
     // learn more about reify in our documentation
-    val stats = evals ++ refs.map(ref => c.reify(print(c.Expr[Any](ref).splice)).tree)
+    val stats = evals ++ refs.map(ref => reify(print(c.Expr[Any](ref).splice)).tree)
     c.Expr[Unit](Block(stats.toList, Literal(Constant(()))))
   }
 }
