@@ -1,0 +1,1096 @@
+\documentclass[10pt,journal,a4paper]{IEEEtran}
+
+\usepackage{lipsum}
+\usepackage{array}
+\usepackage{mdframed}
+\newmdenv[linewidth=0.5pt, innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=1mm, innerbottommargin=1mm, leftmargin=0mm, rightmargin=0mm]{listing}
+\usepackage{changepage}
+\usepackage[noadjust, sort, compress]{cite}
+\renewcommand\citeform[1]{#1}
+\renewcommand\citeleft{[}
+\renewcommand\citeright{]}
+\renewcommand\citepunct{,}
+\renewcommand\citedash{--}
+
+\newcommand\MYhyperrefoptions{bookmarks=true,bookmarksnumbered=true,
+pdfpagemode={UseOutlines},plainpages=false,pdfpagelabels=true,
+colorlinks=true,linkcolor={black},citecolor={black},pagecolor={black},
+urlcolor={black},
+pdftitle={Metaprogramming with Macros},
+pdfsubject={Metaprogramming with Macros},
+pdfauthor={Eugene Burmako},
+pdfkeywords={metaprogramming, macros, quasiquotes, hygiene, referential transparency}}
+
+\begin{document}
+
+\title{Metaprogramming with Macros}
+
+\author{Eugene Burmako% <-this % stops a space
+\\ \hskip90pt LAMP, I\&C,  EPFL % no idea why I need an hskip, but I'm not a latex whiz
+\thanks{\normalsize Proposal submitted to committee: September 3rd, 2012; Candidacy exam date: September 10th, 2012; Candidacy exam committee: Christoph Koch, Martin Odersky, Viktor Kuncak.}%
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem }
+\thanks{\large This research plan has been approved:}%
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large Date:\hfill------------------------------------}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large Doctoral candidate:\hfill------------------------------------}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \footnotesize \hfill                      (name and signature)\hspace{1.5cm}\hfill}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large Thesis director:\hfill------------------------------------}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \footnotesize \hfill                      (name and signature)\hspace{1.5cm}\hfill}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large Thesis co-director:\hfill------------------------------------}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \footnotesize (if applicable)\hfill  (name and signature)\hspace{1.5cm}\hfill}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large Doct. prog. director:\hfill------------------------------------}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \footnotesize (R. Urbanke)  \hfill                    (signature)\hspace{1.5cm}\hfill}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \large}
+\IEEEcompsocitemizethanks{\IEEEcompsocthanksitem \tiny EDIC-ru/05.05.2009}
+}
+
+\markboth{EDIC Research Proposal}%
+{Shell \MakeLowercase{\textit{et al.}}: EDIC Research Proposal}
+
+\IEEEcompsoctitleabstractindextext{%
+\begin{abstract}
+Macros realize the notion of \emph{textual abstraction}.
+Textual abstraction consists of recognizing pieces of text
+that match a specification and replacing them according
+to a procedure.
+
+The focus of the study is semantics of syntactic macros in lexically
+scoped programming languages. We highlight the problems
+of \emph{hygiene} and \emph{referential transparency}
+and describe the solutions employed by Template Haskell \cite{sheard02},
+Nemerle \cite{skalski04} and Racket \cite{barzilay11}.
+
+We discuss integration of hygienic macros into statically typed languages
+and propose to improve upon the state of the art by providing
+a flexible type system for syntax templates and uncovering synergies with
+high-level language features such as path-dependent types and implicits \cite{odersky10}.
+\end{abstract}
+
+\begin{IEEEkeywords}
+metaprogramming, macros, quasiquotes, hygiene, referential transparency
+\end{IEEEkeywords}}
+
+\maketitle
+\IEEEdisplaynotcompsoctitleabstractindextext
+\IEEEpeerreviewmaketitle
+
+\section{Introduction}
+
+\IEEEPARstart{P}{rocedural} abstraction is pervasive.
+Factoring out parameterized fragments of programs into procedures
+is a conventional best practice.
+
+Modern programming languages integrate the notion of procedures into their semantics.
+Procedures are viewed as independent programs that can communicate with the main program.
+As such they can be manipulated as units, and big procedures can be built from the smaller ones.
+This is a powerful way to manage complexity of software systems.
+
+However procedural abstraction is sometimes not expressive enough, because
+its manifestations are bound by language syntax and it operates within the semantics
+of the language.
+For example, in most programming languages it is impossible to define short-circuiting logical operators
+as procedures, because procedures are usually not in control of evaluation order.
+Another example is a C-like \small \texttt{for} \normalsize loop, which supports
+optional prologue that introduces variables visible in its body. Procedures typically cannot abstract
+over variable bindings, so they cannot readily express this language construct.
+
+\emph{Textual abstraction} consists of recognizing pieces of text
+that match a specification and replacing them according
+to a procedure.
+Matched fragments are called macro calls or macro applications, and
+procedures that transform them are dubbed macros or macro transformers \cite{kohlbecker86}.
+In general sense these procedures can also be referred to as meta-programs \cite{sheard01}.
+The process of applying macros is called macro expansion.
+Finally macros can be classified into lexical macros that
+operate on character streams and syntactic macros that work with syntax trees.
+In this paper we will only study syntactic macros.
+
+Textual abstraction enables programmers to use a multitude of techniques.
+Just to name a few of them:
+\begin{itemize}
+\item reification (having code as data),
+\item language virtualization (overloading/overriding language semantics
+to enable deep embedding of DSLs),
+\item domain-specific optimization (application of optimizations such as inlining
+or fusion based on knowledge about the program being optimized),
+\item static verification (using reified representation of the program
+and, possibly, its contracts defined alongside the program, to verify invariants
+at compile time),
+\item algorithmic program construction (generation of code that is tedious to write with
+supported abstractions).
+\end{itemize}
+
+To use macros efficiently programmers need to be sure that generated programs don't go wrong.
+This presents quite a challenge, because in most macro systems even well-typed macros
+can produce ill-typed code. Another common source of errors are name clashes introduced
+by macro expansions, when variables end up referring to wrong definitions.
+
+The aim of this research is to improve upon the state of the art by providing better typechecking
+disciplines for meta-programs and looking for high-level abstractions that encapsulate macros,
+e.g. those which come from already existing language features.
+
+The paper is organized as follows. First we introduce the background by analyzing examples
+and outlining typical pitfalls. Then we survey
+macro systems in Template Haskell \cite{sheard02}, Nemerle \cite{skalski04} and Racket \cite{barzilay11}
+and their approaches to addressing these pitfalls. Finally we summarize our findings
+and propose new directions for research.
+
+\begin{figure*}[t]
+\begin{listing}
+\normalsize
+
+\begin{tabular}{p{4.0cm} p{15cm}}\\
+ &
+\begin{verbatim}
+(let ((x 40) (y 2)) (print (+ x y)))
+
+((lambda (x y) (print (+ x y))) 40 2)
+\end{verbatim}
+\end{tabular}
+
+\begin{center}
+a) Examples of a macro application and a macro expansion of the \small \texttt{let} \normalsize macro
+\end{center}
+
+\begin{tabular}{p{8.5cm} p{8.5cm}}\\
+\begin{verbatim}
+(defmacro let args
+  (cons
+    (cons 'lambda
+          (cons (map car (car args))
+                (cdr args)))
+    (map cadr (car args))))
+\end{verbatim}
+&
+\begin{verbatim}
+(defmacro let (decls body)
+ `(
+   (lambda
+     ,(map car decls)   ;; (x y)
+     ,body)             ;; (print (+ x y))
+   ,@(map cadr decls))) ;; 40 2
+\end{verbatim}\\
+b) Low-level creation of syntax objects. The code manipulates S-expressions
+with standard symbol and list processing functions.
+&
+c) Quasiquotation \cite{bawden99}.
+Backquote introduces a static code template, commas (also known as
+unquotes) insert dynamic values into the template.
+\end{tabular}
+
+\begin{tabular}{p{3.5cm} p{13.5cm}}\\
+ &
+\begin{verbatim}
+(define-syntax let
+  (syntax-rules ()
+    ((let ((name expr) ...) body ...)
+    ((lambda (name ...) body ...) expr ...))))
+\end{verbatim}
+\end{tabular}
+
+\begin{adjustwidth}{4cm}{0pt}
+d) Macro-by-example notation \cite{kohlbecker87}. Uses a tree matching macro that\\
+can extract and reassemble fragments of syntax objects. Ellipses cap-\\ture
+recurrent parts of the input.
+\end{adjustwidth}
+
+\begin{tabular}{p{2.5cm} p{14.5cm}}\\
+ &
+\begin{verbatim}
+(define-syntax (let stx)
+  (syntax-parse stx
+    ((let ((name:identifier expr:expr) ...) body:expr ...)
+     #:fail-when (check-duplicate #'(name ...))
+                  "duplicate variable name"
+     #'((lambda (name ...) body ...) expr ...))))
+\end{verbatim}
+\end{tabular}
+
+\begin{adjustwidth}{3.2cm}{0pt}
+e) Macro-by-example notation augmented with a syntax specification \cite{culpepper10}.
+Colons \\denote syntax classes, which are first-class and can be built from the ground up.
+\end{adjustwidth}
+\end{listing}
+\end{figure*}
+
+\begin{figure*}
+\hskip3.95cm
+\normalsize Figure 1. Assorted implementations of the \small \texttt{let} \normalsize macro in Lisp dialects
+% saves an empty line
+% \begin{center}
+% \normalsize Figure 1. Assorted implementations of the \texttt{let} macro in Lisp dialects
+% \end{center}
+\end{figure*}
+
+\begin{figure*}[t]
+\begin{listing}
+\normalsize
+
+\begin{tabular}{p{5.4cm} p{15cm}}\\
+ &
+\begin{verbatim}
+(defmacro or (x y)
+  '(let ((temp ,x))
+    (if temp temp ,y)))
+
+(or 42 "the result is 42")
+\end{verbatim}
+\end{tabular}
+
+\begin{center}
+a) A simple yet erroneous implementation of the \texttt{or} macro
+\end{center}
+
+\begin{tabular}{p{8.5cm} p{8.5cm}}\\
+\begin{verbatim}
+(let ((temp "451 Fahrenheit"))
+  (or null temp))
+
+(let ((temp "451 Fahrenheit"))
+  (let ((temp null))
+    (if temp temp temp)))
+\end{verbatim}
+&
+\begin{verbatim}
+(let ((if hijacked))
+  (or true false))
+
+(let ((if hijacked))
+  (let ((temp true))
+    (if temp temp false)))
+\end{verbatim}\\
+b) Violation of hygiene \cite{kohlbecker86}: binding established during expansion
+affects call site
+&
+c) Violation of referential transparency \cite{dybvig92}: binding established during expansion
+is affected by call site
+\end{tabular}
+
+\begin{tabular}{p{2.8cm} p{15cm}}\\
+ &
+\begin{verbatim}
+(define-syntax forever
+  (syntax-rules ()
+    ((forever body ...)
+     (call/cc (lambda (abort)
+                (let loop () body ... (loop)))))))
+
+(forever (print 4) (print 2) (abort))
+\end{verbatim}
+\end{tabular}
+
+\begin{adjustwidth}{2.5cm}{0pt}
+d) Intentional variable capture: infinite looping construct \texttt{forever} provides
+a predefi-\\ned identifier to break from the loop. \texttt{abort} is introduced during
+macro expansion,\\ but it should be visible to the body of the loop, which
+comes from the macro call site.
+\end{adjustwidth}
+
+\end{listing}
+\end{figure*}
+
+\begin{figure*}
+\hskip5.05cm
+\normalsize Figure 2. Intentional and unintentional variable capture
+% saves an empty line
+% \begin{center}
+% \normalsize Figure 2. Intentional and unintentional variable capture
+% \end{center}
+\end{figure*}
+
+\section{Background}
+
+This section starts off with several examples of macros
+and proceeds by uncovering typical errors in macro transformers
+and outlining the approaches that can be used to prevent these errors.
+
+\subsection{Examples}
+
+\small \texttt{let} \normalsize is a language construct typical to functional programming. It introduces
+a scope for a computation and brings temporary variables with provided values into that scope.
+To implement \small \texttt{let} \normalsize the compiler might wrap the computation in a lambda abstraction
+and apply it right away (Figure 1a).
+
+This notion cannot be abstracted procedurally, because the body of the computation typically
+contains free variables. To the contrast, textual abstraction can help, because macros manipulate
+the program on a level where bindings don't exist and therefore don't impose restrictions.
+
+The most straightforward implementation of \small \texttt{let} \normalsize
+is a low-level macro transformer (Figure 1b).
+It takes an S-expression that represents a macro application, pulls it apart using standard
+list manipulation functions, such as \small \texttt{car} and \small \texttt{cdr}\normalsize,
+and creates a new S-expression with \small \texttt{cons}\normalsize.
+Even in this simple example the notation is very noisy. It's quite difficult
+to figure out the expected shapes of input and output expressions from the imperative algorithm.
+
+Quasiquotes \cite{bawden99} make it possible to reduce obscurity of the macro by providing
+a domain-specific language for syntax templates (Figure 1c). The quasiquote operator (\texttt{`})
+demarcates a static template. Quasiquoted code is inserted verbatim into the output
+(that's why there's no longer need in explicit \small \texttt{cons}\normalsize'ing).
+Unquote operators (\texttt{,} and \texttt{,@})
+temporatily interrupt a quasiquote, creating "holes" filled in with dynamically calculated
+data. For example, for \small \texttt{let} \normalsize we statically know the shape of code to produce
+(an application of a lambda abstraction) - this makes up the static part of the quasiquote. On the other hand,
+body and parameters of the lambda as well as the arguments of the application may vary from
+expansion to expansion - this is the dynamic part.
+
+Another simplification of the macro can be achieved with MBE, the macro-by-example notation
+\cite{kohlbecker87}. In their seminal work Kohlbecker and Wand came up with a specification
+of a pattern matcher that extracts singular and repetitive parts of S-expressions.
+Identifiers which appear in the input pattern are treated as pattern variables.
+Ellipses (\texttt{...}) used as a last element of a list that contains pattern variables
+denote repetition. Ellipses can also be nested capturing pattern variables as lists of arbitrary depth.
+The revised version of the \small \texttt{let} \normalsize macro clearly shows the shapes of the input
+and the output and the relation between them (Figure 1d).
+
+A recent development of the MBE syntax has been proposed by Culpepper and Felleisen \cite{culpepper10}.
+Their refinement addresses the need for principled input validation and error reporting. Indeed,
+MBE covers the success path, but doesn't help with detecting errors. For example,
+duplicate identifier names as in \small \texttt{(let ((x 40) (x 2)) (print (+ x y))} \normalsize will go
+unnoticed until the compiler gets to the resulting lambda form, which will produce
+confusing error messages. Authors enhance MBE with both declarative and procedural
+means of validation (Figure 1e). In the example colons next to the names of pattern variables
+denote syntax classes,
+which put restrictions on the shape of the variables and the \small \texttt{\#:fail-when} \normalsize
+clause contains imperative validation code and error messages.
+These validation facilities can be packed into custom syntax classes, which can be built from the ground up.
+
+\subsection{Bindings}
+
+% Syntactic macros operate on trees, so they cannot produce syntactically invalid code,
+% but nothing prevents such macros from making semantic errors, i.e. expanding into
+% syntactically valid nonsense.
+% The most obvious mistakes will result in type errors, however there's an entire class
+% of oversights that might silently change the behavior of the program.
+
+When writing procedures in lexically scoped languages, programmers typically don't need to think
+about name clashes between variables declared inside procedures and at their call sites.
+Except for recursion, scopes of procedure bodies and procedure call sites are different, so
+neither variables defined inside the procedures can change the semantics at the call site, nor vice versa.
+
+In a macro-enabled language, especially in presense of quasiquotes which make
+macros look like normal procedures, this intuition becomes compromised,
+because after macro expansion the scopes of macro definition and macro call site
+are mechanically merged by the expander.
+
+Conider the \small \texttt{or} \normalsize macro shown on Figure 2a. This macro picks one of its two arguments
+based on the truthiness of the first argument. To prevent double evaluation, the macro introduces
+a temporary variable \small \texttt{temp} \normalsize that holds the result of evaluation of the first argument.
+The temporary variable is then tested with \small \texttt{if}\normalsize, which selects the resulting value.
+
+As simple as this code can be, it is also incorrect, having two potential bugs.
+
+The first problem happens when the call site defines its own variable named \small \texttt{temp} \normalsize
+and relies on it in the second argument of a call to \small \texttt{or} \normalsize (Figure 2b).
+After the expansion, two \small \texttt{temp}\normalsize s clash,
+which produces incorrect results if the first argument of the call is falsy.
+This problem is dubbed \emph{hygiene violation}, and the macro is said to introduce the temporary
+variable \emph{unhygienically}.
+
+In his thesis \cite{kohlbecker86} Kohlbecker defines the hygiene condition
+and presents a macro system that automatically prevents such naming collisions:
+\begin{quote}
+Hygiene Condition for Macro Expansion.
+
+Generated identifiers that become binding instances in the
+completely expanded program must bind only identifiers that are
+generated during the same transcription step.
+\end{quote}
+
+The second problem happens when the call site
+redefines one of the procedures or macros used in the expansion. For example, on Figure 2c
+the call site hijacks the meaning of \small \texttt{if}\normalsize, which destroys the original intent of the
+macro author. This is a \emph{referential opaqueness} problem.
+
+Dybvig et al. \cite{dybvig92} build on Kohlbecker's work and devise a macro expander that
+automatically avoids this class of errors:
+\begin{quote}
+Macros defined in [our] high-level specification language are
+referentially transparent in the sense that a macro-introduced
+identifier refers to the binding lexically visible where the macro
+definition appears rather than to the top-level binding or to the
+binding visible where the macro call appears.
+\end{quote}
+
+This notion is also called \emph{cross-stage persistence}, because bindings in place
+at the compilation stage are persisted into the runtime stage. When viewed in this light,
+% it becomes apparent that referential transparency for macros can only work for references
+% to top-level definitions. Therefore common practice is to prohibit cross-stage references to local variables
+it becomes clear why referential transparency is usually supported only for top-level definitions.
+% Indeed compilation and execution might be performed in different processes and even on different machines.
+Top-level values are uniquely identified by their compile-time signatures
+(e.g. a static method in Java can be addressed by a full name of a class, name of the method and types
+of its parameters). To the contrast local values are represented by transient state
+(contents of processor registers, stack, heap etc), which in general case cannot be persisted.
+
+Despite the conveniency of automatic segregation of the scopes of macro definitions and macro call sites,
+at times it is necessary to have them melded.
+A looping macro \small \texttt{forever} \normalsize from Figure 2d demonstrates the need for this.
+Expansion of this macro is an infinite loop that provides a magic identifier \small \texttt{abort} \normalsize
+to exit the loop. In this case automatic hygiene facility will do harm, making the body of the loop
+unable to see the loop control lever.
+
+Because of similar situations some programmers argue in favor of manual control over
+the scoping discipline, proposing manual (or macro-powered!) renaming of identifiers whose capture would be
+undesired \cite{clinger91a,hoyte08}.
+
+Another popular line of thought favors further empowerment of macro systems
+to minimize the necessity for low-level tinkering.
+In fact, one of the macro systems reviewed below provides a design pattern \cite{barzilay11}
+that solves the \small \texttt{abort} \normalsize challenge in a hygienic way (i.e. without having
+generated identifiers bind across logical scopes).
+
+\begin{figure*}[t]
+\begin{listing}
+\normalsize
+
+\begin{tabular}{p{2.0cm} p{15cm}}\\
+ &
+\begin{verbatim}
+-| fun pow n = <fn x =>
+    ~(if n = 0 then <1> else <x * (~(pow (n - 1)) x)>)>;
+val pow = fn : int -> <int -> int>
+
+-| val cube = (pow 3);
+val cube = <(fn a => x %* x %* x %* 1)> : <int -> int>
+
+-| (run cube) 5;
+val it = 125 : int
+\end{verbatim}
+\end{tabular}
+
+\begin{adjustwidth}{2.5cm}{0pt}
+a) Strict typechecking \cite{taha99}: each quasiquote is typechecked individually and is assigned\\
+a "code of something" type (\small \texttt{<a>} \normalsize stands for code that evaluates to a
+value of type \small \texttt{a})\normalsize.\\
+\end{adjustwidth}
+
+\begin{tabular}{p{2.0cm} p{15cm}}\\
+ &
+\begin{verbatim}
+[| 'a' + True |] -- rejected
+
+printf :: String -> Expr -- allowed
+$(printf "Error: %s on line %d") "urk" 341
+
+f :: Q Type -> Q [Dec] -- rejected
+f t = [d| data T = MkT $t; g (MkT x) = x + 1 |]
+\end{verbatim}
+\end{tabular}
+
+\begin{adjustwidth}{2.5cm}{0pt}
+b) Lenient typechecking \cite{sheard02}: quasiquotes are sanity checked to prevent obvious errors\\
+and are required to have their bindings established before macro expansions kick in.\\
+No additional checks are done, and all quasiquotes get the same type-agnostic
+\small \texttt{Expr} \normalsize type.
+\end{adjustwidth}
+
+\begin{tabular}{p{2.0cm} p{15cm}}\\
+ &
+\begin{verbatim}
+macro using(name, expr, body) {
+  <[
+    def $name = $expr;
+    try { $body } finally { $name.Dispose() }
+  ]>
+}
+using(db, Database("localhost"), db.LoadData())
+\end{verbatim}
+\end{tabular}
+
+\begin{adjustwidth}{2.5cm}{0pt}
+c) No typechecking \cite{skalski04}: quasiquotes are not typechecked at all until a
+macro\\ that uses them expands, after which the result is typechecked as a whole. This provides\\
+maximum freedom, permitting even unquotes in binding positions
+(like in \small \texttt{def \$name}\normalsize).
+\end{adjustwidth}
+
+\end{listing}
+\end{figure*}
+
+\begin{figure*}
+\hskip5.48cm
+\normalsize Figure 3. Typechecking strategies for quasiquotes
+% saves an empty line
+% \begin{center}
+% \normalsize Figure 3. Typechecking strategies for quasiquotes
+% \end{center}
+\end{figure*}
+
+\subsection{Typechecking}
+
+An important feature of macros is that macro expansion happens before the code is executed (below in
+the paper this phase is referred to as \emph{compile-time}, despite that, strictly speaking, interpreted
+languages can also support macros). Therefore macro expansions can be checked for
+absense of semantic errors (to the extent supported by the language) in an automatic fashion,
+without requiring effort from the programmer.
+
+What's even better is that there is another line of defense.
+Macros operate on syntax objects, which are snippets of the code to be,
+thus it might be a good idea to typecheck the code represented by these snippets
+in advance.
+
+One approach is to treat quasiquotes similarly to functions, requiring all free variables
+to be bound in the enclosing lexical scope and assigning all quasiquotes a definitive type (Figure 3a).
+This strategy is used in MetaML \cite{taha99}, a statically typechecked
+language with special support for program generation.
+
+All quasiquotes in MetaML are typechecked individually
+and receive one of the \small \texttt{<a>} \normalsize
+types (which means "code that evaluates to a value of type \small \texttt{a}\normalsize").
+For example, on Figure 3a the quasiquote in the body of \small \texttt{pow} \normalsize
+represents a function from \small \texttt{int} \normalsize to \small \texttt{int}\normalsize, so it has the
+\small \texttt{<int -> int>} \normalsize type.
+
+Programs in MetaML can generate and run programs at runtime, these programs can do the same, and so on.
+Quasiquotes here represent templates of the programs to be generated and delineate execution stages.
+Due to its specific nature, MetaML requires strong guarantees from the type system.
+At runtime, if program generation fails because of an error in the meta-program,
+it's too late to report typechecking errors.
+
+Unfortunately this means that MetaML has to give up the freedom of arbitrary manipulations
+of syntax objects, the most important of which are pattern matching and introduction of new bindings.
+(e.g. in MetaML it’s impossible to express \small \texttt{let} \normalsize as a macro).
+
+MacroML \cite{ganz01}, a macro system built atop of MetaML,
+provides a way to partially alleviate this restriction, letting
+the programmer introduce new binding constructs in a controlled setting.
+This is achieved by having the type system track
+not only the regular environments containing declared macros and variables, but also
+so called body parameter environments that remember which parts of quasiquotes
+see which variables introduced by those quasiquotes.
+
+This still doesn't allow arbitrary manipulations, e.g. similarly to MetaML there is no way
+to pull apart a syntax object and reassemble it using a quasiquote as a template
+(as done in the \small \texttt{let} \normalsize macro on Figure 1).
+
+Therefore later research on macros focuses on relaxing the typechecking discipline of MetaML.
+
+Template Haskell \cite{sheard02} employs a lenient typechecking strategy for meta-programs
+(but not for expanded programs, which are typechecked with the usual rigor of Haskell).
+
+Unlike in MetaML, the type of syntax objects is non-polymorphic - \small \texttt{Expr} \normalsize,
+not \small \texttt{Expr a} \normalsize - and Template Haskell doesn't try to provide up-front
+guarantees that meta-programs produce well-typed code. For example, well-typedness of the
+\small \texttt{printf} \normalsize macro application (Figure 3b) is checked on the spot,
+immediately after the expansion, not ahead of time.
+
+However Template Haskell does require the bindings of variables used in quasiquotes to be resolved statically.
+This is done to enforce the "static scope is absolute" design principle
+(which is a rehash of hygiene and referential transparency conditions outlined above)
+as stated in \cite{sheard03}:
+\begin{quote}
+If an occurrence of a variable \small \texttt{x} \normalsize looks as if it is lexically bound
+to an enclosing binding for \small \texttt{x}\normalsize,
+then it is so bound, and no Template-Haskell transformation can threaten that binding.
+\end{quote}
+
+Unfortunately even this lightweight typecheck has proven to impose unwanted limitations.
+For example, the meta-program \small \texttt{f} \normalsize from Figure 3b
+that uses another meta-program \small \texttt{t} \normalsize to insert a type declaration
+in a quasiquote is rejected. This happens because the compiler cannot prove that
+the usage of this type declaration (\small \texttt{MkT x}\normalsize)
+is correct for all possible \small \texttt{t}\normalsize s.
+
+It is due to this reason that Nemerle \cite{skalski04},
+a macro-enabled language inspired by Template Haskell,
+has ceased typechecking quasiquotes altogether. As we will see below this doesn't prevent
+the macro expander in Nemerle from being hygienic, but with respect to typechecking
+this brings the evolution to square one.
+
+\section{Case study}
+
+This section discusses Template Haskell \cite{sheard02},
+Nemerle \cite{skalski04} and Racket \cite{barzilay11}
+in the light of hygiene and referential transparency.
+
+Syntax objects in all three presented macro systems can be manipulated
+both at low level (using raw construction of corresponding data structures)
+and at high level (with the help of quasiquotation facilities).
+
+However in this survey we will only be studying and evaluating high-level notations and APIs.
+Low-level facilities are undoubtedly useful for getting things done,
+but our intent here is to get to the bottom of abstractions
+introduced by the scrutinees.
+
+We will also take for granted the ability of meta-programs to ask the expander
+for the information about the parts of the program that lie outside of
+a macro application current to a given expansion (the \small \texttt{reify} \normalsize family of functions
+in Template Haskell, \small \texttt{Macros.ImplicitCTX} \normalsize in Nemerle and the
+\small \texttt{syntax-local} \normalsize family of functions in Racket) or
+for metadata of syntax objects (e.g. their types, scopes, etc).
+
+Another aspect that we will omit from consideration is the way the macro expander
+acquires and loads binary code of macros. For the record, all three reviewed languages are compiled,
+but they differ in their treatment of the situation. Template Haskell and Nemerle require separate
+compilation of macros and their usages, whereas Racket allows
+joint compilation with extra precautions against cross-stage pollution of top-level scope \cite{flatt02}.
+
+Finally, in Nemerle and Racket macros can change the syntax of the language.
+Syntax extensibility is a lively research topic, but it is outside the scope of this study.
+
+\subsection{Template Haskell}
+
+Template Haskell is a macro-enabled extension to a statically typed functional programming language.
+% The main contributions of this macro system are hygienic translation of quasiquotes with the use of
+% a monad that encapsulates generation of fresh names and a relaxed typechecking algorithm for
+% meta-programs and macro expansions.
+Macro transformers in Template Haskell are represented by regular functions that produce
+data of type \small \texttt{Expr}\normalsize. Macro expansion is triggered explicitly by
+unquoting outside quasiquotes - either with \small \texttt{\$} \normalsize which unquotes expressions,
+or with \small \texttt{splice} \normalsize which unquotes declarations.
+
+\small
+\begin{verbatim}
+printf :: String -> Expr
+printf s = gen (parse s) [| "" |]
+
+gen :: [Format] -> Expr -> Expr
+gen [] x = x
+gen (D   : xs) x =
+  [| \n-> $(gen xs [| $x++show n |]) |]
+gen (S   : xs) x =
+  [| \s-> $(gen xs [| $x++s |]) |]
+gen (L s : xs) x =
+  gen xs [| $x ++ $(lift s) |]
+
+$(printf "Error: %s on line %d") msg line
+\end{verbatim}
+\normalsize
+
+The snippet above illustrates the introduced concepts. \small \texttt{printf} \normalsize and
+\small \texttt{gen} \normalsize are functions that operate on syntax objects. In particular,
+\small \texttt{printf} \normalsize generates a lambda abstraction from a C-like string format
+specification using helpers \small \texttt{parse} \normalsize (whose declaration is
+not present in a snippet) and \small \texttt{gen}\normalsize.
+Quasiquotes are encoded with \small \texttt{[|...|]} \normalsize brackets and can contain arbitrary
+Haskell code (to be precise, the notation for quoted patterns, declarations and types is slightly different,
+but it doesn't make much difference in the context of this discussion).
+
+Quasiquotes in Template Haskell are hygienic and referentially transparent. The former is achieved
+by renaming bindings introduced in quasiquotes, while the latter is warranted by keeping track
+of original names that unambiguously refer to top-level variables, even if such variables are not visible
+at macro use site. A curious fact is that Template Haskell also provides cross-stage persistence for
+local variables that conform to the \small \texttt{Lift} \normalsize type class.
+
+A very interesting aspect of Template Haskell is its implementation of hygiene through renaming,
+an inherently stateful operation, in the pure Haskell environment.
+
+\small \texttt{Expr}\normalsize,
+the type of quasiquotes, is in fact a synonym to \small \texttt{Q Exp}\normalsize,
+a type of low-level syntactic data structures lifted into the quotation monad \small \texttt{Q} \normalsize
+that provides usual monadic operations along with \small \texttt{gensym :: String -> Q String}\normalsize,
+a fresh name generator.
+In this setting quasiquotes are mechanically translated into calls to low-level constructors wrapped in
+\small \texttt{Q} \normalsize with binders renamed using \small \texttt{gensym} \normalsize and bindees
+either following the renamed binders or persisted across stages as outlined above:
+
+\small
+\begin{verbatim}
+cross2a :: Expr -> Expr -> Expr
+cross2a f g = [| \(x,y) -> ($f x, $g y) |]
+
+cross2c :: Expr -> Expr -> Expr
+cross2c f g =
+do { x <- gensym "x"
+   ; y <- gensym "y"
+   ; ft <- f
+   ; gt <- g
+   ; return (Lam [Ptup [Pvar x, Pvar y]]
+                 (Tup  [App ft (Var x)
+                       ,App gt (Var y)]))
+}
+\end{verbatim}
+\normalsize
+
+Unfortunately this approach has limitations.
+
+First of all, in general case roles
+of identifiers in quasiquotes (binder, bound within quasiquote, bound outside) cannot be determined
+in advance. For example, in \small \texttt{[|~f~\$p~=~x~+~y~|]}\normalsize,
+variables \small \texttt{x} \normalsize and \small \texttt{y} \normalsize are on the fence
+until the splicee is evaluated. To the contrast, the translation algorithm requires an up-front decision,
+which makes splices into binding positions unsupported.
+
+Secondly, there is no way to opt out of hygiene without dropping to low level.
+Even worse, since the translation algorithm effectively forbids unbound free variables in quasiquotes,
+every call site of a macro that introduces variables visible outside would have to drop to low level.
+For instance, users of the \small \texttt{forever} \normalsize macro (Figure 2d) won't be able to write
+\small \texttt{\$(forever [| abort |])}\normalsize, but will be forced to express this as
+\small \texttt{\$(forever [| \$(var "abort") |])}\normalsize.
+
+\subsection{Nemerle}
+
+Nemerle is an object-oriented/functional programming language.
+Macros in Nemerle are introduced with the keyword \small \texttt{macro} \normalsize
+and can use quasiquotes (\small \texttt{<[...]>}\normalsize) to pattern match
+and compose syntax objects. Expansions are triggered automatically when
+the compiler encounters a function application, and the callee is deemed to be a macro.
+Nemerle also supports macro attributes that expand when put on declarations.
+Such macros can modify the inheritance chain of classes, generate new members, etc.
+
+The macro \small \texttt{<->} \normalsize shown below swaps values of two expressions
+like in \small \texttt{x <-> arr[2]}\normalsize. In the snippet we can see how quasiquotes
+can be used to pattern match against syntax objects, extract their parts and reassemble them
+producing new syntax objects. The \small \texttt{[Hygienic]} \normalsize attribute is discussed later.
+
+\small
+\begin{verbatim}
+[Hygienic]
+def cache(e: Expr): Expr * Expr
+{
+  | <[ $obj.$mem ]> =>
+    (<[ def tmp = $obj ]>, <[ tmp.$mem ]>)
+  | <[ $tab[$idx] ]> =>
+    (<[ def (tmp1, tmp2) = ($tab, $idx) ]>,
+     <[ tmp1[tmp2] ]>)
+  | _ => (<[ () ]>, e)
+}
+
+macro @<->(e1, e2) {
+  def (cached1, safe1) = cache(e1);
+  def (cached2, safe2) = cache(e2);
+  <[
+    $cached1;
+    $cached2;
+    def tmp = $safe1;
+    $safe1 = $safe2;
+    $safe2 = tmp;
+  ]>
+}
+\end{verbatim}
+\normalsize
+
+% Note that unlike Template Haskell and like Lisp, Nemerle
+% doesn't require explicit nudges to trigger macro expansion
+% and automatically expands function applications if the callee is deemed to be a macro.
+% This simplifies macro calls at a cost of having macros as second-class citizens
+% (macros cannot be passed around, because all references to a macro are immediately expanded).
+% In any case, macros can call arbitrary functions, so it's only a facade (i.e. macro definitions)
+% that is restricted. The internals (i.e. macro implementations) can use all the abstraction mechanisms
+% provided by the language, so second-class nature of macros is usually considered to be a minor inconvenience.
+% From the example above it is apparent that quasiquotes in Nemerle
+% can have unbound free variables and even allow unquoting into binding positions.
+% Nevertheless Nemerle is hygienic and referentially transparent (except for cross-stage
+% references to local variables, which are prohibited).
+
+To separate lexical scopes of macro definitions and macro call sites, Nemerle colors the
+identifiers in the program. By default each macro expansion gets a unique color, different from
+the color of normal code, and this color gets assigned to the symbols introduced by the macro expansion.
+After the program
+is fully expanded, Nemerle resolves bindings, i.e. for every bindee the compiler looks for
+a nearest preceding binder with the same color.
+If there's no such binder, the name is looked up
+in a global environment that corresponds to the definition site of the bindee (such environments
+are enclosed in every symbol) \cite{skalski04}.
+
+An important characteristic of this algorithm is that colors are fully customizable.
+Using an API exposed by the expander it is possible to recolor individual symbols and
+entire bunches into arbitrary colors. It is also possible to share colors between macros
+to ensure that selected parts of corresponding expansions can see each other.
+Finally Nemerle supports polychromatic symbols that bind
+to the nearest definitions with the same name regardless of the color.
+
+Standard distribution of Nemerle also bundles most frequently used patterns of tweaks to bindings.
+For example,
+\small \texttt{\$(name:~usesite)} \normalsize introduces a symbol colored identically to the macro call site.
+\small \texttt{[Hygienic]} \normalsize attribute on a function (usually used on helper functions that can be
+called multiple times from the same macro) colors binders that come from that function in a color that
+is generated afresh for every invocation.
+
+\subsection{Racket}
+
+Racket is a dynamically typed descendant of Scheme.
+It uses Scheme's \small \texttt{syntax-case}\normalsize, a hygienic and referentially
+transparent macro system, augmented with syntax classes.
+
+To prevent inadvertent captures \small \texttt{syntax-case} \normalsize employs Dybvig's algorithm
+\cite{dybvig92},
+which is similar to Nemerle's color algorithm outlined above (in fact, the causal relation is inversed -
+the algorithm in Nemerle is inspired by Dybvig's work). Racket's algorithm generates fresh marks for
+every macro expansion, assigns them to symbols introduced by expansions and then uses the marks to
+resolve bindings and perform renamings if necessary.
+
+Much like in Nemerle, affiliation of symbols is customizable. The \small \texttt{datum->syntax} \normalsize
+function can be used to put an arbitrary S-expression into lexical context of an arbitrary syntax object,
+including that of macro use site and macro definition site.
+
+The snippet below creates a non-hygienic symbol \small \texttt{abort} \normalsize in the lexical context
+of the macro use site (\small \texttt{\#'forever}\normalsize) and then introduces it in macro expansion
+as a binder, making it possible for a macro argument to see an identifier in the generated code:
+
+\small
+\begin{verbatim}
+(define-syntax (forever stx)
+  (syntax-case stx ()
+    ((forever body ...)
+     (with-syntax
+      ((abort (datum->syntax #'forever 'abort)))
+       #'(call/cc (lambda (abort)
+           (let loop () body ... (loop))))))))
+
+(forever (print 4) (print 2) (abort))
+\end{verbatim}
+\normalsize
+
+In \cite{barzilay11} Barzilay et al. investigate the consequences of breaking hygiene to introduce
+special identifiers, because
+the need for that arises quite often (e.g. to implement the ubiquitous \small \texttt{this} \normalsize
+in a class system, to internally communicate information between subsystems of a complex macro, etc).
+Authors find that the technique outlined above doesn't scale to derived macros:
+
+\small
+\begin{verbatim}
+(define-syntax while
+  (syntax-rules ()
+    ((while test body ...)
+     (forever (unless test (abort)) body ...))))
+
+(while #t (abort))
+\end{verbatim}
+\normalsize
+
+In the running example,
+\small \texttt{abort} \normalsize will not be automatically propagated to use sites of
+the macros that build upon \small \texttt{forever}\normalsize.
+Because of \small \texttt{datum->syntax}\normalsize,
+\small \texttt{abort} \normalsize is visible inside the implementation of \small \texttt{while} \normalsize
+(which is the call site of \small \texttt{forever}\normalsize), but the hygiene condition prevents it
+from being visible outside.
+
+Barzilay et al. study a workaround
+that involves systematic introduction of \small \texttt{abort} \normalsize into all derived macros
+(eventually abstracting out the recurring pattern into an auxiliary macro) and another one that
+explicitly passes special identifiers between call sites. Both approaches however involve
+repeated boilerplate.
+
+It becomes apparent that to address the \small \texttt{abort} \normalsize problem elegantly,
+the macro system needs to have a mechanism of variables visible in multiple scopes.
+
+Racket lacks the notion
+of Nemerle's polychromatic symbols that bind to whatever is in any scope nearby, but all Lisps
+have a tradition of dynamically scoped variables. By adapting this notion to compile-time
+(without changes to the compiler, just by introducing a couple of macros:
+\small \texttt{define-syntax-parameter} \normalsize and \small \texttt{syntax-parameterize}\normalsize)
+authors of \cite{barzilay11} arrive at a design pattern, which doesn't impose boilerplate tax
+on both the developers and the users of derived macros:
+
+\small
+\begin{verbatim}
+(define-syntax-parameter
+  abort (syntax-rules ()))
+
+(define-syntax forever
+  (syntax-rules ()
+    ((forever body ...)
+     (call/cc (lambda (abort-k)
+        (syntax-parameterize
+          ((abort
+            (syntax-rules () ((_) (abort-k)))))
+         (let loop () body ... (loop))))))))
+\end{verbatim}
+\normalsize
+
+As an additional bonus, syntax parameters are actually more robust than polychromatic symbols,
+because dynamic variables visible though scopes are explicitly introduced as such
+and are easily discoverable, since they are defined together with the originating macros.
+
+\section{Conclusion}
+
+Textual abstraction has proven to be a powerful design tool that can be used to implement
+aspects-oriented programming \cite{skalski04}, design patterns \cite{skalski05},
+classes, mixins and traits \cite{flatt06}, modules \cite{flatt10}, etc.
+
+Macros are powerful, but they can go wrong in unusual ways.
+For example, it is not uncommon for well-typed meta-programs to produce ill-typed programs.
+Moreover macro expansion may cause inadvertent variable capture, leading to
+subtle bugs. To use macros effectively programmers need to be protected from these problems.
+
+Typechecking algorithms that catch errors in meta-programs are pioneered by MetaML \cite{taha99}.
+Its static typechecking discipline for quasiquotes has proven to be overly restrictive when applied to
+macros. Template Haskell features a lenient typechecking algorithm, which unfortunately remains too
+restrictive. Therefore Nemerle doesn't typecheck quasiquotes at all, relying on a mandatory typecheck
+after macro expansion. This area is in a need of improvement.
+
+Evolution of Lisp identified the problems that cause
+inadvertent capture and formulated the principles of hygiene and referential transparency
+that prevent such errors. This gave rise to manual \cite{clinger91a,hoyte08}
+and automatic \cite{kohlbecker86, dybvig92} techniques that increase robustness of macros.
+Among languages studied in this paper, Template Haskell uses monadic representations
+for quasiquotes and automatically renames introduced binders \cite{sheard02}. It is
+however incapable of breaking hygiene per programmer's request without dropping
+to a low-level notation. Nemerle \cite{skalski04} and Racket \cite{barzilay11}
+use approaches derived from Dybvig's algorithm \cite{dybvig92}, which provides scope isolation by default
+as well as mechanisms for manual control. This is a universal solution to the scoping problem,
+but as shown by \cite{barzilay11} it is sometimes inefficient, trumped by more high-level techniques.
+
+\section{Research proposal}
+
+As a substrate for our research, we implemented a macro system \cite{burmako12}
+for the Scala programming language \cite{odersky10}
+and integrated it into a production version of the Scala compiler.
+
+The cornerstone of the system is the \small \texttt{reify} \normalsize macro that bootstraps
+a minimalistic non-hygienic macro system into a hygienic facility with quasiquotes.
+
+Currently \small \texttt{reify} \normalsize only works with statically well-typed syntax objects.
+This makes it akin to MacroML \cite{ganz01} with all the pros and cons. On the one hand, this
+technique prevents macros based on \small \texttt{reify} \normalsize
+from producing ill-typed code. But on the other hand,
+it becomes inapplicable when pattern matching or statically untypeable
+quasiquotes are involved.
+
+Our experience and user reports show a clear need for more flexibility, but we would not like to give up
+static guarantees about meta-programs like it was done in Nemerle \cite{skalski04}. Coming up with a more
+permissive typechecking discipline is our immediate goal.
+
+A long-term direction of research is a quest for high-level abstractions that synergize with macros.
+For example, our early adopters have suggested that the combination of macros
+and path-dependent types can be used to contain and propagate effects. Another conjecture is that
+synergy between macros and implicits might grant Scala theorem-proving powers.
+
+\begin{thebibliography}{99}
+
+\bibitem{sheard02}
+T.~Sheard and S.~Peyton Jones,
+Template meta-programming for Haskell.
+ACM SIGPLAN Notices, 2002.
+
+\bibitem{skalski04}
+K.~Skalski, M.~Moskal and P.~Olszta,
+Meta-programming in Nemerle.
+Generative Programming and Component Engineering, 2004.
+
+\bibitem{barzilay11}
+E.~Barzilay, R.~Culpepper and M.~Flatt,
+Keeping it Clean with Syntax Parameters.
+Scheme and Functional Programming Workshop, 2011.
+
+\bibitem{odersky10}
+M.~Odersky, L.~Spoon and B.~Venners,
+Programming in Scala 2nd Edition.
+Artima, 2010.
+
+\bibitem{kohlbecker86}
+E.~Kohlbecker,
+Syntactic Extensions in the Programming Language Lisp.
+PhD thesis, Indiana University, 1986.
+
+\bibitem{sheard01}
+T.~Sheard,
+Accomplishments and Research Challenges in Meta-Programming.
+Semantics, Applications, and Implementation of Program Generation, 2001.
+
+% \bibitem{atkinson11}
+% K.~Atkinson and M.~Flatt,
+% Adapting Scheme-like macros to a C-like language.
+% Scheme and Functional Programming, 2011.
+
+% \bibitem{allen09}
+% E.~Allen, R.~Culpepper, J-D.~Nielsen, J.~Rafkind and S.~Ryu,
+% Growing a Syntax.
+% Foundations of Object-Oriented Languages, 2009.
+
+% \bibitem{erdweg11}
+% S.~Erdweg, T.~Rendel, C.~K\"{a}stner and K.~Ostermann,
+% SugarJ: Library-based syntactic language extensibility,
+% Object-Oriented Programming, Systems, Languages, and Applications, 2011.
+
+\bibitem{dybvig92}
+R.~Dybvig, R.~Hieb and  C.~Bruggeman,
+Syntactic Abstraction in Scheme.
+Lisp and Symbolic Computations, 1992.
+
+\bibitem{bawden99}
+A.~Bawden,
+Quasiquotation in Lisp.
+Partial Evaluation and Program Manipulation, 1999.
+
+\bibitem{kohlbecker87}
+E.~Kohlbecker, M.~Wand,
+Macro-by-Example: Deriving Syntactic Transformations from their Specifications.
+Principles of Programming Languages, 1987.
+
+\bibitem{culpepper10}
+R.~Culpepper, M.~Felleisen,
+Fortifying Macros.
+International Conference on Functional Programming, 2010.
+
+\bibitem{hoyte08}
+D.~Hoyte,
+Let Over Lambda.
+Lulu, 2008.
+
+\bibitem{clinger91a}
+W.~Clinger,
+Hygienic macros through explicit renaming.
+ACM SIGPLAN Lisp Pointers, 1991.
+
+\bibitem{taha99}
+W.~Taha,
+Multi-Stage Programming: Its Theory and Applications.
+PhD Thesis, Oregon Graduate Institute, 1999.
+
+\bibitem{ganz01}
+S.~Ganz, A.~Sabry, W.~Taha,
+Macros as Multi-Stage Computations: Type-Safe, Generative, Binding Macros in MacroML.
+International Conference on Functional Programming, 2001.
+
+% \bibitem{taha03}
+% W.~Taha and P.~Johann,
+% Staged Notational Definitions.
+% Generative Programming and Component Engineering, 2003.
+
+\bibitem{skalski05}
+K.~Skalski,
+Syntax-Extending and Type-Reflecting Macros in an Object-Oriented Language.
+MsC Thesis, University of Wroc{\l}aw, 2005.
+
+\bibitem{sheard03}
+T.~Sheard and S.~Peyton Jones,
+Notes on Template Haskell Version 2.
+Glasgow Haskell Compiler, 2003.
+
+\bibitem{flatt10}
+M.~Flatt and PLT,
+Reference: Racket,
+PLT Inc., 2010.
+
+\bibitem{flatt02}
+M.~Flatt,
+Composable and Compilable Macros: You Want it When?
+International Conference on Functional Programming, 2002.
+
+% \bibitem{bawden00}
+% A.~Bawden,
+% First-class Macros Have Types.
+% Principles of Programming Languages, 2000.
+
+\bibitem{flatt06}
+M.~Flatt, R.~B.~Findler and M.~Felleisen,
+Scheme with classes, mixins, and traits.
+Asian Symposium on Programming Languages and Systems, 2006.
+
+% \bibitem{clinger91b}
+% W.~Clinger and J.~Rees,
+% Macros that work.
+% Principles of Programming Languages, 1991.
+
+\bibitem{burmako12}
+E.~Burmako and M.~Odersky,
+Scala Macros, a Technical Report.
+Valentin Turchin Workshop on Metacomputation, 2012.
+
+\end{thebibliography}
+
+\end{document}
