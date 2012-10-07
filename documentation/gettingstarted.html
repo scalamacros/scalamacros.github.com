@@ -20,7 +20,7 @@ You can download it manually or reference it in Maven or SBT - pick your favorit
 they reveal important things to know about our macro system, accompanying APIs and infrastructure):</p>
 
 {% highlight scala %}
-import scala.reflect.makro.Context
+import scala.reflect.macros.Context
 import collection.mutable.ListBuffer
 import collection.mutable.Stack
 
@@ -33,7 +33,7 @@ object Macros {
   // required signature is quite involved, but don't be scared
   // if the compiler is unhappy, it will print the signature it wants in the error message
   def printf_impl(c: Context)(format: c.Expr[String], params: c.Expr[Any]*): c.Expr[Unit] = {
-    // compiler API is exposed in scala.reflect.makro.Context
+    // compiler API is exposed in scala.reflect.macros.Context
     // its most important part, reflection API, is accessible via c.universe
     // it's customary to import c.universe._, because it includes a lot of routinely used stuff
     import c.universe._
