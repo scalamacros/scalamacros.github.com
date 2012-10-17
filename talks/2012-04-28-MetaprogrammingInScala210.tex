@@ -94,7 +94,7 @@ Let's expose the compiler to the programmer.
 
 In 2.10 we expose data about programs via reflection API.
 
-The API is spread between scala-reflect.jar (interfaces and implementations) and scala-compiler.jar \\ (runtime compilation).
+The API is spread between scala-reflect.jar (interfaces and implementations) and scala-compiler.jar (runtime compilation).
 
 \end{frame}
 
@@ -155,8 +155,9 @@ Short-lived, mostly immutable, mostly plain case classes.
 Apply(Ident("println"), List(Literal(Constant("hi!"))))
 \end{lstlisting}
 
-Comprehensive list of public trees can be found here:
-\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Trees.scala}{scala/reflect/api/Trees.scala}}.
+A list of all trees can be found in
+\text{\color{linkblue}\href{http://www.scala-lang.org/api/milestone/index.html\#scala.reflect.api.Trees}{docs}}
+and in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Trees.scala}{sources}}.
 
 \end{frame}
 
@@ -230,7 +231,8 @@ Literal(Constant(())))
 Link definitions and references to definitions.
 Long-lived, mutable.
 Declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Symbols.scala}
-{scala/reflect/api/Symbols.scala}}
+{scala/reflect/api/Symbols.scala}}, documented
+\text{\color{linkblue}\href{http://www.scala-lang.org/api/milestone/index.html\#scala.reflect.api.Symbols}{somewhere nearby}}.
 
 \begin{lstlisting}[language=Scala]
 def foo[T: TypeTag](x: Any) = x.asInstanceOf[T]
@@ -308,7 +310,8 @@ to print out raw structure of types.
 \begin{frame}[fragile]
 \frametitle{Types}
 
-Immutable, long-lived, sometimes cached case classes declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Types.scala}{scala/reflect/api/Types.scala}}.
+Immutable, long-lived, sometimes cached case classes declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Types.scala}{scala/reflect/api/Types.scala}}
+(also see \text{\color{linkblue}\href{http://www.scala-lang.org/api/milestone/index.html\#scala.reflect.api.Types}{docs}}).
 
 Store the information about the full wealth of the Scala type system:
 members, type arguments, higher kinds, path dependencies, erasures, etc.
@@ -455,7 +458,7 @@ Using a universe depends on your scenario.
 
 \begin{itemize}
 \item You can play with compiler's universe (aka global) in REPL's :power mode.
-\item With runtime reflection you typically go through the \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Mirror.scala}{Mirror}}
+\item With runtime reflection you typically go through the Mirror
 interface, e.g. scala.reflect.runtime.currentMirror, then cm.reflect and then you can get/set fields, invoke methods, etc. Read up more in \text{\color{linkblue}\href{/documentation/reference.html}{our docs}}.
 \item In a macro context, you import c.universe.\_ and can use imported factories to create trees and types (don't create symbols manually, remember?).
 \end{itemize}
@@ -507,7 +510,7 @@ od isInstanceOf, method !=, method ==, method foo)
 \begin{frame}[fragile]
 \frametitle{Analyze and invoke members}
 
-This thing is quite involved for a single slide. Check out
+This thing is quite involved for a single slide.\\ Check out
 \text{\color{linkblue}\href{http://docs.scala-lang.org/overviews/reflection/overview.html}{our reflection guide}}.
 
 \end{frame}
