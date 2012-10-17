@@ -60,7 +60,7 @@
 \title{Metaprogramming in Scala 2.10}
 \author{Eugene Burmako}
 \institute{EPFL, LAMP}
-\date{28 April 2012 \\ (updated on 20 July 2012 to accommodate the changes introduced in 2.10.0-M4 and 2.10.0-M5)}
+\date{28 April 2012 \\ (updated on 18 October 2012 for 2.10.0-RC1)}
 \maketitle
 
 \section{Intro}
@@ -94,17 +94,7 @@ Let's expose the compiler to the programmer.
 
 In 2.10 we expose data about programs via reflection API.
 
-The API is spread between scala-library.jar (interfaces), scala-reflect.jar (implementations) and scala-compiler.jar \\ (runtime compilation).
-
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Martin knows better}
-
-Design of the reflection API is explained in great detail in a recent talk by Martin Odersky:
-
-\text{\color{linkblue}\href{http://channel9.msdn.com/Events/Lang-NEXT/Lang-NEXT-2012/Reflection-and-Compilers}
-{channel9.msdn.com/Lang-NEXT-2012/Reflection-and-Compilers}}
+The API is spread between scala-reflect.jar (interfaces and implementations) and scala-compiler.jar \\ (runtime compilation).
 
 \end{frame}
 
@@ -148,12 +138,12 @@ phase name  id  description
     parser   1  parse source into ASTs, simple desugaring
      namer   2  resolve names, attach symbols to named trees
      typer   4  the meat and potatoes: type the trees
-   pickler   7  serialize symbol tables
+   pickler   8  serialize symbol tables
 \end{lstlisting}
 
 I'll do my best to explain these concepts, but it's barely possible to do it better than Paul Phillips.
 Be absolutely sure to watch the \text{\color{linkblue}\href{http://skillsmatter.com/podcast/scala/scalac-internals}
-{Inside the Sausage Factory}} talk (when the video is up).
+{Inside the Sausage Factory}} talk.
 \end{frame}
 
 \begin{frame}[fragile]
@@ -166,9 +156,7 @@ Apply(Ident("println"), List(Literal(Constant("hi!"))))
 \end{lstlisting}
 
 Comprehensive list of public trees can be found here:
-\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/base/Trees.scala}{scala/reflect/base/Trees.scala}}. Also take a look at the cousin of the linked file at \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Trees.scala}{scala/reflect/api/Trees.scala}}.
-
-Why the split between base and api? The former is available everywhere, the latter requires scala-reflect.jar.
+\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Trees.scala}{scala/reflect/api/Trees.scala}}.
 
 \end{frame}
 
@@ -229,7 +217,7 @@ res1: String = Block(List(ModuleDef(
   Modifiers(),
   newTermName("Test"),
   Template(List(Ident(newTypeName("AnyRef"))), List(
-    DefDef(Modifiers(), newTermName("<init>"), List(), List(List()), TypeTree(), Block(List(Apply(Select(Super(This(newTypeName("")), newTypeName("")), newTermName("<init>")), List())), Literal(Constant(())))),
+    DefDef(Modifiers(), nme.CONSTRUCTOR, List(), List(List()), TypeTree(), Block(List(Apply(Select(Super(This(tpnme.EMPTY), tpnme.EMPTY), nme.CONSTRUCTOR), List())), Literal(Constant(())))),
     Apply(Select(Select(This(newTypeName("scala")), newTermName("Predef")), newTermName("println")), List(Literal(Constant("Hello World!")))))))),
 Literal(Constant(())))
 \end{lstlisting}
@@ -241,8 +229,7 @@ Literal(Constant(())))
 
 Link definitions and references to definitions.
 Long-lived, mutable.
-Declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/base/Symbols.scala}
-{scala/reflect/base/Symbols.scala}} and \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Symbols.scala}
+Declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Symbols.scala}
 {scala/reflect/api/Symbols.scala}}
 
 \begin{lstlisting}[language=Scala]
@@ -321,7 +308,7 @@ to print out raw structure of types.
 \begin{frame}[fragile]
 \frametitle{Types}
 
-Immutable, long-lived, sometimes cached case classes declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/base/Types.scala}{scala/reflect/base/Types.scala}} and \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Types.scala}{scala/reflect/api/Types.scala}}.
+Immutable, long-lived, sometimes cached case classes declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Types.scala}{scala/reflect/api/Types.scala}}.
 
 Store the information about the full wealth of the Scala type system:
 members, type arguments, higher kinds, path dependencies, erasures, etc.
@@ -355,7 +342,7 @@ Nothing very fancy, let's move on to something really cool.
 \begin{lstlisting}[language=XML]
 scala> :type -v def impl[T: c.TypeTag](c: Context) = ???
 // Type signature
-[T](c: scala.reflect.makro.Context)(implicit evidence$1: c.TypeTag[T])Nothing
+[T](c: scala.reflect.macros.Context)(implicit evidence$1: c.TypeTag[T])Nothing
 
 // Internal Type structure
 PolyType(
@@ -382,7 +369,7 @@ scala> object O {
 }
 defined module O
 
-scala> val meth = ru.reify(O).staticTpe.typeSymbol.
+scala> val meth = ru.reify(O).staticType.typeSymbol.
   typeSignature.member(newTermName("impl"))
 meth: reflect.runtime.universe.Symbol = method impl
 
@@ -443,7 +430,7 @@ Universes are environments that pack together trees, symbols and their types.
 \begin{itemize}
 \item Compiler (scala.tools.nsc.Global) is a universe.
 \item Reflection runtime (scala.reflect.runtime.universe) is a universe too.
-\item Macro context (scala.reflect.makro.Context) holds a reference to a universe.
+\item Macro context (scala.reflect.macros.Context) holds a reference to a universe.
 \end{itemize}
 \end{frame}
 
@@ -452,7 +439,7 @@ Universes are environments that pack together trees, symbols and their types.
 
 Mirrors abstract population of symbol tables.
 
-Each universe can have multiple mirrors, which can share symbols within their parent universe. \text{\color{linkblue}\href{https://docs.google.com/document/d/1Z1VhhNPplbUpaZPIYdc0_EUv5RiGQ2X4oqp0i-vz1qw/edit}{Scala Reflection writeup}} elaborates on this in more detail.
+Each universe can have multiple mirrors, which can share symbols with each other within their parent universe.
 
 \begin{itemize}
 \item Compiler loads symbols from pickles using its own *.class parser. It has only one mirror, the rootMirror.
@@ -469,7 +456,7 @@ Using a universe depends on your scenario.
 \begin{itemize}
 \item You can play with compiler's universe (aka global) in REPL's :power mode.
 \item With runtime reflection you typically go through the \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Mirror.scala}{Mirror}}
-interface, e.g. scala.reflect.runtime.currentMirror, then cm.reflect and then you can get/set fields, invoke methods, etc. Read up more on \text{\color{linkblue}\href{http://stackoverflow.com/questions/11020746/get-companion-object-instance-with-new-scala-reflection-api}{stackoverflow}}.
+interface, e.g. scala.reflect.runtime.currentMirror, then cm.reflect and then you can get/set fields, invoke methods, etc. Read up more in \text{\color{linkblue}\href{/documentation/reference.html}{our docs}}.
 \item In a macro context, you import c.universe.\_ and can use imported factories to create trees and types (don't create symbols manually, remember?).
 \end{itemize}
 \end{frame}
@@ -520,8 +507,8 @@ od isInstanceOf, method !=, method ==, method foo)
 \begin{frame}[fragile]
 \frametitle{Analyze and invoke members}
 
-Daniel Sobral got it all covered in his series of articles about reflection:
-\text{\color{linkblue}\href{http://dcsobral.blogspot.ch/2012/07/json-serialization-with-reflection-in.html}{JSON serialization with reflection in Scala!}}
+This thing is quite involved for a single slide. Check out
+\text{\color{linkblue}\href{http://docs.scala-lang.org/overviews/reflection/overview.html}{our reflection guide}}.
 
 \end{frame}
 
@@ -551,7 +538,7 @@ import scala.reflect.runtime.universe._
 import scala.tools.reflect.ToolBox
 val tree = Apply(Select(Literal(Constant(40)), newTermName("$plus")), List(Literal(Constant(2))))
 val cm = ru.runtimeMirror(getClass.getClassLoader)
-println(cm.mkToolBox().runExpr(tree))
+println(cm.mkToolBox().eval(tree))
 \end{lstlisting}
 
 Toolbox is a full-fledged compiler (the scala.tools.reflect.ToolBox import requires scala-compiler.jar on the classpath). Unlike the regular compiler, it uses Java reflection encapsulated in the provided mirror to populate its symbol table.
