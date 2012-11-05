@@ -1,0 +1,65 @@
+---
+layout: news
+title: Status update
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>It's been two weeks since we published <a href="http://www.scala-lang.org/node/13096">Scala 2.10.0-RC1</a>, and
+it looks like the final release of 2.10.0 is coming really soon. So let's retrospect a little.</p>
+
+<p><i>State of the art</i></p>
+
+<p>Macros are now officially a part of the Scala language, albeit an experimental one.
+We have a decently working implementation and <a href="/documentation.html">some docs</a> (also much more docs are on the way -
+be sure to check <a href="http://docs.scala-lang.org/overviews/reflection/overview.html">the reflection guide</a> and
+<a href="http://docs.scala-lang.org/overviews/reflection/macros.html">the macro guide</a> at the Scaladoc site once they're up in a few days).</p>
+
+<p>And what's the most important: we have several projects that already use macros, and even more are on their way.
+Here we'd like to take time and say a big and hearty "thank you" to our early adopters. You guys are fantastic!</p>
+
+<p>Speaking of evolution, at first we imagined that macros would mostly deliver a convenient way to build DSLs or even
+language workbenches (that's why DSL-related use cases originally had such priority at
+<a href="http://scalamacros.org/usecases/index.html">http://scalamacros.org/usecases/index.html</a>).</p>
+
+<p>But later this perception has changed. Sure one can design much more powerful DSLs than it's possible without compile-time metaprogramming
+(e.g. literals for binary numbers or a LINQ-like DB connectivity toolkit). But we've mostly seen people using macros to perform low-level
+AST twiddling (which I think can't be classified as DSLing).</p>
+
+<p>For example, there's <a href="https://github.com/pniederw/expecty">an elaborate assert macro</a>,
+<a href="https://github.com/paulp/declosurify">a series of method inlining macros</a>,
+<a href="http://stackoverflow.com/questions/10373318/mixing-in-a-trait-dynamically/10387200#10387200">a dynamic trait mixing macro</a>
+(I know, that's my own Stack Overflow answer, but I've seen other people doing similar things as well),
+also <a href="https://bitbucket.org/jaroslav/scala-macro-serialization/">a serialization macro</a>, et cetera et cetera.
+There's a bunch of other usages to achieve little improvements here and there (e.g. a macro that works around Scala closure conversion
+for better serialization), but we don't have source code to link for those. But anyways macros are still very useful for DSLs.
+In this department the biggest players to our knowledge are <a href="https://github.com/slick/slick">Slick</a> and
+<a href="http://www.paulbutcher.com/2012/06/scalamock-3-0-preview-release/">ScalaMock v3</a>.</p>
+
+<p><i>Future avenues</i></p>
+
+<p>Now while the post-release dust is settling, we're planning our next journey along the road of compile-time metaprogramming in Scala.</p>
+
+<p>Our biggest interest lies in experimenting how language features such as types, implicits or annotations work together with macros.
+Currently macros can only work in the small, providing intra-method code generation, but with type macros, implicit macros and annotation macros
+it becomes possible to do stuff that transforms the very fabric of the language.</p>
+
+<p>There are already designs of <a href="http://akuklev.livejournal.com/1068955.html">a theorem prover interface</a>
+and <a href="http://www.slideshare.net/akuklev/scala-circuitries">an effect-capturing system</a> that can be built on top of the new
+flavors of macros. We also have some sketches already outlined on this site (<a href="http://scalamacros.org/future.html">http://scalamacros.org/future.html</a>), but expect more information to come over the next months.</p>
+
+<p>Despite having new and shiny things to research, we definitely do not plan to abandon the freshly implemented functionality.
+Our <a href="https://issues.scala-lang.org/secure/IssueNavigator.jspa?mode=hide&requestId=10908">macro- and reflection-related issue tracker</a>
+is only slightly over 100 bugs and improvement suggestions. We dare you to double this amount!</p>
+
+<p>On a more serious note, we're well aware of the limitations of the current macro system (separate compilation, awkwardness
+in scenarios the involve untyped or partially typed trees). There are some ideas how to overcome these hurdles, and we plan
+to look into these ideas as we go.</p>
+
+<p><i>Putting it in a nutshell</i></p>
+
+<p>Download the freshly released <a href="http://www.scala-lang.org/node/13096">Scala 2.10.0-RC1</a>,
+get started using <a href="/documentation/gettingstarted.html">our documentation</a>, explore the macrology
+<a href="http://groups.google.com/group/scala-user">together with us</a> and have fun! We hope you'll like macros -
+the incarnation of compile-time metaprogramming for Scala.</p>
