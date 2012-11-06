@@ -76,7 +76,7 @@ object Macros {
     // now we combine all the code we have generated into a Block
     // note the call to reify, which provides a shortcut for creating ASTs
     // learn more about reify in our documentation
-    val stats = evals ++ refs.map(ref => reify(print(c.Expr[Any](ref).splice)).tree)
+    val stats = evals ++ refs.map(ref => reify(println(c.Expr[Any](ref).splice)).tree)
     c.Expr[Unit](Block(stats.toList, Literal(Constant(()))))
   }
 }
