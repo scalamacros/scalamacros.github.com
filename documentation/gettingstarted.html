@@ -265,10 +265,10 @@ scala> def impl(c1: Context): c1.Expr[Unit] = {
 impl: (c1: scala.reflect.macros.Context)c1.Expr[Unit]
 {% endhighlight %}
 
-<p>An alternative approach is to use the <code>scala.Singleton</code> upper bound to express the fact that <code>Helper</code>'s <code>C</code> has the same identity as <code>impl</code>'s <code>C</code> (note that it is mandatory to explicitly spell out the type argument when instantiating <code>Helper</code>).</p>
+<p>An alternative approach is to pass the identity of the context in an explicit type parameter.</p>
 
 {% highlight scala %}
-scala> class Helper[C <: Context with Singleton](val c: C) {
+scala> class Helper[C <: Context](val c: C) {
      | def generate: c.Tree = ???
      | }
 defined class Helper
