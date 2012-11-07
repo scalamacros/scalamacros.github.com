@@ -76,7 +76,7 @@ object Macros {
     // now we combine all the code we have generated into a Block
     // note the call to reify, which provides a shortcut for creating ASTs
     // learn more about reify in our documentation
-    val stats = evals ++ refs.map(ref => reify(println(c.Expr[Any](ref).splice)).tree)
+    val stats = evals ++ refs.map(ref => reify(print(c.Expr[Any](ref).splice)).tree)
     c.Expr[Unit](Block(stats.toList, Literal(Constant(()))))
   }
 }
@@ -138,21 +138,21 @@ typechecking macro expansion Macros.printf("hello %s!", "world") at
 source-C:/Projects/Kepler/sandbox\Test.scala,line-3,offset=52
 {
   val eval$1: String = "world";
-  scala.this.Predef.println("hello ");
-  scala.this.Predef.println(eval$1);
-  scala.this.Predef.println("!");
+  scala.this.Predef.print("hello ");
+  scala.this.Predef.print(eval$1);
+  scala.this.Predef.print("!");
   ()
 }
 Block(List(
 ValDef(Modifiers(), newTermName("eval$1"), TypeTree().setType(String), Literal(Constant("world"))),
 Apply(
-  Select(Select(This(newTypeName("scala")), newTermName("Predef")), newTermName("println")),
+  Select(Select(This(newTypeName("scala")), newTermName("Predef")), newTermName("print")),
   List(Literal(Constant("hello")))),
 Apply(
-  Select(Select(This(newTypeName("scala")), newTermName("Predef")), newTermName("println")),
+  Select(Select(This(newTypeName("scala")), newTermName("Predef")), newTermName("print")),
   List(Ident(newTermName("eval$1")))),
 Apply(
-  Select(Select(This(newTypeName("scala")), newTermName("Predef")), newTermName("println")),
+  Select(Select(This(newTypeName("scala")), newTermName("Predef")), newTermName("print")),
   List(Literal(Constant("!"))))),
 Literal(Constant(())))
 {% endhighlight %}
