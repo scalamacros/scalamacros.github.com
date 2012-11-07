@@ -265,7 +265,7 @@ scala> def impl(c1: Context): c1.Expr[Unit] = {
 impl: (c1: scala.reflect.macros.Context)c1.Expr[Unit]
 {% endhighlight %}
 
-<p>An alternative approach is to pass the identity of the context in an explicit type parameter. Note how the constructor of <code>helper</code> uses <code>c.type</code> to express the fact that <code>Helper.c</code> is the same as the original <code>c</code>. Scala's type inference can't figure this out on its own, so we need to help it.</p>
+<p>An alternative approach is to pass the identity of the context in an explicit type parameter. Note how the constructor of <code>Helper</code> uses <code>c.type</code> to express the fact that <code>Helper.c</code> is the same as the original <code>c</code>. Scala's type inference can't figure this out on its own, so we need to help it.</p>
 
 {% highlight scala %}
 scala> class Helper[C <: Context](val c: C) {
