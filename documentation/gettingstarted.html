@@ -222,7 +222,65 @@ java.util.NoSuchElementException: head of empty list
 <p>Nothing dramatic has happened. Compiler guards itself against misbehaving macros, prints relevant part of a stack trace,
 and reports an error.</p>
 
-<h2>6. FAQ</h2>
+<h2>6. Writing bigger macros</h2>
+
+<p>When the code of a macro implementation grows big enough to warrant modularization beyond the body of the implementation method, it becomes apparent that one needs to carry around the context parameter, because most things of interest are path-dependent on the context.</p>
+
+<p>One of the approaches is to write a class that takes a parameter of type <code>Context</code> and then split the macro implementation into a series of methods of that class. This is natural and simple, except that it's hard to get it right. Here's a typical compilation error.</p>
+
+{% highlight scala %}
+scala> class Helper(val c: Context) {
+     | def generate: c.Tree = ???
+     | }
+defined class Helper
+
+scala> def impl(c: Context): c.Expr[Unit] = {
+     | val helper = new Helper(c)
+     | c.Expr(helper.generate)
+     | }
+<console>:32: error: type mismatch;
+ found   : helper.c.Tree
+    (which expands to)  helper.c.universe.Tree
+ required: c.Tree
+    (which expands to)  c.universe.Tree
+       c.Expr(helper.generate)
+                     ^
+{% endhighlight %}
+
+<p>The problem in this snippet is in a path-dependent type mismatch. The Scala compiler does not understand that <code>c</code> in impl</code> is the same object as <code>c</code> in <code>Helper</code>, even though the helper is constructed using the original <code>c</code>.</p>
+
+<p>Luckily just a small nudge is all that is needed for the compiler to figure out what's going on. One of the possible ways of doing that is using refinement types (the example below is the simplest application of the idea; for example, one could also write an implicit conversion from <code>Context</code> to <code>Helper</code> to avoid explicit instantiations and simplify the calls).</p>
+
+{% highlight scala %}
+scala> abstract class Helper {
+     | val c: Context
+     | def generate: c.Tree = ???
+     | }
+defined class Helper
+
+scala> def impl(c1: Context): c1.Expr[Unit] = {
+     | val helper = new { val c: c1.type = c1 } with Helper
+     | c1.Expr(helper.generate)
+     | }
+impl: (c1: scala.reflect.macros.Context)c1.Expr[Unit]
+{% endhighlight %}
+
+<p>An alternative approach is to use the <code>scala.Singleton</code> upper bound to express the fact that <code>Helper</code>'s <code>C</code> has the same identity as <code>impl</code>'s <code>C</code> (note that it is mandatory to explicitly spell out the type argument when instantiating <code>Helper</code>).</p>
+
+{% highlight scala %}
+scala> class Helper[C <: Context with Singleton](val c: C) {
+     | def generate: c.Tree = ???
+     | }
+defined class Helper
+
+scala> def impl(c: Context): c.Expr[Unit] = {
+     | val helper = new Helper[c.type](c)
+     | c.Expr(helper.generate)
+     | }
+impl: (c: scala.reflect.macros.Context)c.Expr[Unit]
+{% endhighlight %}
+
+<h2>7. FAQ</h2>
 
 <p>You're very much welcome to explore our <a href="/documentation/index.html">Documentation</a> section.</p>
 
