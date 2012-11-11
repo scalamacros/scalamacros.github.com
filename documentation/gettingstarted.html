@@ -42,7 +42,7 @@ object Macros {
     // macros run during the compile-time, so they operate on trees, not on values
     // this means that the format parameter of our macro will be a compile-time literal
     // not an object of type java.lang.String
-    // this also means that the code below won't work for printf("%d" + "%d", ...)
+    // this also means that the code below won't work for printf(get_format(), ...)
     // because in that case format won't be a string literal
     // but rather an AST that represents addition of two string literals
     // adjusting the macro to work for arbitrary stuff is left as an excercise for the reader
