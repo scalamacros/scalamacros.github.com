@@ -323,16 +323,8 @@ or drop us a line at <a href="mailto:{{site.email}}">{{site.email}}</a></p>
 <h2>9. More examples</h2>
 
 <p>Scala macros have quite a few early adopters. Thanks to active community involvement, we have been able to rapidly prototype,
-and now there's some code that can be used as a reference:</p>
+and now there's some code that can be used as a reference. Read more about the state of the art at
+<a href="http://scalamacros.org/news/2012/11/05/status-update.html">http://scalamacros.org/news/2012/11/05/status-update.html</a>.</p>
 
-<p><a href="http://slick.typesafe.com">SLICK</a>: Scala language integrated connectivity kit developed by Typesafe and EPFL,
-uses macros to provide a transparent front-end to a database query engine.</p>
-
-<p><a href="https://github.com/retronym/macrocosm">Macrocosm</a>: Jason Zaugg's playground. Features fancy assertions, loggers,
-compile-time checking for regexes and binary literals, and even an optimized foreach. Interesting stuff!</p>
-
-<p><a href="https://github.com/pniederw/expecty">Expecty</a>: Power assertions as known from Groovy and Spock to the Scala language.
-Pimps vanilla assertions so hard, that they start printing values of sub-expressions.</p>
-
-<p>Also it's not a bad idea to take a look at <a href="https://github.com/scala/scala/tree/master/test/files/run">our unit tests</a>.
-They are not very descriptive, but they explore uses of macros in unexpected settings (implicit macros, anyone? =))
+<p>We also recommend a short tutorial on Scala macros written by Adam Warski: <a href="http://www.warski.org/blog/2012/12/starting-with-scala-macros-a-short-tutorial">http://www.warski.org/blog/2012/12/starting-with-scala-macros-a-short-tutorial</a>. It provides a step-by-step guide through writing a debug printing macro
+with explanations covering setup of an SBT project, usage of <code>reify</code> and <code>splice</code> and manually assembly of ASTs.</p>
