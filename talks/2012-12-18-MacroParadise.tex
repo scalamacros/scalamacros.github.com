@@ -361,8 +361,8 @@ Before:
 \vskip25pt
 After:
 \begin{itemize}
-\item q"future \{ \$fbody \}"
-\item tq"Future[\$tresult]"
+\item q"future \{ \$body \}"
+\item tq"Future[\$tpt]"
 \item case q"class \$name \{ ..\$\{\_ :: defs\} \}" $\Rightarrow$ ...
 \end{itemize}
 \end{frame}
@@ -423,7 +423,7 @@ trait Serializer[T] \{
 
 def serialize[T](x: T)(implicit s: Serializer[T]): Pickle
 
-implicit def generator: Serializer[T] = macro impl[T]
+implicit def generator[T]: Serializer[T] = macro impl[T]
 def impl[T](c: Context): c.Expr[Serializer[T]] = ...
 
 \end{semiverbatim}
