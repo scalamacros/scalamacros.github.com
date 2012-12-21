@@ -4,18 +4,14 @@ title: Download
 comments: false
 plusone: false
 ---
-<p>Macros ship with Scala starting from 2.10.0-M3.
-Use download links at <a href="http://www.scala-lang.org/downloads">Scala home page</a>,
-or refer to an appropriate Scala version (2.10.0-RC1 or 2.10.0-SNAPSHOT) in Maven or SBT.</p>
+<p>Macros ship with the Scala compiler starting from 2.10.0.</p>
 
-<p>Public compiler API (aka reflection API) has undergone major rehash in M4,
-so examples and documentation from M3 will most likely not work for M4 and vice versa.
-This site only covers the most recent developments and doesn't provide info about macros and reflection in M3.</p>
+<p>To get started:
+<ul><li>Create a separate project for your macros.</li>
+<li>Reference <code>scala-reflect.jar</code> in the macro project.</li>
+<li>Use <code>import language.experimental.macros</code> in the files where you define macros.</li>
+<li>If in doubt, consult <a href="http://docs.scala-lang.org/overviews/macros/overview.html">the docs</a>.</ul></p>
 
-<p>If you feel like experimenting, you can clone our bleeding edge code repository at GitHub is <a href="{{ site.github.url }}">{{ site.github.url }}</a>.
-The <code>develop</code> branch is the most stable, other branches host experimental features.
-Building the repository should be as simple as running <code>ant</code>,
-setting up an IDE is described <a href="/documentation/howtocontribute.html">here</a>.</p>
-
-<p>We also warmly welcome contributors. If you feel like working on project Kepler,
-we will be very glad to hear from you at <a href="mailto:{{ site.email }}">{{ site.email }}</a>.</p>
+<p>Macros are also in active development within so-called <a href="/talks/2012-12-18-MacroParadise.pdf">macro paradise</a>,
+a dedicated branch in the official Scala repository. By the beginning of January 2013 we will set up a nightly build
+that will publish snapshot artifacts to Sonatype, and you will be able to use them in Maven and SBT.</p>

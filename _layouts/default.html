@@ -47,17 +47,8 @@
               {% if page.url == "/usecases.html" or page.url == "/usecases/index.html" %}<li class="current"><a href="/usecases.html">Use cases</a></li>{% else %}
               <li><a href="/usecases.html">Use cases</a></li>{% endif %}
 
-              {% if page.url == "/documentation.html" or page.url == "/documentation/howtocontribute.html" %}<li class="current"><a href="/documentation.html">Documentation</a></li>{% else %}
+              {% if page.url == "/documentation.html" %}<li class="current"><a href="/documentation.html">Documentation</a></li>{% else %}
               <li><a href="/documentation.html">Documentation</a></li>{% endif %}
-
-              {% if page.url == "/documentation.html" or page.url == "/documentation/index.html" or page.url == "/documentation/specification.html" or page.url == "/documentation/reference.html" or page.url == "/documentation/gettingstarted.html" or page.url == "/documentation/howtocontribute.html" %}
-                {% if page.url == "/documentation/gettingstarted.html" %}<li class="current"><a href="/documentation/gettingstarted.html">Getting started</a></li>{% else %}
-                <li><a href="/documentation/gettingstarted.html">Getting started</a></li>{% endif %}
-                {% if page.url == "/documentation/specification.html" %}<li class="current"><a href="/documentation/specification.html">Specification</a></li>{% else %}
-                <li><a href="/documentation/specification.html">Specification</a></li>{% endif %}
-                {% if page.url == "/documentation/reference.html" %}<li class="current"><a href="/documentation/reference.html">Reference</a></li>{% else %}
-                <li><a href="/documentation/reference.html">Reference</a></li>{% endif %}
-              {% endif %}
 
               {% if page.url == "/download.html" %}<li class="current"><a href="/download.html">Download</a></li>{% else %}
               <li><a href="/download.html">Download</a></li>{% endif %}
@@ -98,7 +89,7 @@
       </div>
       </div>
       <div id="footer">
-        ScalaMacros.org site &copy; 2011-2012 <a href="http://xeno.by">Eugene Burmako</a>.
+        ScalaMacros.org site &copy; 2011-2013 <a href="http://xeno.by">Eugene Burmako</a>.
       </div>
     </div>
   </body>
