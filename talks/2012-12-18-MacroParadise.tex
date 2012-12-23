@@ -244,8 +244,9 @@ type H2Db(url: String) = macro impl
 def impl(c: Context)(url: c.Expr[String]) = \{
   val name = c.freshName(c.enclosingImpl.name).toTypeName
   val clazz = ClassDef(..., Template(..., generateCode()))
-  c.introduceTopLevel(clazz)
-  Apply(Ident(name), List(Literal(Constant(c.eval(url)))))
+  c.introduceTopLevel(c.enclosingPackage.pid.toString, clazz)
+  val classRef = Select(c.enclosingPackage.pid, name)
+  Apply(classRef, List(Literal(Constant(c.eval(url)))))
 \}
 
 object Db extends H2Db("coffees")
@@ -253,7 +254,7 @@ object Db extends H2Db("coffees")
 
 \begin{itemize}
 \item An entire class gets generated and inserted into the symbol table
-\item Macro itself expands into a constructor call, as if the user has written \texttt{object Db extends DB\$1("coffees")}
+\item Macro itself expands into a constructor call, as if the user has written \texttt{object Db extends Db\$1("coffees")}
 \item Full source code \text{\color{blue}\href{https://github.com/scalamacros/kepler/blob/paradise/macros/test/files/run/macro-typemacros-fourth-proto/}{at Github}}
 \end{itemize}
 \end{frame}
