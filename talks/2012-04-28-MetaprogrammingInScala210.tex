@@ -60,7 +60,7 @@
 \title{Metaprogramming in Scala 2.10}
 \author{Eugene Burmako}
 \institute{EPFL, LAMP}
-\date{28 April 2012 \\ (updated on 18 October 2012 for 2.10.0-RC1)}
+\date{28 April 2012 \\ (updated on 2 January 2013 for 2.10.0-final)}
 \maketitle
 
 \section{Intro}
@@ -114,9 +114,9 @@ Q: Hey! What about macros?
 A: Reflection is at the core of macros, reflection provides macros with an API, reflection enables macros.
 Our focus today is understanding reflection, macros are just a tiny bolt-on.
 
-For more information about macros, their philosophy and applications, take a look at my Scala Days talk:
-\text{\color{linkblue}\href{http://scalamacros.org/talks/2012-04-18-ScalaDays2012.pdf}
-{http://scalamacros.org/talks/2012-04-18-ScalaDays2012.pdf}}.
+For more information about macros, their philosophy and applications, take a look at my other talks:
+\text{\color{linkblue}\href{http://scalamacros.org/talks.html}
+{http://scalamacros.org/talks.html}}.
 
 \end{frame}
 
@@ -156,8 +156,8 @@ Apply(Ident("println"), List(Literal(Constant("hi!"))))
 \end{lstlisting}
 
 A list of all trees can be found in
-\text{\color{linkblue}\href{http://www.scala-lang.org/api/milestone/index.html\#scala.reflect.api.Trees}{docs}}
-and in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Trees.scala}{sources}}.
+\text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Trees}{docs}}
+and in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/v2.10.0/src/reflect/scala/reflect/api/Trees.scala}{sources}}.
 
 \end{frame}
 
@@ -174,7 +174,7 @@ and in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/sr
 
 Q: Where do I pull these compiler flags from?
 
-A: \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/compiler/scala/tools/nsc/settings/ScalaSettings.scala}
+A: \text{\color{linkblue}\href{https://github.com/scala/scala/blob/v2.10.0/src/compiler/scala/tools/nsc/settings/ScalaSettings.scala}
 {scala/tools/nsc/settings/ScalaSettings.scala}}
 
 \end{frame}
@@ -230,9 +230,9 @@ Literal(Constant(())))
 
 Link definitions and references to definitions.
 Long-lived, mutable.
-Declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Symbols.scala}
+Declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/v2.10.0/src/reflect/scala/reflect/api/Symbols.scala}
 {scala/reflect/api/Symbols.scala}}, documented
-\text{\color{linkblue}\href{http://www.scala-lang.org/api/milestone/index.html\#scala.reflect.api.Symbols}{somewhere nearby}}.
+\text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Symbols}{somewhere nearby}}.
 
 \begin{lstlisting}[language=Scala]
 def foo[T: TypeTag](x: Any) = x.asInstanceOf[T]
@@ -310,8 +310,8 @@ to print out raw structure of types.
 \begin{frame}[fragile]
 \frametitle{Types}
 
-Immutable, long-lived, sometimes cached case classes declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Types.scala}{scala/reflect/api/Types.scala}}
-(also see \text{\color{linkblue}\href{http://www.scala-lang.org/api/milestone/index.html\#scala.reflect.api.Types}{docs}}).
+Immutable, long-lived, sometimes cached case classes declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/v2.10.0/src/reflect/scala/reflect/api/Types.scala}{scala/reflect/api/Types.scala}}
+(also see \text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Types}{docs}}).
 
 Store the information about the full wealth of the Scala type system:
 members, type arguments, higher kinds, path dependencies, erasures, etc.
@@ -459,7 +459,7 @@ Using a universe depends on your scenario.
 \begin{itemize}
 \item You can play with compiler's universe (aka global) in REPL's :power mode.
 \item With runtime reflection you typically go through the Mirror
-interface, e.g. scala.reflect.runtime.currentMirror, then cm.reflect and then you can get/set fields, invoke methods, etc. Read up more in \text{\color{linkblue}\href{/documentation/reference.html}{our docs}}.
+interface, e.g. scala.reflect.runtime.currentMirror, then cm.reflect and then you can get/set fields, invoke methods, etc. Read up more in \text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Mirrors}{our docs}}.
 \item In a macro context, you import c.universe.\_ and can use imported factories to create trees and types (don't create symbols manually, remember?).
 \end{itemize}
 \end{frame}
@@ -480,7 +480,7 @@ because typically there is only one runtime universe.
 
 However with macros it's more complicated. To pass artifacts around (e.g. into helper functions),
 you need to also carry the universe with you. Or you can employ the technique outlined in
-\text{\color{linkblue}\href{http://groups.google.com/group/scala-internals/msg/c861229693043723}{a discussion at scala-internals}}.
+\text{\color{linkblue}\href{http://docs.scala-lang.org/overviews/macros/overview.html\#writing_bigger_macros}{our docs}}.
 \end{frame}
 
 \section{Demo}
@@ -499,20 +499,14 @@ scala> ru.typeOf[X]
 res0: reflect.runtime.universe.Type = X
 
 scala> res0.members
-res1: Iterable[reflect.runtime.universe.Symbol] = List(method $asInstanceOf, method $isIn
-stanceOf, method synchronized, method ##, method !=, method ==, method ne, method eq, constructor Ob
-ject, method notifyAll, method notify, method clone, method getClass, method hashCode, method toStri
-ng, method equals, method wait, method wait, method wait, method finalize, method asInstanceOf, meth
-od isInstanceOf, method !=, method ==, method foo)
+res1: reflect.runtime.universe.MemberScope = Scopes( method $asInstanceOf, method $isInstanceOf, method synchronized, method ##, method !=, method ==, method ne, method eq, constructor Object, method notifyAll, method notify, method clone, method getClass, method hashCode, method toString, method equals, method wait, method wait, method wait, method finalize, method asInstanceOf, method isInstanceOf, method !=, method ==, method foo)
 \end{lstlisting}
 \end{frame}
 
 \begin{frame}[fragile]
 \frametitle{Analyze and invoke members}
 
-This thing is quite involved for a single slide.\\ Check out
-\text{\color{linkblue}\href{http://docs.scala-lang.org/overviews/reflection/overview.html}{our reflection guide}}.
-
+This thing is quite involved for a single slide.\\ Check out our reflection guide: \text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Symbols}{analysis}}, \text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Mirrors}{invocation}}.
 \end{frame}
 
 \begin{frame}[fragile]
@@ -530,6 +524,9 @@ foo: [T](x: T)(implicit evidence$1: ru.TypeTag[T])ru.Type
 
 scala> foo(List(1, 2, 3))
 res1: reflect.runtime.universe.Type = List[Int]
+
+scala> ru.showRaw(res1)
+res2: String = TypeRef(ThisType(scala.collection.immutable), scala.collection.immutable.List, List(TypeRef(ThisType(scala), scala.Int, List())))
 \end{lstlisting}
 \end{frame}
 
@@ -585,18 +582,9 @@ That's it.
 \begin{itemize}
 \item In 2.10 you can have all the information about your program that the compiler has (well, almost).
 \item This information includes trees, symbols and types. And annotations. And positions.
-\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/reflect/scala/reflect/api/Universe.scala}{And more}}.
+\text{\color{linkblue}\href{https://github.com/scala/scala/blob/v2.10.0/src/reflect/scala/reflect/api/Universe.scala}{And more}}.
 \item You can reflect at runtime (scala.reflect.runtime.universe) or at compile-time (macros).
 \end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Status}
-
-We're already there.
-
-Since 2.10.0-M3 Scala includes reflection and macros.
-
 \end{frame}
 
 % \begin{frame}[fragile]
