@@ -60,7 +60,7 @@
 \title{Metaprogramming in Scala 2.10}
 \author{Eugene Burmako}
 \institute{EPFL, LAMP}
-\date{28 April 2012 \\ (updated on 2 January 2013 for 2.10.0-final)}
+\date{28 April 2012 \\ (updated on 6 January 2013 for 2.10.0-final)}
 \maketitle
 
 \section{Intro}
@@ -156,7 +156,7 @@ Apply(Ident("println"), List(Literal(Constant("hi!"))))
 \end{lstlisting}
 
 A list of all trees can be found in
-\text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Trees}{docs}}
+\text{\color{linkblue}\href{http://www.scala-lang.org/api/current/index.html\#scala.reflect.api.Trees}{docs}}
 and in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/v2.10.0/src/reflect/scala/reflect/api/Trees.scala}{sources}}.
 
 \end{frame}
@@ -232,7 +232,7 @@ Link definitions and references to definitions.
 Long-lived, mutable.
 Declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/v2.10.0/src/reflect/scala/reflect/api/Symbols.scala}
 {scala/reflect/api/Symbols.scala}}, documented
-\text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Symbols}{somewhere nearby}}.
+\text{\color{linkblue}\href{http://www.scala-lang.org/api/current/index.html\#scala.reflect.api.Symbols}{somewhere nearby}}.
 
 \begin{lstlisting}[language=Scala]
 def foo[T: TypeTag](x: Any) = x.asInstanceOf[T]
@@ -311,7 +311,7 @@ to print out raw structure of types.
 \frametitle{Types}
 
 Immutable, long-lived, sometimes cached case classes declared in \text{\color{linkblue}\href{https://github.com/scala/scala/blob/v2.10.0/src/reflect/scala/reflect/api/Types.scala}{scala/reflect/api/Types.scala}}
-(also see \text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Types}{docs}}).
+(also see \text{\color{linkblue}\href{http://www.scala-lang.org/api/current/index.html\#scala.reflect.api.Types}{docs}}).
 
 Store the information about the full wealth of the Scala type system:
 members, type arguments, higher kinds, path dependencies, erasures, etc.
@@ -459,7 +459,7 @@ Using a universe depends on your scenario.
 \begin{itemize}
 \item You can play with compiler's universe (aka global) in REPL's :power mode.
 \item With runtime reflection you typically go through the Mirror
-interface, e.g. scala.reflect.runtime.currentMirror, then cm.reflect and then you can get/set fields, invoke methods, etc. Read up more in \text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Mirrors}{our docs}}.
+interface, e.g. scala.reflect.runtime.currentMirror, then cm.reflect and then you can get/set fields, invoke methods, etc. Read up more in \text{\color{linkblue}\href{http://www.scala-lang.org/api/current/index.html\#scala.reflect.api.Mirrors}{our docs}}.
 \item In a macro context, you import c.universe.\_ and can use imported factories to create trees and types (don't create symbols manually, remember?).
 \end{itemize}
 \end{frame}
@@ -514,7 +514,7 @@ res1: reflect.runtime.universe.MemberScope = Scopes( method $asInstanceOf, metho
 \begin{frame}[fragile]
 \frametitle{Analyze and invoke members}
 
-This thing is quite involved for a single slide.\\ Check out our reflection guide: \text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Symbols}{analysis}}, \text{\color{linkblue}\href{http://www.scala-lang.org/api/rc/index.html\#scala.reflect.api.Mirrors}{invocation}}.
+This thing is quite involved for a single slide.\\ Check out our reflection guide: \text{\color{linkblue}\href{http://www.scala-lang.org/api/current/index.html\#scala.reflect.api.Symbols}{analysis}}, \text{\color{linkblue}\href{http://www.scala-lang.org/api/current/index.html\#scala.reflect.api.Mirrors}{invocation}}.
 \end{frame}
 
 \begin{frame}[fragile]
