@@ -1,0 +1,51 @@
+---
+layout: news
+title: Macro annotations and call for ideas
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>Hello! Today I'd like to present our latest development - the ability to add new members to the classes being compiled
+from any location in the program. To be honest, that's quite a breakthrough, because it opens the doors to a whole bunch of features
+labelled under the "macro annotations" category.</p>
+
+<p>Here's an example, which shows how easy it is to add members to classes in your project. At the moment, the <code>introduceMember</code>
+API can only append members to existing classes, but the news are bigger than just that. The implementation technique, which we finally
+figured out, will let us expose things like <code>changeMember</code>, <code>removeMember</code>, <code>introduceCompanion</code> or
+virtually whatever along these lines.</p>
+
+<code><pre>13:29 ~/Projects/Kepler_introduce-member/sandbox$ cat Macros.scala
+import scala.reflect.macros.Context
+import language.experimental.macros
+
+object Macros {
+  def impl(c: Context)(target: c.Tree, name: c.Tree, code: c.Tree) = {
+    import c.universe._
+    val Literal(Constant(targetType: Type)) = c.typeCheck(target)
+    val Literal(Constant(methodName: String)) = name
+    val Function(methodParams, methodBody) = code
+    val method = DefDef(NoMods, TermName(methodName), Nil, List(methodParams), TypeTree(), methodBody)
+    c.introduceMember(targetType.typeSymbol, method)
+    c.literalUnit
+  }
+  def addMethod(target: _, name: String, code: _) = macro impl
+}
+13:29 ~/Projects/Kepler_introduce-member/sandbox$ cat Test.scala
+class C
+object Test extends App {
+  Macros.addMethod(classOf[C], "foo", (x: Int) => x + 2)
+  println(new C().foo(2))
+}
+13:29 ~/Projects/Kepler_introduce-member/sandbox$ scalac Macros.scala && scalac Test.scala && scala Test
+4</pre></code>
+
+<p>By the way, this example also demonstrates <a href="http://docs.scala-lang.org/overviews/macros/untypedmacros.html">untyped macros</a>
+(be sure to take a look at <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">the macro paradise doc</a>
+if you've not been following the latest macro research - there are some goodies which haven't been covered on this site).
+Though I digress. The main focus today is <code>introduceMember</code> and the possibilities it enables.</p>
+
+<p>Now here comes the question. Imagine you have a capability to shape your program at will. Want to have <a href="https://issues.scala-lang.org/browse/SI-240">lazy parameters</a>? Easy - declare an annotation that changes the signature of a method declaring your parameter and then postprocesses the body. Want to have <a href="/usecases/data-types-a-la-carte.html">customizable case classes</a>? Easy again - rebind a system macro annotation to do something that you want, including creating custom methods and even creating/changing the companion object.</p>
+
+<p>What would you do with this freedom? And how much freedom do you need? Let us know at <a href="mailto:{{site.email}}">{{site.email}}</a> or
+drop a line to <a href="http://groups.google.com/group/scala-language">the mailing list</a>, and we'll be able to tune the design of future macros for your personal use cases!</p>
