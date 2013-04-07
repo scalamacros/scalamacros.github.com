@@ -1,0 +1,439 @@
+\documentclass[svgnames,hyperref={bookmarks=false}]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel}
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \footnotesize\insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{alerted text}{fg=blue}
+\setbeamerfont{alerted text}{series=\bfseries,family=\ttfamily}
+\setbeamertemplate{section in toc}{\text{\color{black}{\inserttocsection}}}
+% \setbeamercolor{titlelike}{bg=white,fg=black}
+\usepackage[parfill]{parskip}
+\usepackage[linewidth=0.5pt]{mdframed}
+\newmdenv[innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=-1mm, innerbottommargin=2mm, leftmargin=-1mm, rightmargin=-1mm]{lstlistinglike}
+\usepackage{tikz}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage{textcomp}
+\usepackage{pifont}
+\usepackage{textpos}
+
+\hypersetup{pdfauthor={Евгений Бурмако},pdfsubject={Макросы в Скале},pdftitle={Макросы в Скале}}
+\title{Макросы в Скале}
+\titlegraphic{\includegraphics[width=4cm]{epfl.png}}
+
+\begin{document}
+
+\title{Макросы в Скале}
+\author{Евгений Бурмако}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\
+           \texttt{http://scalamacros.org/}}
+\date{31 марта 2013}
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+}
+
+\begin{frame}[fragile]
+\frametitle{О чем речь?}
+
+Доклад в двух предложениях:
+\begin{itemize}
+\item Зачем люди используют кодогенерацию?
+\item Что в этом плане можно сделать в Скале?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Копипаста}
+
+Копипаста это плохо.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Абстракция}
+
+\begin{itemize}
+\item Все мы умеем абстрагироваться от частностей и обобщать повторяющийся код
+\item И все мы знаем, что иногда это не работает
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Примеры}
+
+\begin{itemize}
+\item Геттеры-сеттеры-конструкторы
+\item Публикация и подписка на события
+\item Переносчики данных
+\item Доменно-специфические языки
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Что делать?}
+
+\begin{itemize}
+\item Мучительно писать горы однотипного кода
+\item Колбасить кодогенераторы
+\item Поменять язык программирования
+\only<2>{
+  \begin{itemize}
+    \item Но нет предела совершенству
+    \item Даже на Хаскелле есть пятна
+    % TODO: собрать воедино аргументацию на основе дискашенов из ЖЖ
+  \end{itemize}
+}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Кодогенерация}
+
+\begin{itemize}
+\item Плагины к билд тулу, генерирующие текст
+\item Текстовые макросы (C/C++)
+\item Синтаксические макросы (Lisp, Nemerle, Haskell, Scala)
+\item Постпроцессоры байткода
+\item Рантаймовая кодогенерация
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Макросы в Скале 2.10.0}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Что умеют?}
+
+Превращать вызовы специально объявленных функций в произвольный код.
+
+\vskip20pt
+Было:
+\begin{semiverbatim}
+assert(2 + 2 == 4, "прикольное сообщение об ошибке")
+\end{semiverbatim}
+
+\vskip20pt
+Стало:
+\begin{semiverbatim}
+if (2 + 2 != 4) raise("прикольное сообщение об ошибке")
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Как это работает?}
+
+\begin{itemize}
+\item Макросы = функции, которые вызывает компилятор
+\item В эти функции передается код программы
+\item Эти функции возвращают код
+\item Сгенерированный код компилируется как написанный вручную
+\item Детали: \text{\color{blue}{\href{http://scalamacros.org/documentation.html}{http://scalamacros.org/documentation.html}}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример}
+\begin{semiverbatim}
+def assert(cond: Boolean, msg: Any) = macro impl
+def impl(c: Context)(cond: c.Expr[Boolean], msg: c.Expr[Any]) = \{
+  if (assertionsEnabled)
+    // \only<1>{if (!cond) raise(msg)}\only<2>{c.reify(if (cond.splice) raise(msg.splice))}\only<3>{q"if (\$cond) raise(\$msg)"}
+    If(
+      Select(cond.tree, newTermName("\$unary_bang")),
+      Apply(Ident(newTermName("raise")), List(msg.tree)),
+      Literal(Constant(())))
+  else
+    Literal(Constant(())
+\}
+
+import assert
+assert(2 + 2 == 4, "прикольное сообщение об ошибке")
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Какие есть возможности?}
+
+\begin{itemize}
+\item Исполнение произвольного кода (макросы - это обычные Скальные функции)
+\item Генерация произвольного кода (вызовы методов, объявления локальных классов/функций)
+\item Интроспекция (код компилируемой программы, список мемберов классов, загрузка аннотаций)
+\item Общение с тайпчекером (тайпчек, поиск имплиситов, проверка сабтайпинга)
+\item Реификация кода
+\item Сообщения об ошибках
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Практические сложности с первой версией}
+
+\begin{itemize}
+\item Зачастую приходится работать на самом низком уровне (с синтаксическими деревьями)
+\item API для макросов пока что неполный и не окончательный
+\item Не получится генерировать классы, видимые извне раскрытия макроса
+\item Для написания нетривиальных макросов надо знать как работает компилятор изнутри
+\item Трудности с инфраструктурой (кэши, IDE и.т.д)
+\item Сгенерированный код невозможно дебагать в интерактивном режиме
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Кто уже использует макросы}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Slick}
+
+\begin{semiverbatim}
+val coffees = Queryable[Coffee]
+val result = coffees
+  .filter(с => c.supId == 101)
+  .map(c => (c.name, c.price))
+\end{semiverbatim}
+
+\begin{itemize}
+\item Вроде бы обычные filter и map на самом деле являются макросами
+\item Эти макросы ничего не делают с аргументами во время компиляции, а просто сохраняют эти аргументы на будущее (реификация)
+\item В рантайме сохраненные аргументы (например, предикат фильтра) транслируются в запросы к базе данных
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Play}
+
+Скала 2.9:
+\begin{semiverbatim}
+case class Person(name: String, age: Int)
+implicit val personReads = (
+  (__ \ 'name).reads[String] and
+  (__ \ 'age).reads[Int]
+)(Person)
+\end{semiverbatim}
+
+Скала 2.10:
+\begin{semiverbatim}
+case class Person(name: String, age: Int)
+implicit val personReads = Json.reads[Person]
+\end{semiverbatim}
+
+Скала 2.11:
+\begin{semiverbatim}
+case class Person(name: String, age: Int)
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{SBT}
+
+Было:
+\begin{semiverbatim}
+myTask <<= (aTask, bTask, cTask) map \{ (a,b,c) =>
+  f(a, b, c)
+\}
+\end{semiverbatim}
+
+Стало:
+\begin{semiverbatim}
+myTask := f(aTask.value, bTask.value, cTask.value)
+\end{semiverbatim}
+
+\begin{itemize}
+\item Аналогичным способом можно создавать свои нотации и в других случаях, перегружая
+разнообразные языковые конструкции (точку с запятой, условия, циклы, объявления и.т.д).
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Sqltyped}
+
+\begin{semiverbatim}
+scala> val q = sql("select name, age from person")
+scala> q() map (_ get age)
+res0: List[Int] = List(36, 14)
+
+scala> q() map (_ get salary)
+<console>:24: error: No such key Columns.salary.type
+               q() map (_ get salary)
+\end{semiverbatim}
+
+\begin{itemize}
+\item Сиквел-запросы, валидируемые и типизируемые во время компиляции
+\item Да, макросы натурально берут и стучатся в базу данных в компайл-тайме
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Declosurify}
+
+\begin{semiverbatim}
+for (i <- 0 until 100000000 optimized) { ... }
+\end{semiverbatim}
+
+\begin{itemize}
+\item Кодировать циклы на функциях высшего порядка это прикольно
+\item Но Скала пока что не умеет эффективно компилировать такие функции, зачастую создавая промежуточные структуры данных, которые тормозят исполнение
+\item При помощи макроса можно взять красиво записанный цикл и преобразовать его в некрасивую, но быструю форму - бенчмарки сыты, глаза целы
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Макросы в будущей Скале}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Прогресс не стоит на месте}
+С момента кодофриза Скалы 2.10 мы работали над новыми фишечками, на покладая рук.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Что нас интересует?}
+\begin{itemize}
+\item Как сделать написание макросов гуманным?
+\item Какие еще возможности дать нашим пользователям?
+\item Как скрестить макросы и типы?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Квазицитаты}
+
+Было:
+\begin{itemize}
+\item Apply(Ident(newTermName("future")), List(body))
+\item AppliedTypeTree(Ident(newTermName("Future")), List(tpt))
+\item case ClassDef(\_, name, \_, Template(\_, \_, \_ :: defs)) $\Rightarrow$ ...
+\end{itemize}
+
+\vskip25pt
+Стало:
+\begin{itemize}
+\item q"future \{ \$body \}"
+\item tq"Future[\$tpt]"
+\item case q"class \$name \{ ..\$\{\_ :: defs\} \}" $\Rightarrow$ ...
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Тайп макросы}
+
+\begin{semiverbatim}
+type H2Db(url: String) = macro impl
+
+object Db extends H2Db("coffees")
+
+val brazilian = Db.Coffees.insert("Brazilian", 99, 0)
+Db.Coffees.update(brazilian.copy(price = 10))
+println(Db.Coffees.all)
+\end{semiverbatim}
+
+\begin{itemize}
+\item Уже как несколько месяцев макросы умеют генерировать публично видимые определения (классы, трейты, объекты)
+\item Очевидное применение - избавление от переносчиков данных
+\item Но есть еще и всякие трюки вроде более адекватных энумов
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Макро аннотации}
+
+\begin{semiverbatim}
+@Serializable
+class Foo(val x: Int, val y: String)
+\end{semiverbatim}
+
+\begin{itemize}
+\item Совсем недавно я научился добавлять мемберы в произвольные классы в компилируемой программе.
+\item Открывающиеся возможности очень широки, но пока до конца неясны
+\item Как минимум:
+\begin{itemize}
+\item Кастомные кейс классы
+\item Удобная сериализация
+\item Более удобное реактивное программирование
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Эзотерика}
+
+Разнообразны взаимодействия макросов с системой типов Скалы:
+\begin{itemize}
+\item Имплисит макросы
+\item Нетипизированные макросы
+\item Макросы, влияющие на вывод типов
+\item Вычисления на типах при помощи макросов
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro paradise}
+
+Прикольные штучки из этого раздела доклада пока что тусуются в стороне от официальной Скалы,
+но некоторые из этих новых фич уже заинтересовали наших продакшен ребят.
+
+Находятся штучки в моем репозитории, из которого собираются найтли билды.
+Если погуглить по словам \texttt{macro paradise}, то найдутся инструкции по установке и использованию.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Заключение}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Заключение}
+\begin{itemize}
+\item Макросы - плагины к компилятору с человеческим лицом
+\item Они уже с нами в продакшен релизе Скалы 2.10.0
+\item Такие популярные библиотеки как Slick, SBT и Play уже используют макросы
+\item Мы не стоим на месте и постоянно развиваем концепцию макросов в Скале
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\Large{Вопросы и ответы}}\\
+\text{\color{blue}{\texttt{eugene.burmako@epfl.ch}}}
+\end{center}
+\end{frame}
+
+\end{document}
