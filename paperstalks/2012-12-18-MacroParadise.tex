@@ -1,0 +1,497 @@
+\documentclass[svgnames,hyperref={bookmarks=false}]{beamer}
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \footnotesize\insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{alerted text}{fg=blue}
+\setbeamerfont{alerted text}{series=\bfseries,family=\ttfamily}
+\setbeamertemplate{section in toc}{\text{\color{black}{\inserttocsection}}}
+\usepackage[parfill]{parskip}
+\usepackage[linewidth=0.5pt]{mdframed}
+\newmdenv[innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=-1mm, innerbottommargin=2mm, leftmargin=-1mm, rightmargin=-1mm]{lstlistinglike}
+\usepackage{tikz}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage{textcomp}
+\usepackage{pifont}
+
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Macro Paradise},pdftitle={Macro Paradise}}
+\title{Macro Paradise}
+
+\begin{document}
+
+\title{Macro Paradise}
+\author{Eugene Burmako}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\
+           \texttt{http://scalamacros.org/}}
+\date{18 December 2012}
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+}
+
+\begin{frame}[fragile]
+\frametitle{Before we begin}
+
+I'd like to heartily thank:
+\begin{itemize}
+\item Early adopters and contributors fearlessly trying out macros and reflection since December 2011
+\item Reflection group turning impossible problems into great ideas, one meeting at a time
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Today's talk is about}
+
+\begin{itemize}
+\item Macros in upcoming Scala 2.10.0-final
+\item New features implemented since RC1
+\item Plans for the future
+\end{itemize}
+
+\vskip40pt
+
+Screencast: \text{\color{blue}\href{http://vimeo.com/user8565009/macro-paradise-talk}{http://vimeo.com/user8565009/macro-paradise-talk}}
+
+Discussion: \text{\color{blue}\href{http://groups.google.com/group/scala-language/browse\_thread/thread/21c0cdce38715771}{scala-language/thread/21c0cdce38715771}}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{State of the art}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros}
+
+\begin{quote}
+ Macros are functions that are called by the compiler during compilation. Within these functions the programmer has access to compiler APIs. \end{quote}
+
+\begin{flushright}
+\textemdash \text{\color{blue}\href{http://scalamacros.org}{ http://scalamacros.org}}
+\end{flushright}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Def macros}
+\begin{semiverbatim}
+object Asserts \{
+  def assertionsEnabled = ...
+  def raise(msg: Any) = throw new AssertionError(msg)
+
+  def assert(cond: Boolean, msg: Any) = macro impl
+  def impl(c: Context)
+          (cond: c.Expr[Boolean], msg: c.Expr[Any]) =
+    if (assertionsEnabled)
+      c.universe.reify(if (!cond.splice) raise(msg.splice))
+    else
+      c.universe.reify(())
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Seamless integration into existing language
+\item Macros use compiler API to create abstract syntax trees
+\item \texttt{reify} implements the notion of quasiquoting
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros are powerful}
+
+Currently available:
+\begin{itemize}
+\item Creating new expressions
+\end{itemize}
+\vskip25pt
+We plan to experiment with:
+\begin{itemize}
+\item Creating new types
+\item Adding fields and methods to existing types
+\item Steering type inference and implicit search
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros are useful}
+
+\begin{itemize}
+\item \text{\color{blue}\href{http://slick.typesafe.com/}{Slick}}
+\item \text{\color{blue}\href{http://www.paulbutcher.com/2012/06/scalamock-3-0-preview-release/}{ScalaMock v3}}
+\item \text{\color{blue}\href{https://github.com/harrah/xsbt/wiki/Definition-Format-Enhancement.md}{SBT v0.13}}
+\item \text{\color{blue}\href{http://mandubian.com/2012/11/11/JSON-inception/}{Play v2.1}}
+\item \text{\color{blue}\href{https://github.com/pniederw/expecty}{Expecty}}
+\item \text{\color{blue}\href{https://github.com/ochafik/Scalaxy}{Scalaxy}}
+\item \text{\color{blue}\href{https://github.com/jonifreeman/sqltyped}{Sqltyped}}
+\item \text{\color{blue}\href{https://github.com/paulp/declosurify}{Declosurify}}
+\item More ideas at \text{\color{blue}\href{http://scalamacros.org/news/2012/11/05/status-update.html}{scalamacros.org}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros are viable}
+
+\begin{itemize}
+\item Implementation footprint is less than 1kloc
+\item And we have already simplified the compiler itself using macros
+\item Scala reflection, which exposes compiler internals for macro writers, works good enough to be released (although in experimental status)
+\item The SIP committee overseeing additions and changes to Scala is convinced that macros are worth trying out
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros are magic}
+
+\begin{itemize}
+\item Tree construction is hard, because \texttt{reify} has limited usability: \text{\color{blue}\href{http://stackoverflow.com/questions/13795490/how-to-use-type-calculated-in-scala-macro-in-a-reify-clause}{excellent explanation}} by Travis Brown
+\item Symbol manipulation is even harder: resetAttrs cargo cult, check out an \text{\color{blue}\href{http://stackoverflow.com/questions/11208790/how-can-i-reuse-definition-ast-subtrees-in-a-macro}{answer at Stack Overflow}} for details
+\item Reflection API is at times lacking: \text{\color{blue}\href{https://github.com/paulp/declosurify/blob/ce6c55b040/src/main/scala/reflection.scala\#L98}{befriend \texttt{asInstanceOf}}}
+\item Error messages and debugging for generated code are tricky
+\end{itemize}
+We acknowledge these problems and will do our best to address them. Our latest developments will be covered in a few minutes. Our long-term plans are outlined in the last section of the talk.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Macro paradise}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Good news}
+
+Since our last report in November, we have made progress
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Bad news}
+
+\begin{itemize}
+\item Scala 2.10.0 is feature frozen for, oh my, \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI/fixforversion/11309}{already four months}}
+\item Scala 2.10.x isn't going to welcome new shiny features due to \text{\color{blue}\href{http://groups.google.com/group/scala-internals/browse_thread/thread/933b37c3228c9a29}{compatibility restrictions}}
+\item Scala 2.11.0 is scheduled to happen \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI/fixforversion/\#selectedTab=com.atlassian.jira.plugin.system.project\%3Aversions-panel}{only in a year}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro paradise}
+
+Will be released together with 2.10.0 (on the first week of January 2013), so far lives in \texttt{scalamacros/kepler}:
+
+\begin{itemize}
+\item \texttt{paradise/macros} branch at \texttt{scala/scala}
+\item Nightlies easily available in SBT and Maven
+\item Code is experimental, but successful features are going be merged into trunk around major releases
+\item Just like the good old times of 2.10.0-Mx: we hack macros and reflection, you can use new features and fixes immediately
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Type macros}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type macros}
+\begin{semiverbatim}
+type H2Db(url: String) = macro impl
+
+object Db extends H2Db("coffees")
+
+val brazilian = Db.Coffees.insert("Brazilian", 99, 0)
+Db.Coffees.update(brazilian.copy(price = 10))
+println(Db.Coffees.all)
+\end{semiverbatim}
+
+\vskip15pt
+
+\begin{itemize}
+\item Seamless integration into existing language
+\item Wherever you can write types, you can use type macros
+\item However you can define with def macros (value parameters, type parameters, overloading, overriding, etc), you can define type macros
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro implementation}
+\begin{semiverbatim}
+type H2Db(url: String) = macro impl
+
+def impl(c: Context)(url: c.Expr[String]) = \{
+  val name = c.freshName(c.enclosingImpl.name).toTypeName
+  val clazz = ClassDef(..., Template(..., generateCode()))
+  c.introduceTopLevel(c.enclosingPackage.pid.toString, clazz)
+  val classRef = Select(c.enclosingPackage.pid, name)
+  Apply(classRef, List(Literal(Constant(c.eval(url)))))
+\}
+
+object Db extends H2Db("coffees")
+\end{semiverbatim}
+
+\begin{itemize}
+\item An entire class gets generated and inserted into the symbol table
+\item Macro itself expands into a constructor call, as if the user has written \texttt{object Db extends Db\$1("coffees")}
+\item Full source code \text{\color{blue}\href{https://github.com/xeno-by/typemacros-h2db}{at Github}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Features}
+
+\begin{itemize}
+\item Can be used \text{\color{blue}\href{https://github.com/scalamacros/kepler/blob/paradise/macros/test/files/run/macro-typemacros-used-in-funny-places-a/Test_2.scala}{wherever a type is expected}}
+\item \texttt{c.introduceTopLevel} to generate top-level, i.e. non-nested classes and objects (hint: also available in def macros)
+\item When used in parent role, have full control over parents, self-types and members of child classes and objects (there'll be an example shortly)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Roadmap}
+
+Planned:
+\begin{itemize}
+\item Erasable types
+\item Caching for invocations and generated types
+\end{itemize}
+\vskip25pt
+Out of scope (this will be explored later in annotation macros):
+\begin{itemize}
+\item Addition of inner classes or objects
+\item Manipulation of existing classes or objects except for type macros parent roles
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Quasiquotes}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{History}
+
+\begin{itemize}
+\item January 2012: \text{\color{blue}\href{http://xeno-by.livejournal.com/69111.html}{prototype}} based on \texttt{Code.lift}
+\item February 2012: \text{\color{blue}\href{https://github.com/scalamacros/kepler/commit/aa0981ff97c48b4db7c33fa04f1ad35787342b64}{prototype}} based on runtime parsing with \texttt{scala.tools.nsc.Global}, implemented by Natallie Baikevich
+\item February 2012: \texttt{reify}, which quickly became the official quasiquoting facility for Scala macros
+\item December 2012: \text{\color{blue}\href{https://github.com/scalamacros/kepler/tree/paradise/macros}{milestone}} based on compile-time parsing and reification, implemented by Denys Shabalin
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A motivating example}
+
+\begin{semiverbatim}
+class D extends Lifter \{
+  def x = 2
+  // def asyncX = future \{ 2 \}
+\}
+
+val d = new D
+d.asyncX onComplete \{
+  case Success(x) => println(x)
+  case Failure(_) => println("failed")
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item \texttt{Lifter} is a type macro
+\item It takes the body of the host class (\texttt{Template} in scalac parlance) and for each method adds its async version
+\item Full source code \text{\color{blue}\href{https://github.com/xeno-by/typemacros-lifter}{at Github}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro implementation is "simple"}
+
+\begin{semiverbatim}
+case ClassDef(_, _, _, Template(_, _, ctor :: defs)) =>
+  val defs1 = defs collect \{
+    case DefDef(mods, name, tparams, vparamss, tpt, body) =>
+      val tpt1 = if (tpt.isEmpty) tpt else AppliedTypeTree(
+        Ident(newTermName("Future")), List(tpt))
+      val body1 = Apply(
+        Ident(newTermName("future")), List(body))
+      val name1 = newTermName("async" + name.capitalize)
+      DefDef(mods, name1, tparams, vparamss, tpt1, body1)
+  \}
+  Template(Nil, emptyValDef, ctor +: defs ::: defs1)
+\end{semiverbatim}
+
+\begin{itemize}
+\item When \texttt{reify} fails, one has to assemble trees manually
+\item The code here is a bit simplified, but it still shows how cumbersome and verbose manual tree construction is.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Quasiquotes}
+
+Before:
+\begin{itemize}
+\item Apply(Ident(newTermName("future")), List(body))
+\item AppliedTypeTree(Ident(newTermName("Future")), List(tpt))
+\item case ClassDef(\_, name, \_, Template(\_, \_, \_ :: defs)) $\Rightarrow$ ...
+\end{itemize}
+\vskip25pt
+After:
+\begin{itemize}
+\item q"future \{ \$body \}"
+\item tq"Future[\$tpt]"
+\item case q"class \$name \{ ..\$\{\_ :: defs\} \}" $\Rightarrow$ ...
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Roadmap}
+
+Available:
+\begin{itemize}
+\item Construction and deconstruction of abstract syntax trees
+\item Splicing and matching of lists and lists of lists
+\end{itemize}
+\vskip25pt
+Planned:
+\begin{itemize}
+\item Error reporting
+\item Extensive support for language constructs
+\item Hygiene and referential transparency
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Tentative plans for the future}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Robust tree manipulation}
+
+\begin{itemize}
+\item Hygiene and referential transparency resistant to \texttt{resetAttrs}
+\item Fixes for non-idempotencies in typer: \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI-5464}{SI-5464}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Better infrastructure}
+
+\begin{itemize}
+\item IDE support for debugging expanded code: \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI-5922}{SI-5922}}
+\item Sane error messages about malformed expansions: \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI-6822}{SI-6822}}
+\item Lifecycle management for macro-produced artifacts: \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI-6752}{SI-6752}}
+\end{itemize}
+
+This area is being investigated by Dmitry Naydanov, who's upgraded the macro engine and built a prototype of a macro debugger for Intellij. Scala IDE is also going to eventually support debugging of macro expansions. We're looking forward to incorporating this functionality into macro paradise once it's ready.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implicit macros}
+\begin{semiverbatim}
+trait Serializer[T] \{
+  def write(pickle: Pickle, x: T): Unit
+\}
+
+def serialize[T](x: T)(implicit s: Serializer[T]): Pickle
+
+implicit def generator[T]: Serializer[T] = macro impl[T]
+def impl[T](c: Context): c.Expr[Serializer[T]] = ...
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Sort of work right now, except for \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI-5923}{SI-5923}}
+\item A fix would entail a principled redesign of how macros and type inference interact \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI-6755}{SI-6755}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro annotations}
+\begin{semiverbatim}
+class atomic extends MacroAnnotation \{
+  def complete(defn: _) = macro("generate a backing field")
+  def typeCheck(defn: _) = macro("return defn itself")
+\}
+
+@atomic var fld: Int
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Statically-typed analogue of Python's decorators
+\item Operates on arbitrary definitions
+\item Two-step expansion: macro-level + micro-level
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Untyped macros}
+\begin{semiverbatim}
+val s = "foo=bar"
+s.forAllMatches("""^(?<key>.*?)=(?<value>.*)\$""",
+    println("key = \%s, value = \%s".format(key, value)))
+
+def forAllMatches(pattern: String, f: _): Unit = macro impl
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Macro arguments are typechecked before macros are called
+\item However sometimes this is inconvenient, especially when one wants to adjust with lexical scope in a macro
+\item Type safety isn't subverted, because macro expansions are typechecked as usual
+\item \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI-5404}{SI-5405}} tracks progress in this direction
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Summary}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Macro paradise, scheduled to be released during the first week of January 2013, will encapsulate development of new macro features
+\item Type macros (beta quality) and quasiquotes (milestone quality) are waiting for the new year to be included in \texttt{paradise/macros} at \texttt{scala/scala}
+\item These features will be available shortly after release as SNAPSHOT builds of \texttt{org.scala-lang.macro-paradise}
+\item To play with the new functionality before the release, build \text{\color{blue}\href{https://github.com/scalamacros/kepler/tree/paradise/macros}{\texttt{paradise/macros} at \texttt{scalamacros/kepler}}}
+\item Future development might include erasable type macros, robust tree manipulation, IDE support, implicit macros, macro annotations, untyped macros
+\end{itemize}
+\end{frame}
+\end{document}

@@ -1,0 +1,170 @@
+\documentclass[hyperref={bookmarks=false}]{beamer}
+
+\usepackage[parfill]{parskip}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Project Kepler},pdftitle={Project Kepler}}
+\title{Project Kepler}
+
+\definecolor{linkblue}{RGB}{49,57,174}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,annotation,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield,
+    macro},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/}
+%  morestring=[b]",
+%  morestring=[b]',
+%  morestring=[b]"""
+}
+
+\lstset{frame=tb,
+  language=scala,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=3
+}
+
+\begin{document}
+
+\title{Project Kepler}
+\author{Eugene Burmako}
+\institute{EPFL, LAMP}
+\date{17 January 2012}
+\maketitle
+
+\begin{frame}[fragile]
+\frametitle{Kepler}
+
+How to empower developers so that they can extend the compiler, but stay sane and not mess it up?
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Why?}
+
+Compile-time programming enables:
+\begin{itemize}
+\item language virtualization
+\item program reification
+\item self-optimization
+\item algorithmic program construction
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{How?}
+
+Macros make extending the compiler possible.
+
+Quasiquotes make extending the compiler bearable.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{But!}
+
+Q: Scala has enough advanced features for its creator to think about introducing feature switches.
+Why bother?
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{But!}
+
+A: Macros advance us in several areas that are hot for the community:
+\begin{itemize}
+\item code lifting for better DSLs,
+\item domain-specific optimization for high performance,
+\item (speculation) type-level computations for principled type hackery.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Zen}
+
+\begin{lstlisting}[language=scala]
+class Queryable[T, Repr](query: Query) {
+  macro def filter(p: T => Boolean): Repr = scala"""
+    val b = $newBuilder
+    b.query = Filter($query, ${reify(p)})
+    b.result
+  """
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Now}
+
+Prototypes: \text{\color{linkblue}\href{http://github.com/scalamacros/kepler}{http://github.com/scalamacros/kepler}}
+\begin{itemize}
+\item macro defs
+\item quasiquotes
+\item splicing
+\item pattern matching
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Now}
+
+Documentation: \text{\color{linkblue}\href{http://scalamacros.org}{http://scalamacros.org}}
+\begin{itemize}
+\item use cases
+\item talks
+\item walkthroughs
+\item alpha proposals
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use}
+
+\begin{itemize}
+\item Slick language integrated connector kit
+\item Lenses
+\item Shapeless
+\item Domain-specific inlining
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Next?}
+
+\begin{itemize}
+\item SIP (Scala 2.10)
+\item Stabilization
+\item Macro types
+\item Macro annotations
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Thanks!}
+
+\centering
+\text{\color{linkblue}\href{mailto:eugene.burmako@epfl.ch}{eugene.burmako@epfl.ch}}
+
+\end{frame}
+
+\end{document}

@@ -1,0 +1,207 @@
+\documentclass[hyperref={bookmarks=false}]{beamer}
+
+\usepackage[parfill]{parskip}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Project Kepler},pdftitle={Project Kepler}}
+\title{Project Kepler}
+
+\definecolor{linkblue}{RGB}{49,57,174}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,annotation,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield,
+    macro},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/}
+%  morestring=[b]",
+%  morestring=[b]',
+%  morestring=[b]"""
+}
+
+\lstset{frame=tb,
+  language=scala,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=3
+}
+
+\begin{document}
+
+\title{Project Kepler}
+\author{Eugene Burmako}
+\institute{EPFL, LAMP}
+\date{03 July 2012}
+\maketitle
+
+\begin{frame}[fragile]
+\frametitle{Previously on Kepler}
+
+\begin{itemize}
+\item metaprogramming is useful
+\item macros = compile-time AST transformers
+\item prototype of macros for Scala
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Nowadays}
+
+\begin{itemize}
+\item there is a spec for macros
+\item this spec is provisionally accepted for inclusion in Scala
+\item starting from 2.10.0-M3 Scala has macros
+\item the road to production has led to a number of discoveries
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Evolution}
+v1:
+\begin{lstlisting}[language=scala]
+macro def assert(cond: Boolean, msg: Any) =
+  if (assertionsEnabled)
+    c"if (!$cond) raise(msg)"
+  else
+    c"()"
+\end{lstlisting}
+
+v2:
+\begin{lstlisting}[language=scala]
+def assert(cond: Boolean, msg: Any) = macro assertImpl
+def assertImpl
+    (c: Context)
+    (cond: c.Expr[Boolean], msg: c.Expr[Any]) =
+  if (assertionsEnabled)
+    c.reify(if (!cond.splice) raise(msg.splice))
+  else
+    c.reify(())
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reify}
+
+The main insight we gained.
+
+Kills two birds with one stone:
+\begin{itemize}
+\item implements a quasiquoting facility
+\item achieves hygiene
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hygiene}
+
+Macro expansions are inlined into the call site.
+
+What happens to bindings?
+
+\begin{lstlisting}[language=scala]
+object Assert {
+  def raise(msg: Any) = throw new AssertionError(msg)
+  macro def assert(cond: Boolean, msg: Any) =
+    <[ if (!cond) raise(msg)) ]>
+}
+
+object Test extends App {
+  def raise(msg: Any) = { /* haha, tricked you */ }
+  assert(2 + 2 == 3, "no way")
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Achieving hygiene}
+
+In Common Lisp they have gensym.
+
+In Scheme and Nemerle they perform transparent alpha-renaming.
+
+In Scala we don't do any of this.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A fascinating discovery}
+
+Non-hygienic macros can be bootstrapped into hygienic macros
+(in that sense, our macros are self-cleaning).
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Apparently that's old news}
+
+\emph{Macros as Multi-Stage Computations} Ganz, Sabry \& Taha
+
+\emph{Staged Notational Definitions} Taha \& Johann
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Yet it's a novel interpretation}
+
+Taha et al. build a macro system atop of a staged language.
+
+We build a staged system atop of a macro language.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Deliverables}
+
+\begin{itemize}
+\item Paper: Scala Macros, a Technical Report (META'2012)
+\item Documentation: \text{\color{linkblue}\href{http://scalamacros.org}{http://scalamacros.org}}
+\item Code: \text{\color{linkblue}\href{http://github.com/scala/scala}{http://github.com/scala/scala}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Behind the scenes}
+
+\begin{itemize}
+\item polymorphic macros and interaction with type inference
+\item reify defeats erasure
+\item ultra-cake pattern in the new Scala reflection
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Future work}
+
+\begin{itemize}
+\item Marriage of macros and type inference
+\item Better reify
+\item Macro types
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Thanks!}
+
+\centering
+\text{\color{linkblue}\href{mailto:eugene.burmako@epfl.ch}{eugene.burmako@epfl.ch}}
+
+\end{frame}
+
+\end{document}

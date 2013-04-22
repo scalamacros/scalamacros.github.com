@@ -1,0 +1,511 @@
+\documentclass{llncs}
+
+\usepackage{color}
+\usepackage{amstext}
+\usepackage{listings}
+\usepackage{inconsolata}
+
+\begin{document}
+\pagestyle{empty}
+\mainmatter
+
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,macro,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield,
+    macro},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}
+
+\lstset{
+  language=scala,
+  basicstyle=\small,
+  keywordstyle=\ttfamily,
+  identifierstyle=\ttfamily,
+  stringstyle=\ttfamily,
+  breaklines=true,
+  showstringspaces=false}
+
+\title{Scala Macros, a Technical Report}
+\author{Eugene Burmako, Martin Odersky}
+\institute{\'{E}cole Polytechnique F\'{e}d\'{e}rale de Lausanne (EPFL)\\ \email{first.last@epfl.ch}}
+\maketitle
+
+\begin{abstract}
+Metaprogramming is a powerful technique of software development, which allows to automate program generation. Applications of metaprogramming range from improving expressiveness of a programming language via deep embedding of domain-specific languages to boosting performance of produced code by providing programmer with fine-grained control over compilation. In this report we introduce macros, facility that enables compile-time metaprogramming in the Scala programming language.
+\keywords{Compile-time Metaprogramming, Macros, Multi-stage Programming, Language Virtualization}
+\end{abstract}
+
+\section{Introduction}
+
+As its name suggests, Scala (which stands for ``scalable language'' \cite{odersky10}) has been built from the ground up with extensibility in mind. Such features as abstract type members, explicit selftypes and modular mixin composition enable the programmer to compose programs as systems of reusable components \cite{odersky05}.
+
+The symbiosis of language features employed by Scala allows the code written in it to reach impressive levels of modularity \cite{odersky09}, however there is still room for improvement. For example, the semantic gap between high-level abstractions and the runtime model of Java Virtual Machine brings performance issues that become apparent in high-performance scenarios \cite{dragos08}. Another example is state of the art in data access techniques. Recently established standards in this domain \cite{box07} cannot be readily expressed in Scala, which represents a disadvantage for enterprise software development.
+
+Compile-time metaprogramming has been recognized as a valuable tool for enabling such programming techniques as: \emph{language virtualization} (overloading/overriding semantics of the original programming language to enable deep embedding of DSLs) \cite{mccool02}, \emph{program reification} (providing programs with means to inspect their own code) \cite{skalski05,attardi01}, \emph{self-optimization} (self-application of domain-specific optimizations based on program reification) \cite{seefried04,cross02}, \emph{algorithmic program construction} (generation of code that is tedious to write with the abstractions supported by a programming language) \cite{sheard02,skalski05}.
+
+Our research introduces new concepts to Scala programming languages enabling metaprogramming techniques that address modern development challenges in an approachable and structured way \cite{kepler12a}.
+
+\section{Intuition}
+
+Here is a prototypical macro definition in our macro system:
+
+\begin{lstlisting}
+def m(x: T): R = macro implRef
+\end{lstlisting}
+
+At first glance macro definitions are equivalent to normal function definitions, except for their body, which starts with the conditional keyword \lstinline$macro$ and is followed by a possibly qualified identifier that refers to a macro implementation method.
+
+If, during type-checking, the compiler encounters an application of the macro \lstinline$m(args)$, it will expand that application by invoking the corresponding macro implementation method, with the abstract-syntax trees of the argument expressions \lstinline$args$ as arguments. The result of the macro implementation is another abstract syntax tree, which will be inlined at the call site and will be type-checked in turn.
+
+\emph{Example 1}. The following code snippet declares a macro definition assert that references a macro implementation \lstinline$Asserts.assertImpl$.
+
+\begin{lstlisting}
+def assert(cond: Boolean, msg: Any) =
+  macro Asserts.assertImpl
+\end{lstlisting}
+
+A call \lstinline$assert(x < 10, "limit exceeded")$ would then lead at compile time to an invocation:
+
+\begin{lstlisting}
+assertImpl(c)(<[ x < 10 ]>, <[ "limit exceeded" ]>)
+\end{lstlisting}
+
+where \lstinline$c$ is a context argument that contains information collected by the compiler at the call site (receiver of the macro invocation, symbol tables for enclosing lexical scopes, etc.), and the other two arguments are abstract syntax trees representing the two expressions \lstinline$x < 10$ and \lstinline$"limit exceeded"$.
+
+In this document \lstinline$<[ expr ]>$ denotes the abstract syntax tree that represents the expression \lstinline$expr$, but this notation has no counterpart in our extension of the Scala language. The canonical way to construct abstract syntax trees is to use the types in the compiler library, which for the two expressions above looks like this:
+
+\begin{lstlisting}
+Apply(
+  Select(Ident(newTermName("x")), newTermName("$less"),
+  List(Literal(Constant(10))))
+
+Literal(Constant("limit exceeded"))
+\end{lstlisting}
+
+The core of our macro system is described in sections 3 through 6 and is inspired by the notions from LISP \cite{steele90}, Scheme \cite{scheme10} and Nemerle \cite{skalski05}. Sections 7 through 9 describe a peculiar feature of Scala macros that makes use of staging to bootstrap macros into a hygienic and quasiquoting metaprogramming system. Subsequent sections conclude the report.
+
+\section{Baseline}
+
+\noindent
+Let us examine a possible implementation of the assert macro mentioned in \emph{Example 1} to explore the foundations of Scala macros:
+\noindent
+
+\begin{lstlisting}
+object Asserts {
+  def assertionsEnabled = ...
+  def raise(msg: Any) = throw new AssertionError(msg)
+  def assertImpl(c: Context)
+    (cond: c.Expr[Boolean], msg: c.Expr[Any])
+    : c.Expr[Unit] =
+  if (assertionsEnabled)
+    <[ if (!cond) raise(msg) ]>
+  else
+    <[ () ]>
+}
+\end{lstlisting}
+
+As the listing shows, a macro implementation takes several parameter lists. First comes a single parameter, of type \lstinline$Context$. This is followed by a list of parameters that have the same names as the macro definition parameters. But where the original macro parameter has type \lstinline$T$, a macro implementation parameter has type \lstinline$c.Expr[T]$. \lstinline$Expr[T]$ is a type defined in \lstinline$Context$ that wraps an abstract syntax tree of type \lstinline$T$. The result type of the \lstinline$assertImpl$ macro implementation is again a wrapped tree, of type \lstinline$c.Expr[Unit]$.
+
+Parameters of a macro implementation are dependently typed, being a part of a dependent method type \cite{odersky03}. Such type annotations statically ensure that artifacts passed into a macro belong to the context that services a macro expansion. This type-checking facility is important from a practical standpoint, as it prevents accidental mix-up of compilation stages. For example, without dependent typing it would be possible to inadvertently refer to runtime trees and types (obtained from a reflection context) in a compile-time macro (that uses the compiler context).
+
+The macro being discussed is static, in a sense that it has a statically known receiver (such receivers are called ``objects'' in Scala parlance). It is possible, however, to define instance macros and use them in a prefix fashion, analogously to instance methods, e.g. \lstinline$receiver.a_macro(args)$. In that case, abstract syntax tree corresponding to \lstinline$receiver$ is passed to the macro implementation in \lstinline$Context$.
+
+\section{Expression Trees}
+
+An expression tree of type \lstinline$Expr[T]$ encapsulates an abstract syntax tree of type \lstinline$T$ together with its type. Here’s the definition of \lstinline$Expr$ as a member of the compiler library exposed to macro implementations:
+
+\begin{lstlisting}
+ case class Expr[T: TypeTag](tree: Tree) {
+  def eval: T = ...
+  lazy val value: T = eval
+}
+\end{lstlisting}
+
+Implicit in the contract for \lstinline$Expr$ is that the type of the reified tree conforms to the type parameter \lstinline$T$ (which is also reified by the virtue of the \lstinline$TypeTag$ context bound, as described in subsequent sections). \lstinline$Expr$ values are typically created by the compiler, which makes sure that this contract is kept.
+
+Note that the method \lstinline$eval$ which when called on a value of type \lstinline$Expr[T]$ will yield a result of type \lstinline$T$. The \lstinline$eval$ method and the \lstinline$value$ value play a special role in tree splicing as described in subsequent sections.
+
+\section{Polymorphic Macros}
+
+Macro definitions and macro implementations may both be polymorphic.
+
+Type parameters in an implementation may come with \lstinline$TypeTag$ context bounds \cite{oliveira10}. In that case the corresponding \lstinline$TypeTags$ describing the actual type arguments instantiated at the application site will be passed along when the macro is expanded.
+
+\emph{Example 2}. The code below declares a polymorphic macro definition \lstinline$Queryable.map$ that references a polymorphic macro implementation \lstinline$QImpl.map$:
+
+\begin{lstlisting}
+class Queryable[T] {
+  def map[U](p: T => U): Queryable[U] = macro QImpl.map[T, U]
+}
+
+object QImpl {
+  def map[T: c.TypeTag, U: c.TypeTag]
+         (c: Context)
+         (p: c.Expr[T => U])
+         : c.Expr[Queryable[U]] = ...
+}
+\end{lstlisting}
+
+As outlined in \cite{oliveira10}, context bounds provide a concise notation for declaring implicit parameter sections that captures suitable type class instances from lexical scope. For example, method \lstinline$QImpl.map$ is desugared into the following form:
+
+\begin{lstlisting}
+object QImpl {
+  def map[T, U]
+         (c: Context)
+         (p: c.Expr[T => U])
+         (implicit evidence$1: c.TypeTag[T],
+          implicit evidence$2: c.TypeTag[U])
+         : c.Expr[Queryable[U]] = ...
+}
+\end{lstlisting}
+
+Now consider a value \lstinline$q$ of type \lstinline$Queryable[String]$ and the following macro call (the explicit type argument \lstinline$[Int]$ can be omitted, in which case it will be inferred by the compiler):
+
+\begin{lstlisting}
+q.map[Int](s => s.length)
+\end{lstlisting}
+
+\noindent
+The call is expanded to the following macro invocation:
+\noindent
+
+\begin{lstlisting}
+QImpl.map(c)(<[ s => s.length ]>)
+  (implicitly[c.TypeTag[String]], implicitly[c.TypeTag[Int]])
+\end{lstlisting}
+
+The \lstinline$implicitly$ function is used to summon suitable (i.e. marked as implicit and having a conformant type signature) type tags from the lexical scope of the call site. Shortly put, implicit search starts with the innermost enclosing scope and proceeds from the inside out (details about the implicit resolution algorithm may be found in \cite{odersky11}).
+
+Of course, macro runtime does not expect the programmer to know about macro contexts, to create the type tags manually and to put them into local variables visible from macro call sites. In a common case when type tags are not declared explicitly, implicit search will fall back to the outermost scope, declared in the standard library. This outermost scope hosts implicit macros that are capable of materializing type tags for arbitrary types.
+
+\section{Type Tags}
+
+A value of type \lstinline$TypeTag[T]$ encapsulates a representation of type \lstinline$T$. A \lstinline$TypeTag$ value simply wraps a Scala type, while a \lstinline$ConcreteTypeTag$ value is a type tag that is guaranteed not to contain any references to type parameters or abstract types.
+
+\begin{lstlisting}
+case class TypeTag[T](tpe: Type) { ... }
+class ConcreteTypeTag[T](tpe: Type) extends TypeTag[T](tpe)
+\end{lstlisting}
+
+Implicit in the contract for all \lstinline$Tag$ classes is that the reified type represents the type parameter \lstinline$T$. Tags are typically created by the compiler, which makes sure that this contract is kept. The creation rules are as follows:
+
+1) If an implicit value of type \lstinline$TypeTag[T]$ is required, the compiler will summon it from the enclosing lexical scope or make one up on demand using the implicit search algorithm described in the previous section.
+
+2) The implicitly created value contains a value of type \lstinline$Type$ that is a reified representation of \lstinline$T$. In that value, any occurrences of type parameters or abstract types \lstinline$U$ which come themselves with a \lstinline$TypeTag$ are represented by that \lstinline$TypeTag$. This is called type splicing.
+
+3) If an implicit value of type \lstinline$ConcreteTypeTag[T]$ is required, the compiler will make one up on demand following the same procedure as for \lstinline$TypeTags$. However, if the resulting type still contains references to type parameters or abstract types, a static error results.
+
+\noindent
+As an example that illustrates type splicing, consider the following function:
+\noindent
+
+\begin{lstlisting}
+def f[T: TypeTag, U] = {
+  type L = T => U
+  implicitly[TypeTag[L]]
+}
+\end{lstlisting}
+
+\noindent
+Then a call of \lstinline$f[String, Int]$ will yield a result of the form:
+\noindent
+
+\begin{lstlisting}
+TypeTag(<[ String => U ]>)
+\end{lstlisting}
+
+Note that \lstinline$T$ has been replaced by \lstinline$String$, because it comes with a \lstinline$TypeTag$ in \lstinline$f$, whereas \lstinline$U$ was left as a type parameter.
+
+Type splicing plays an important role in the design of the metaprogramming system, because Scala uses the erase-types model to compile polymorphic types \cite{schinz05}. In this model, when the program is compiled down to executable form, type arguments of the invocations are removed, and type parameters are replaced by their upper bounds. With implicit parameters it becomes possible to capture type arguments during the compile-time to retain them at runtime \cite{odersky09}, and type splicing scales this technique to complex types.
+
+\section{Quasiquoting and Hygiene}
+
+The macro scheme described so far has the advantage that it is minimal, but also suffers from two inconveniences: tree construction is cumbersome and hygiene is not guaranteed. Consider a fragment of the body of \lstinline$assertImpl$ in \emph{Example 1}:
+
+\begin{lstlisting}
+<[ if (!cond) raise(msg) ]>
+\end{lstlisting}
+
+To actually produce the abstract syntax tree representing that expression one might write something like that:
+
+\begin{lstlisting}
+c.Expr(
+If(Select(cond, newTermName("unary_$bang")),
+  Apply(Ident(newTermName("raise")), List(msg)),
+  Literal(Constant(()))))
+\end{lstlisting}
+
+Cumbersome enough as this is, it is also wrong. The tree produced from a macro will be inlined and type-checked at the macro call site. But that means that the identifier \lstinline$raise$ will be type-checked at a point where it is most likely not visible, or in the worst case they might refer to something else. In the macro literature, this insensitivity to bindings is called non-hygienic \cite{kohlbecker86,skalski05}.
+
+In the case of \lstinline$assertImpl$, the problems can be avoided by generating instead of an identifier a fully qualified selection
+
+\begin{lstlisting}
+Select(Ident(newTermName("Asserts")), newTermName("raise"))
+\end{lstlisting}
+
+(to be completely sure, one would need to select the full path starting with the \lstinline$_root_$ package). But that makes the tree construction even more cumbersome and is very fragile because it is easily forgotten.
+
+However, it turns out that macros themselves can be used to solve both these problems. A corner-stone of the technique is a macro called \lstinline$reify$ that produces its tree one stage later.
+
+\section{Reify}
+
+The reify macro plays a crucial role in the proposed macro system. It’s definition as a member of \lstinline$Context$ is:
+
+\begin{lstlisting}
+def reify[T](expr: T): Expr[T] = macro ...
+\end{lstlisting}
+
+Reify accepts a single parameter \lstinline$expr$, which can be any well-typed Scala expression, and creates a tree that, when compiled and evaluated, will recreate the original tree \lstinline$expr$. So \lstinline$reify$ is like time-travel: trees get re-constituted at a later stage. If \lstinline$reify$ is called from normal compiled code, its effect is that the abstract syntax tree passed to it will be recreated at run time. Consequently, if \lstinline$reify$ is called from a macro implementation, its effect is that the abstract syntax tree passed to it will be recreated at macro-expansion time (which corresponds to run time for macros). This gives a convenient way to create syntax trees from Scala code: pass the Scala code to \lstinline$reify$, and the result will be a syntax tree that represents that very same code.
+
+Moreover, \lstinline$reify$ packages the result expression tree with the types and values of all free references that occur in it. This means in effect that all free references in the result are already resolved, so that re-typechecking the tree is insensitive to its environment. All identifiers referred to from an expression passed to \lstinline$reify$ are bound at the definition site, and not re-bound at the call site. As a consequence, macros that generate trees only by the means of passing expressions to \lstinline$reify$ are hygienic.
+
+So in that sense, Scala macros are self-cleaning. Their basic form is minimal and unhygienic, but that simple form is expressive enough to formulate a \lstinline$reify$ macro, which can be used in turn to make tree construction in macros concise and hygienic.
+
+\emph{Example 3}: Here is an implementation of the assert macro using \lstinline$reify$.
+
+\begin{lstlisting}
+object Asserts {
+  def assertionsEnabled = ...
+  def raise(msg: Any) = throw new AssertionError(msg)
+  def assertImpl(c: Context)
+    (cond: c.Expr[Boolean], msg: c.Expr[Any])
+    : c.Expr[Unit] =
+
+    if (assertionsEnabled)
+      c.reify(if (!cond.eval) raise(msg.eval))
+    else
+      c.reify(())
+}
+\end{lstlisting}
+
+\noindent
+Note the close correspondence with the meta-notation of \emph{Example 1}.
+\noindent
+
+\section{Splicing}
+
+\lstinline$Reify$ and \lstinline$eval$ are inverses of each other. \lstinline$Reify$ takes an expression and produces a tree that, when evaluated with \lstinline$eval$, yields the same result as the original expression. This is also expressed by their types. \lstinline$reify$ goes from \lstinline$T$ to \lstinline$Expr[T]$, and \lstinline$eval$ goes from \lstinline$Expr[T]$ back to \lstinline$T$.
+
+The \lstinline$reify$ macro takes advantage of this relationship by short-circuiting embedded calls to \lstinline$eval$ during the process that we call tree splicing (compare this with type splicing described above):
+
+\begin{lstlisting}
+  reify(expr.eval) translates to expr
+\end{lstlisting}
+
+This principle is seen in action in \emph{Example 3}. There, the contents of the parameters \lstinline$cond$ and \lstinline$msg$ are spliced into the body of the \lstinline$reify$.
+
+Along with \lstinline$eval$, \lstinline$value$ also gets special treatment:
+
+\begin{lstlisting}
+  reify(expr.value) also translates to expr
+\end{lstlisting}
+
+Similar to \lstinline$eval$, the \lstinline$value$ value also makes \lstinline$reify$ splice its tree into the result. The difference appears when the same expression gets spliced into multiple places inside the same reify block. With \lstinline$eval$, \lstinline$reify$ will always insert a copy of the corresponding tree (potentially duplicating side-effects), whereas \lstinline$value$ will splice itself into a temporary variable that will be referred by its usages.
+
+The notion of splicing also manifests itself when \lstinline$reify$ refers to a type that has a \lstinline$TypeTag$ associated with it. In that case instead of reproducing the type’s internal structure as usual, \lstinline$reify$ inserts a reference to the type tag into its result.
+
+\begin{lstlisting}
+  reify(expr: T) translates to expr typed as TypeTag[T].tpe
+\end{lstlisting}
+
+Tagging a type can be done either automatically, by writing a \lstinline$TypeTag$ context bound on a type parameter of a macro implementation, or manually, by introducing an implicit \lstinline$TypeTag$ value into the scope visible by \lstinline$reify$.
+
+Note the close resemblance of type splicing in \lstinline$reify$ and type splicing during \lstinline$TypeTag$ generation. In fact, here we are talking about the same algorithm. When producing a \lstinline$TypeTag$ for a type, corresponding implicit macros call \lstinline$reify$ (which, in turn, calls \lstinline$TypeTag$ generators to resolve potential splices using the implicit search algorithm).
+
+\section{Related Work}
+
+The history of compile-time metaprogramming dates back to the times of LISP \cite{steele90}, which was introduced in 1950s. Since then a fair amount of languages: statically typed \cite{sheard02} and dynamically typed \cite{rahien10}, minimalistic \cite{scheme10} and having rich syntax \cite{skalski05} - have adopted macros. Our research builds on this notion of compile-time program transformation.
+
+Hygiene is an important idea brought up in Scheme. The problem of inadvertent name clashes between the application code and generated macro expansions has been well-known in the Lisp community. Kohlbecker et al.  \cite{kohlbecker86} have solved this problem by embedding the knowledge of declaration sites into symbols that represent values and declarations in the program, making macro expansions hygienic.
+
+We acknowledge this problem, but our means of achieving hygiene do not require changes to the type-checking algorithm. By making use of \lstinline$reify$, a staging macro, we statically ensure that cross-stage bindings do not occur. Similar approach has been used in MacroML \cite{ganz01}, which implements a macro system in a staged language MetaML \cite{taha99}. Our arrival at this conflux of ideas happened the other way around - we built a staged system with macros.
+
+As a language with syntax, Scala has to work hard to achieve homoiconicity. The incovenience of manipulating abstract syntax trees in their raw form is a well-known problem, and it affects rich languages to a greater extent than it affects minimalistic ones. Traditional solution to this problem is a quasiquoting DSL that lets the programmer encode ASTs in a WYSIWYG manner \cite{bawden99,skalski05,mainland07}.
+
+Our answer to this challenge is the same staging macro \lstinline$reify$ that we use to achieve hygiene. Code passed to \lstinline$reify$ becomes an AST one stage later, which provides a quasiquoting facility without the need to introduce a special domain-specific language.
+
+Finally, as a language virtualization platform, Scala macros are conceptually close to Scala-Virtualized \cite{moors12} which virtualizes base language constructs (e.g. control flow) and even data structures \cite{slesarenko12}. However, our approach to virtualization is different. Scala macros expose general-purpose Scala trees and types and provide low-level manipulation facilities, whereas Scala-Virtualized is good for embedded DSLs, in particular when the DSL expression trees do not exactly correspond to Scala trees \cite{rompf10}.
+
+\section{Conclusions}
+
+We have presented a minimalistic macro system for Scala, a language with rich syntax and static types. This macro system builds up a metaprogramming facility on a single concept - compile-time AST transformer functions.
+
+Other metaprogramming facilities usually include additional concepts of quasi-quoting and hygiene to make themselves suitable for practical use. We have shown, however, that it is possible to implement both on top of our minimalistic core.
+
+\section*{Acknowledgements}
+
+The authors would like to thank Vladislav Chistyakov, Jan Christopher Vogt, Stefan Zeiger, Adriaan Moors and the entire Scala community for insightful discussions and helpful comments.
+
+\begin{thebibliography}{99}
+
+\bibitem{odersky10}
+  Odersky, M., Spoon L., and Venners B.,
+  \emph{Programming in Scala, Second Edition}.
+  Artima Press,
+  2010.
+
+\bibitem{odersky05}
+  Odersky, M., and Zenger M.,
+  \emph{Scalable Component Abstractions}.
+  ACM Sigplan Notices,
+  2005.
+
+\bibitem{odersky09}
+  Odersky, M., and Moors, A.,
+  \emph{Fighting Bit Rot with Types (Experience Report: Scala Collections)}.
+  Theoretical Computer Science,
+  2009.
+
+\bibitem{box07}
+  Box, D., and Hejlsberg, A.,
+  \emph{LINQ: .NET Language-Integrated Query},
+  Retrieved from http://msdn.microsoft.com/en-us/library/bb308959.aspx,
+  2007.
+
+\bibitem{dragos08}
+  Dragos I.,
+  \emph{Optimizing Higher-Order Functions in Scala},
+  Third International Workshop on Implementation Compilation Optimization of ObjectOriented Languages Programs and Systems,
+  2008.
+
+\bibitem{mccool02}
+  McCool, M. D., Qin, Z., and Popa, T. S.,
+  \emph{Shader metaprogramming},
+  Proceedings of the ACM SIGGRAPHEUROGRAPHICS conference on Graphics hardware,
+  2002.
+
+\bibitem{sheard02}
+  Sheard, T., and Peyton Jones, S.,
+  \emph{Template Meta-programming for Haskell},
+  Haskell Workshop,
+  2002.
+
+\bibitem{skalski05}
+  Skalski K.,
+  \emph{Syntax-extending and type-reflecting macros in an object-oriented language},
+  Master Thesis,
+  2005.
+
+\bibitem{kepler12a}
+  Scala Macros,
+  \emph{Use cases},
+  Retrieved from http://scalamacros.org/usecases.html,
+  2012.
+
+\bibitem{attardi01}
+  Attardi, G., and Cisternino, A.,
+  \emph{Reflection support by means of template metaprogramming},
+  Time,
+  2001.
+
+\bibitem{seefried04}
+  Seefried, S., Chakravarty, M., and Keller, G.,
+  \emph{Optimising Embedded DSLs using Template Haskell}.
+  Generative Programming and Component Engineering,
+  2004.
+
+\bibitem{cross02}
+  Cross, J., and Schmidt, D.,
+  \emph{Meta-Programming Techniques for Distributed Real-time and Embedded Systems},
+  7th IEEE Workshop on Object-oriented Real-time Dependable Systems,
+  2002.
+
+\bibitem{steele90}
+  Steele, G.,
+  \emph{Common LISP. The Language. Second Edition},
+  Digital Press,
+  1990.
+
+\bibitem{scheme10}
+  \emph{The Revised [6] Report on the Algorithmic Language Scheme},
+  Journal of Functional Programming, volume 19, issue S1,
+  2010.
+
+\bibitem{odersky03}
+  Odersky, M., Cremet, V., Röckl, C., and Zenger M.,
+  \emph{A Nominal Theory of Objects with Dependent Types},
+  17th European Conference on Object-Oriented Programming,
+  2003.
+
+\bibitem{oliveira10}
+  Oliveira, B., Moors, A., and Odersky, M.,
+  \emph{Type classes as objects and implicits},
+  25th Conference on Object-Oriented Programming, Systems, Languages \& Applications,
+  2010.
+
+\bibitem{odersky11}
+  Odersky, M.,
+  \emph{The Scala Language Specification, Version 2.9},
+  2011.
+
+\bibitem{schinz05}
+  Schinz, M.,
+  \emph{Compiling Scala for the Java Virtual Machine},
+  PhD thesis,
+  2005.
+
+\bibitem{kohlbecker86}
+  Kohlbecker, E., Friedman, D., Felleisen, M., and Duba, B.,
+  \emph{Hygienic macro expansion},
+  Symposium on LISP and Functional Programming,
+  1986.
+
+\bibitem{rahien10}
+  Rahien, A.,
+  \emph{DSLs in Boo: Domain-Specific Languages in .NET},
+  Manning Publications Co.,
+  2010.
+
+\bibitem{ganz01}
+  Ganz, S., Sabry, A., and Taha, W.,
+  \emph{Macros as Multi-Stage Computations: Type-Safe, Generative, Binding Macros in MacroML},
+  International Conference on Functional Programming,
+  2001.
+
+\bibitem{taha99}
+  Taha, W., and Sheard, T.,
+  \emph{MetaML: Multi-Stage Programming with Explicit Annotations},
+  1999.
+
+\bibitem{moors12}
+  Moors, A., Rompf, T., Haller, P., and Odersky, M.,
+  \emph{Scala-Virtualized},
+  Partial Evaluation and Program Manipulation,
+  2012.
+
+\bibitem{slesarenko12}
+  Slesarenko A,
+  \emph{Lightweight Polytypic Staging: a new approach to Nested Data Parallelism in Scala},
+  Scala Days,
+  2012.
+
+\bibitem{rompf10}
+  Rompf, T., and Odersky, M.,
+  \emph{Lightweight Modular Staging: A Pragmatic Approach to Runtime Code Generation and Compiled DSLs},
+  2010.
+
+\bibitem{bawden99}
+  Bawden, A.,
+  \emph{Quasiquotation in Lisp},
+  Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and SemanticsBased Program Manipulation,
+  1999.
+
+\bibitem{mainland07}
+  Mainland, G.,
+  \emph{Why it's Nice to be Quoted: Quasiquoting for Haskell},
+  Applied Sciences,
+  2007.
+
+\end{thebibliography}
+
+\end{document}

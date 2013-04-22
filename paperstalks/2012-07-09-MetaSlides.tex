@@ -1,0 +1,395 @@
+\documentclass[hyperref={bookmarks=false}]{beamer}
+
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+
+\usepackage[parfill]{parskip}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Scala Macros},pdftitle={Scala Macros}}
+\title{Scala Macros}
+
+\definecolor{linkblue}{RGB}{49,57,174}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,annotation,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield,
+    macro},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/}
+%  morestring=[b]",
+%  morestring=[b]',
+%  morestring=[b]"""
+}
+
+\lstset{frame=tb,
+  language=scala,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=3
+}
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\title{Scala Macros}
+\author{Eugene Burmako \and Martin Odersky}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne}
+\date{09 July 2012 / Meta 2012}
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+}
+
+\begin{frame}[fragile]
+\frametitle{What is this talk about?}
+\begin{itemize}
+\item Compile-time metaprogramming
+\item Type-safe AST transformers (called "macros" in Scala and in several other languages)
+\item Road to macros in Scala
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Behind the scenes}
+\begin{itemize}
+\item Advanced features of Scala's type system w.r.t macros
+\begin{itemize}
+\item Cross-stage path-dependent types
+\item Type inference in presence of macros
+\item Implicits in macro declarations and implementations
+\end{itemize}
+\item Design of the Scala reflection library
+\begin{itemize}
+\item Cake pattern to provide different views into the compiler
+\item Abstract types that enable virtual classes
+\item Uniformity of compile-time and runtime reflection
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}[fragile]
+\frametitle{Project Kepler}
+
+The project was started in October 2011 with the following goals in mind:
+\begin{itemize}
+\item To democratize metaprogramming (at the moment there's a lot of hype that the future is multicore; along the similar lines my belief is that the future is meta).
+\item To solve several hot problems in Scala: insufficient control over inlining, need for reification in domain-specific languages.
+\end{itemize}
+
+Since April 2012 (milestone pre-release 2.10.0-M3) macros are a part of Scala. Several practical (data access facility, unit testing framework, library for numeric computations) and research projects are already using macros.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros in Scala}
+\begin{lstlisting}[language=scala]
+def assert(cond: Boolean, msg: Any) = macro impl
+def impl(c: Context)(cond: c.Expr[Boolean], msg: c.Expr[Any]) =
+  if (assertionsEnabled)
+    // if (!cond) raise(msg)
+    If(Select(cond.tree, newTermName("$unary_bang")), Apply(Ident(newTermName("raise")), List(msg.tree)), Literal(Constant(())))
+  else
+    Literal(Constant(())
+
+import assert
+assert(2 + 2 == 4, "weird arithmetic")
+\end{lstlisting}
+
+\begin{itemize}
+\item Metalanguage = target language
+\item Macros work with ASTs rather than with text
+\item Type awareness and type-safety
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Putting macros in perspective}
+\begin{itemize}
+\item Text generators (C/C++ preprocessor, M4). No integration into grammar or semantics of the target language.
+\item Syntax extenders (CamlP4, SugarHaskell, Marco). Define new productions and non-terminals for the original grammar. Rely on ad-hoc tricks to get semantic information (bindings, types, etc).
+\item Deeply embedded DSLs (Virtualized Scala, LMS). Reuse host parser and typechecker, yet can override semantics.
+\item Macros (LISP, Scheme, MacroML, Template Haskell, \emph{Nemerle}, etc). Integrated into the compiler, expand during compilation, typically have access to the compiler API.
+\item Metalanguages (N2). Every aspect of a language (parser, type checker, code generation, IDE integration) is customizable.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Why this talk is interesting}
+\begin{itemize}
+\item Metacomputations (because metaprogramming is cool)
+\item Linguistics (several notational problems and solutions w.r.t metaprogramming)
+\item Metamacros (macro-generating macros, notation macros, self-cleaning macros)
+\end{itemize}
+\end{frame}
+
+\section{Notation}
+
+\begin{frame}[fragile]
+\frametitle{Notation for macro triggers}
+
+Function application (very traditional, implemented):
+\begin{lstlisting}[language=scala]
+macro def assert(cond: Boolean, msg: Any) = ...
+assert(2 + 2 == 4, "weird arithmetic")
+\end{lstlisting}
+
+Type construction (a natural desire for a typed language, planned):
+\begin{lstlisting}[language=scala]
+macro type MySqlDb(connString: String) = ...
+type MyDb = Base with MySqlDb("Server=127.0.0.1")
+\end{lstlisting}
+
+Declaration of program elements (tentative):
+\begin{lstlisting}[language=scala]
+macro annotation Serializable = ...
+@Serializable class Person(...)
+\end{lstlisting}
+
+Choice of macro triggers is arbitrary and ad-hoc. To do better we need integration with the parser (Nemerle, SugarHaskell).
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Notation for metacode}
+The first approach (similar to Template Haskell and Nemerle):
+\begin{lstlisting}[language=scala]
+macro def assert(cond: Boolean, msg: Any) =
+  if (assertionsEnabled)
+    If(Select(cond, newTermName("$unary_bang")), Apply(Ident(newTermName("raise")), List(msg)), Literal(Constant(())))
+  else
+    Literal(Constant(())
+\end{lstlisting}
+
+\begin{itemize}
+\item Minimalistic and appealing at a glance
+\item Transparent to the user, as the signature doesn't reveal the underlying magic
+\item Cross-stage lexical scoping is very potent
+\item Too potent to be robust
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Problem with the first approach}
+\begin{lstlisting}[language=scala]
+class Queryable[T, Repr](query: Query) {
+  macro def filter(p: T => Boolean): Repr =
+    Apply(Ident(newTermName("Query")),
+      List(Apply(Ident(newTermName("Filter")),
+        List(query, reify(p)))))
+}
+\end{lstlisting}
+
+\begin{itemize}
+\item \emph{p} being used in a macro expansion is okay, since it comes from the same metalevel.
+\item But what about \emph{query}? This is a runtime value, so we cannot splice it into the result of macro expansion.
+\item Adapting closure conversion we could make it work, but that would bring significant technical and cognitive problems.
+\item To avoid this problem Template Haskell and Nemerle only allow macros in top-level definitions!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Notation for metacode}
+
+The second approach:
+\begin{lstlisting}[language=scala]
+def assert(cond: Boolean, msg: Any) = macro impl
+def impl(c: Context)(cond: c.Expr[Boolean], msg: c.Expr[Any]) =
+  if (assertionsEnabled)
+    If(Select(cond.tree, newTermName("$unary_bang")), Apply(Ident(newTermName("raise")), List(msg.tree)), Literal(Constant(())))
+  else
+    Literal(Constant(())
+\end{lstlisting}
+
+\begin{itemize}
+\item Splits macro definitions and macro implementations. The latter are only allowed in static contexts.
+\item As a pleasant side effect, macro parameter magic is gone, and macro implementations are now first-class.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Notation for quasiquoting}
+
+An obvious approach is to introduce new syntax, following multiple languages which have done that:
+
+\begin{lstlisting}[language=scala]
+<[ if (!$cond) raise($msg) ]>
+\end{lstlisting}
+
+Being obvious this design decision is also suboptimal:
+\begin{itemize}
+\item Adds extra burden on the language spec
+\item Complicates parsing
+\item Is opaque to existing tools
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Notation for quasiquoting}
+
+When macros started brewing, Scala got string interpolation. We generalized the interpolation proposal to accomodate a wide range of syntaxes:
+
+\begin{lstlisting}[language=scala]
+scala"if (!$cond) raise($msg)"
+\end{lstlisting}
+
+gets desugared by the parser into the following snippet:
+
+\begin{lstlisting}[language=scala]
+StringContext("if (!", ") raise (", ")").scala(cond, msg)
+\end{lstlisting}
+
+\begin{itemize}
+\item No changes to the compiler
+\item Modularity and extensibility (anyone can "pimp" the scala method onto StringContext with implicit conversions)
+\item Partial amenability to automatic analysis
+\end{itemize}
+\end{frame}
+
+\section{Reification}
+
+\begin{frame}[fragile]
+\frametitle{A discovery}
+
+Macro-based string interpolation expressing quasiquotes is nice, being minimalistic, expressive and performant. What's even more important, it's conventional.
+
+\begin{lstlisting}[language=scala]
+scala"if (!$cond) raise($msg)"
+\end{lstlisting}
+
+A key insight however was to explore the design space further, which gave us this marvel:
+
+\begin{lstlisting}[language=scala]
+reify(if (!cond.eval) raise(msg.eval))
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Notation for quasiquoting}
+
+The final solution:
+
+\begin{lstlisting}[language=scala]
+reify(if (!cond.eval) raise(msg.eval))
+\end{lstlisting}
+
+\emph{reify} is a library macro (but could be implemented by a programmer).
+
+It takes an AST that represents an expression (which in Scala can be even a declaration or a sequence of declarations) and generates a tree that will re-create that AST at runtime.
+
+\emph{eval} method is a marker that tells \emph{reify} to splice the target expression into the resulting AST.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hygiene}
+\begin{lstlisting}[language=scala]
+def raise(msg: Any) = throw new AssertionError(msg)
+
+def assert(cond: Boolean, msg: Any) = macro impl
+def impl(c: Context)(cond: c.Expr[Boolean], msg: c.Expr[Any]) =
+  c.reify(if (!cond.eval) raise(msg))
+
+object Test extends App {
+  def raise(msg: Any) = { /* haha, tricked you */ }
+  assert(2 + 2 == 3, "no way")
+}
+\end{lstlisting}
+
+\begin{itemize}
+\item \emph{reify} solves the problem of inadvertent name captures
+\item For example \emph{raise} in the AST produced will bind to the original \emph{raise} no matter where it ends up after macro expansion
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Staging}
+
+\emph{reify} can also express staging:
+
+\begin{itemize}
+\item Brackets are implemented by \emph{reify} itself
+\item Escape is implemented inside \emph{reify} by treating \emph{eval} functions in a special way
+\item Run is implicitly carried out by compilation and macro expansion (for nested \emph{reify} calls)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Related work}
+
+Taha et al. build a macro system atop a staged language:
+\begin{itemize}
+\item \emph{Macros as Multi-Stage Computations} Ganz, Sabry \& Taha, ICFP'01
+\item \emph{Staged Notational Definitions} Taha \& Johann, GPCE'03
+\end{itemize}
+
+We build a staged system atop a macro language.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reified types}
+
+\emph{reify} saves syntax trees and transfers them to the next metalevel. Exactly the same can be done for types!
+
+With \emph{reify} it becomes possible to inspect type arguments of polymorphic functions and type constructors.
+\end{frame}
+
+\section{Wrapping up}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Language = metalanguage
+\item Macro-enabled Scala = Scala + \emph{macro} keyword + a trigger in typer
+\item This minimalistic core is enough to express \emph{reify}, which can implement quasiquoting, hygiene and staging
+\item Reification makes Scala homoiconic
+\item This is officially a part of Scala
+\end{itemize}
+\end{frame}
+
+\end{document}

@@ -1,0 +1,419 @@
+\documentclass[hyperref={bookmarks=false}]{beamer}
+
+\usepackage[parfill]{parskip}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={scala.reflect},pdftitle={scala.reflect}}
+\title{scala.reflect}
+
+\definecolor{linkblue}{RGB}{49,57,174}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,annotation,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield,
+    macro},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/}
+%  morestring=[b]",
+%  morestring=[b]',
+%  morestring=[b]"""
+}
+
+\lstset{frame=tb,
+  language=scala,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=3
+}
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{Agenda}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\title{scala.reflect}
+\author{Eugene Burmako}
+\institute{EPFL, LAMP}
+\date{19 May 2012}
+\maketitle
+
+\section{Intro}
+
+\begin{frame}[fragile]
+\frametitle{Reflection}
+
+A way for a program to learn about itself.
+
+Who should we ask?
+
+\begin{itemize}
+\item OS
+\item JVM
+\item \text{\color{red}Compiler}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Scala reflection}
+
+Interface to the Scala compiler:
+
+\begin{itemize}
+\item Full-fledged (cf. scalap, Code.lift, manifests)
+\item Cross-stage (available both at compile-time and at runtime)
+\item Uniform (the same API \textendash\ universes, mirrors, trees, symbols, types \textendash\ is used everywhere)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Before we start}
+
+\begin{itemize}
+\item This is a fantasy (yet, a blessed fantasy) API. It will be implemented only in M4 (i.e. released in 1-2 weeks).
+
+\item Reflection in M3 is quite similar to what we'll be discussing today, except that runtime reflection is fundamentally broken.
+
+\item In the final release (and, possibly, in M4 as well) reflection will be factored out into scala-reflect.jar.
+It's a new core jar in the Scala distribution (along with scala-library.jar and scala-compiler.jar), estimated size is 2-3 Mb.
+
+\item For the brave ones, proto-M4 reflection might be found at \text{\color{linkblue}\href{https://github.com/scalamacros/kepler/tree/topic/reflection}{scalamacros/topic/reflection}} and at \text{\color{linkblue}\href{https://github.com/odersky/scala/tree/topic/reflection}{odersky/topic/reflection}}. Proceed with care, as virtually anything might blow up in your face. You're welcome to bug me at
+\text{\color{linkblue}\href{mailto:eugene.burmako@epfl.ch}{eugene.burmako@epfl.ch}}.
+\end{itemize}
+
+\end{frame}
+
+\section{API}
+
+\begin{frame}[fragile]
+\frametitle{Entry point: runtime}
+
+This is something well-known from Java or C\#, a runtime reflection API.
+You know what I mean.
+
+\begin{lstlisting}[language=XML]
+> val ru = scala.reflect.runtime.universe
+ru: scala.reflect.runtime.Universe = ...
+
+> val mirror = ru.reflectClass(classOf[C])
+mirror: scala.reflect.runtime.Universe#ClassMirror = ...
+
+> val c = mirror.symbol
+c: scala.reflect.runtime.Universe#Symbol = ...
+
+> val m = c.typeSignature.member("x").suchThat(_.isMethod)
+m: scala.reflect.runtime.Universe#Symbol = ...
+\end{lstlisting}
+
+Note the terminology: universes as umbrellas, mirrors as reflectors,
+symbols as reference points. It is shared across entry points.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Entry point: compile-time}
+
+The beauty of our reflection API manifests itself in macros.
+The environment is different, yet, the interface is the same.
+
+\begin{lstlisting}[language=Scala]
+class Queryable[T] {
+  def map[U](p: T => U): Queryable[U] =
+    macro QImpl.map[T, U]
+}
+
+object QImpl {
+  def map[T: c.TypeTag, U: c.TypeTag]
+         (c: scala.reflect.makro.Context)
+         (p: c.Expr[T => U])
+         : c.Expr[Queryable[U]] = ...
+}
+\end{lstlisting}
+
+Context is an entry point to compile-time reflection. It exposes a universe (the compiler)
+and a mirror (the symbol table).
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Entry point: compile-time}
+
+The control is inversed here.
+At runtime you call the compiler.
+At compile-time the compiler calls you.
+
+Currently we support only one kind of compile-time hooks - macro definitions.
+You declare a method to be a macro def by writing its body in a special way,
+and then every invocation of that method will be compiled by calling into
+the corresponding macro implementation.
+
+We also plan to research macro types (typedefs that expand into generated types)
+and macro annotations (annotations that modify program elements - expressions, methods, types).
+Who knows what is going to be next =)
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Entry point: cross-stage}
+
+Compile-time and runtime parts of your program can play together to the mutual benefit.
+
+For example, you can save artifacts from the compile-time universe and pass them to the runtime.
+Makes sense - these artifacts are quite useful, but a lot of them are destroyed by compilation.
+
+This is called reification. With the unified reflection API, it is both possible, easy to implement and future-proof.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reified types}
+
+Scala 2.8 introduced manifests, a tool to persist type arguments in the presence of erasure.
+Manifests encode reified types in a series of factory calls.
+
+\begin{lstlisting}[language=XML]
+> implicitly[Manifest[List[String]]]
+...
+Manifest.classType[List[String]](
+  classOf[List],
+  Manifest.classType[String](classOf[java.lang.String]))
+...
+res0: Manifest[List[String]] = scala.collection.immutable.List[String]
+\end{lstlisting}
+
+Usefulness of manifests is limited. They are doing fine as array creators,
+they can also express simple polymorphic types, but they totally bail on complex things
+such as compounds and existentials. The most reliable part of manifests is the toString method.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reified types}
+
+In Scala 2.10 type tags improve upon manifests. They are thin wrappers over compiler Types
+exposed in the reflection API.
+
+\begin{lstlisting}[language=XML]
+> implicitly[ru.TypeTag[List[String]]]
+...
+materializing requested TypeTag[List[String]]
+using materializeTypeTag[List[String]](ru)
+...
+$u.ConcreteTypeTag[List[String]]($u.TypeRef(
+  $u.ThisType("scala.collection.immutable"),
+  $m.staticClass("scala.collection.immutable.List"),
+  List($m.staticClass("java.lang.String").asType)))
+...
+res0: ru.TypeTag[List[String]] = ru.ConcreteTypeTag[List[String]]
+\end{lstlisting}
+
+Having a type tag you can do (almost) whatever the compiler can do with a type,
+e.g. destructure it, create types from it, use it during compilation
+(yes, I'm talking runtime compilation).
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reified trees}
+
+Scala 2.8 sneakily introduced code lifting, a tool to persist compiler trees.
+Trees produced by Code.lift are similar to compiler ASTs, yet their implementation
+is disparate.
+
+\begin{lstlisting}[language=XML]
+> Code.lift{ val y = x + 2 }
+Code[Unit](ValDef(
+  LocalValue(reflect.this.NoSymbol, "y", NoType),
+  Apply(
+    Select(Literal(x), Method("scala.Int.$plus"), ...),
+    List(Literal(2))))))
+\end{lstlisting}
+
+As a result, lifted trees only expose a small subset of operations that can be done on compiler trees.
+For example, they are typed, yet they cannot be typechecked, they have symbols, but those cannot be fully inspected and so on.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reified trees}
+
+In Scala 2.10 we have the reify macro that takes a Scala snippet (an expression, a declaration,
+a bunch of declarations) and reproduces it at runtime.
+
+\begin{lstlisting}[language=XML]
+> ru.reify{ val y = x + 2 }
+val free$x1: $u.Symbol =
+  $u.build.newFreeTerm("x", $m.staticClass("Int"), x)
+$u.Expr[Unit]($u.ValDef(
+    $u.NoMods,
+    $u.newTermName("y"),
+    $u.TypeTree(),
+    $u.Apply(
+      $u.Select($u.Ident(free$x1), "$plus"),
+      List($u.Literal($u.Constant(2))))))
+\end{lstlisting}
+
+Reify uses compiler trees to persist the ASTs. As of such, reified trees can be typechecked,
+compiled, can serve as templates for other trees, etc.
+
+\end{frame}
+
+\section{Demo}
+
+\begin{frame}[fragile]
+\frametitle{Inspect members}
+
+\begin{lstlisting}{language=XML}
+scala> trait X { def foo: String }
+defined trait X
+
+scala> ru.typeTag[X]
+res1: ru.TypeTag[X] = ru.ConcreteTypeTag[X]
+
+scala> res1.tpe.members
+res2: Iterable[ru.Symbol] = List(method $asInstanceOf, method $isInstanceOf, method synchronized, method ##, method !=, method ==, method ne, method eq, constructor Object, method notifyAll, method notify, method clone, method getClass, method hashCode, method toString, method equals, method wait, method wait, method wait, method finalize, method asInstanceOf, method isInstanceOf, method !=, method ==, method foo)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Analyze, typecheck and invoke members}
+
+\begin{lstlisting}{language=Scala}
+val d = new DynamicProxy{ val dynamicProxyTarget = x }
+d.noargs
+d.noargs()
+d.nullary
+d.value
+d.-
+d.$("x")
+d.overloaded("overloaded")
+d.overloaded(1)
+val car = new Car
+d.typeArgs(car) // inferred
+d.default(1, 3)
+d.default(1)
+d.named(1, c=3, b=2) // works, wow
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Defeat erasure}
+
+\begin{lstlisting}{language=XML}
+scala> def foo[T](x: T) = x.getClass
+foo: [T](x: T)Class[_ <: T]
+
+scala> foo(List(1, 2, 3))
+res0: Class[_ <: List[Int]] = class scala.collection.immutable.$colon$colon
+
+scala> def foo[T: ru.TypeTag](x: T) = ru.typeTag[T]
+foo: [T](x: T)(implicit evidence$1: ru.TypeTag[T])ru.TypeTag[T]
+
+scala> foo(List(1, 2, 3))
+res1: ru.TypeTag[List[Int]] = ru.ConcreteTypeTag[List[Int]]
+
+scala> res1.tpe
+res2: ru.Type = List[Int]
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Compile at runtime}
+
+\begin{lstlisting}{language=Scala}
+import ru._
+val tree = Apply(Select(Ident("Macros"), newTermName("foo")), List(Literal(Constant(42))))
+println(Expr(tree).eval)
+\end{lstlisting}
+
+Eval creates a toolbox under the covers (universe.mkToolBox), which is a full-fledged compiler.
+
+Toolbox wraps the input AST, sets its phase to Namer (skipping Parser) and performs the compilation into an in-memory directory.
+
+After the compilation is finished, toolbox fires up a classloader that loads and lauches the code.
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Compile at compile-time}
+
+\begin{lstlisting}{language=Scala}
+object Asserts {
+  def assertionsEnabled = ...
+  def raise(msg: Any) = throw new AssertionError(msg)
+  def assertImpl(c: scala.reflect.makro.Context)
+    (cond: c.Expr[Boolean], msg: c.Expr[Any])
+    : c.Expr[Unit] =
+  if (assertionsEnabled)
+    c.reify(if (!cond.eval) raise(msg.eval))
+  else
+    c.reify(())
+}
+\end{lstlisting}
+
+Also known as macros. Can be used for a multitude of real-world use-cases:
+advanced DSLs, language-integrated queries, type providers, integration of externals DSLs with string interpolation,
+your fancy macro hackery could also be mentioned here.
+
+\end{frame}
+\section{Summary}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item In 2.10 you can have all the information about your program that the compiler has (well, almost).
+\item This information includes trees, symbols and types. And annotations. And positions.
+\text{\color{linkblue}\href{https://github.com/scala/scala/blob/master/src/library/scala/reflect/api/Universe.scala}{And more}}.
+\item You can reflect at runtime (scala.reflect.runtime.universe) or at compile-time (macros).
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Status}
+
+Recently released 2.10.0-M3 includes reflection and macros.
+
+Compile-time reflection in M3 works well, and we've already improved the compiler with it.
+
+Runtime reflection in M3 is broken beyond repair, so we have rewritten it. This will show up in M4 (i.e. in 1-2 weeks).
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Thanks!}
+
+\centering
+\text{\color{linkblue}\href{mailto:eugene.burmako@epfl.ch}{eugene.burmako@epfl.ch}}
+
+\end{frame}
+
+\end{document}

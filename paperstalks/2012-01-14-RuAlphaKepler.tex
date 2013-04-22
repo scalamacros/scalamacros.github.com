@@ -1,0 +1,531 @@
+\documentclass[hyperref={bookmarks=false}]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel}
+\usepackage[parfill]{parskip}
+
+\usepackage{color}
+\usepackage{listings}
+\usepackage{hyperref}
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Project Kepler},pdftitle={Alpha Kepler}}
+\title{Alpha Kepler}
+
+\definecolor{linkblue}{RGB}{49,57,174}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,annotation,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield,
+    macro},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}
+
+\lstset{frame=tb,
+  language=scala,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=3
+}
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{План}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\title{$\alpha$-Кеплер}
+\author{Евгений Бурмако}
+\institute{EPFL, LAMP}
+\date{14 января 2012}
+\maketitle
+
+\begin{frame}[t,fragile]
+\frametitle{$\alpha$-Кеплер}
+
+Всем привет! Меня зовут Евгений Бурмако, с прошлой осени я работаю в Scala Team и параллельно учусь в аспирантуре EPFL на кафедре Мартина Одерского.
+
+Сегодня мы обсудим прогресс проекта ``Кеплер'', в рамках которого разрабатываются \textbf{макросы} и \textbf{квазицитаты} - средства метапрограммирования времени компиляции для Скалы.
+
+В \text{\color{linkblue}\href{http://scalamacros.org/news/2011/10/29/talk-at-scalaby-meetup.html}{предыдущем выступлении}} я рассматривал макросы с теоретической точки зрения, а сегодня будет, в основном, практика. Поэтому перед тем, как продолжить чтение, может быть полезно просмотреть {\color{linkblue}\href{http://scalamacros.org/talks/2011-10-29-RuProjectKepler.pdf}{слайды прошлого рассказа}}.
+
+После небольшого введения мы реализуем одну штуку, о которой я мечтал со времен знакомства с Немерле - конечно же, в виде макроса. Также в плане обсуждение абстрактных синтаксических деревьев Скалы в контексте разработки макросов. Приятного чтения!
+\end{frame}
+
+\section{Введение в макросы}
+
+\begin{frame}[t,fragile]
+\frametitle{Начнем издалека}
+
+Одним из интересных событий этой осени в мире Скалы стало обсуждение \text{\color{linkblue}\href{https://docs.google.com/document/d/1NdxNxZYodPA-c4MLr33KzwzKFkzm9iW9POexT9PkJsU/edit?hl=en_US&pli=1}{интерполяции строк}}.
+
+Эта функциональность встречается во многих скриптовых языках (bash, Perl, Ruby) и предоставляет возможность встраивать в строки переменные из лексического окружения.
+
+\begin{lstlisting}[language=scala]
+scala> val world = "world"
+world: String = world
+
+scala> println(s"hello ${world}!")
+hello world!
+\end{lstlisting}%$
+
+Буква \texttt{s}, стоящая прямо перед строкой - не опечатка, а обозначение того, что строка интерполируется (в целях обратной совместимости доллары в обычных строках не будут интерпретироваться специальным образом).
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Реализация интерполятора}
+
+Несмотря на свою простоту, интерполяция не поддается библиотечной реализации, так как она оперирует лексическим окружением, которое в явном виде недоступно.
+
+В рамках смелого научного эксперимента нам придется открыть \texttt{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/compiler/scala/tools/nsc/typechecker/Typers.scala\#L2263}{doTypedApply}} (функцию, которая типизирует применение методов) и вставить проверку на метод интерполяции. Внутри компилятора у нас есть полный доступ ко всей семантической информации о программе, чем мы и воспользуемся.
+
+В тайпере возможно получить строковый литерал, который требуется проинтерполировать, и прямо на месте распарсить этот литерал. После этого, пройдясь по дереву контекстов, несложно составить словарь видимых переменных и превратить вызов метода \texttt{s} в обычную конкатенацию строк.
+
+Если очень интересно, детали реализации можно посмотреть \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/compiler/scala/tools/nsc/typechecker/Quasiquoter.scala\#L94}{у меня в репозитории}}, а пока что пойдем дальше.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Использование интерполятора}
+
+Пока что все было довольно несложно. Мы встроились в тайпер и заменили вызов функции-маркера на вручную собранное дерево. Звучит страшнее, чем оно есть на самом деле. Через несколько слайдов мы будем заниматься тем же самым в режиме лайв =)
+
+Единственный вопрос в том, как использовать наш патч к компилятору. Интерполяция выглядит более-менее серьезно, но вот трюки, специфичные для проекта, в апстрим явно не примут, а таскать за собой кастомную сборку компилятора неудобно по многим причинам.
+
+Общепринятым решением в данной ситуации является написание \text{\color{linkblue}\href{http://www.scala-lang.org/node/140}{плагина к компилятору}} (например, CPS в Скале реализован именно через плагин), а это очень близко к философии макросов. Мы почти на месте.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Что такое макросы?}
+
+Макросы - специального вида плагины к компилятору, которые автоматически загружаются из classpath и преобразуют заданные элементы программы (вызовы функций, ссылки на типы, объявления классов и методов).
+
+По аналогии с рассмотренным выше примером макросы:
+\begin{itemize}
+\item Выполняются во время компиляции
+\item В отличие от традиционных плагинов прозрачно загружаются компилятором, не требуя оборачивания в \texttt{Plugin} и \texttt{Component}
+\item Работают с деревьями выражений, которые соответствуют коду компилируемой программы
+\item Имеют доступ к внутренним сервисам компилятора (рефлексия ранее скомпилированного кода, вывод и проверка типов, лексические окружения и так далее)
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[t,fragile]
+\frametitle{Какие бывают макросы?}
+
+Макро-функции получают на вход AST аргументов, раскрываются в AST и инлайнятся в точку вызова.
+
+\begin{lstlisting}[language=scala]
+macro def printf(format: String, params: Any*) = ...
+printf("Value = %d", 123 + 877)
+\end{lstlisting}
+
+Макро-типы представляют собой типы, члены которых генерируются во время компиляции:
+
+\begin{lstlisting}[language=scala]
+macro class MySqlDb(connString: String) = ...
+object MyDb extends MySqlDb("Database=Foo;")
+\end{lstlisting}
+
+Макро-аннотации выполняют пост-обработку объявлений методов и типов:
+
+\begin{lstlisting}[language=scala]
+macro annotation Serializable(implicit ctx: Context) = ...
+@Serializable case class Person(name: String)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Отклик}
+
+За несколько месяцев жизни проекта ``Кеплер'' нашлось немало практических задач, которые сильно упрощаются при наличии макросов.
+
+Уже есть желающие использовать макросы для реализации языка запросов в O/RM, я слышал о планах использовать макро-аннотации в линзах, есть идеи насчет применения макро-типов для генерации бойлерплейта, необходимого для вычислений на типах. Буквально позавчера Мартин \text{\color{linkblue}\href{https://github.com/odersky/scala/commit/35b36229b189a840756330049fa1c7094a309036}{реализовал прототип оптимизатора}}, который использует макросы для ускорения \texttt{Range.foreach}.
+
+Наша лаборатория выиграла грант \text{\color{linkblue}\href{http://www.kti.admin.ch/index.html?lang=en}{Швейцарской комиссии по технологиям и инновациям}} на разработку усовершенствования Скалы, в основе которого лежат рефлексия и макросы.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Статус}
+
+На сегодняшний момент мы переосмыслили публичный интерфейс к компилятору и его структурам данных и воплотили в жизнь прототип компилятора, который реализует макро-функции. Мы довольны тем, как выглядит прототип, и будем дальше двигаться в этом направлении.
+
+В активной разработке находятся \text{\color{linkblue}\href{http://xeno-by.livejournal.com/69111.html}{квазицитаты}} - доменно-специфический язык для создания и декомпозиции абстрактных синтаксических деревьев. Скорее всего, они будут реализованы как обобщение \text{\color{linkblue}\href{https://docs.google.com/document/d/1NdxNxZYodPA-c4MLr33KzwzKFkzm9iW9POexT9PkJsU/edit?hl=en_US&pli=1}{строковой интерполяции}}, но здесь гораздо меньше ясности, чем с макросами.
+
+Мы опубликовали сайт \text{\color{linkblue}\href{http://scalamacros.org}{scalamacros.org}}, на котором собраны материалы по нашему проекту. Особый интерес, на наш взгляд, составляет раздел \text{\color{linkblue}\href{http://scalamacros.org/usecases.html}{``Use Cases''}}, в котором рассматриваются области применения макросов.
+\end{frame}
+
+\section{Пишем макрос для регулярок}
+
+\begin{frame}[t,fragile]
+\frametitle{Постановка задачи}
+
+В Скале существует несколько способов использования регексов для нахождения фрагментов текста, удовлетворяющих определенным условиям.
+
+Во-первых, это использование императивного \texttt{Match.group}, по старинке. Во-вторых, можно воспользоваться декларативным паттерн-матчингом при помощи \texttt{Regex.unapply}. Однако оба подхода имеют один и тот же недостаток. При использовании в регексах именованных групп имена придется писать дважды - один раз в регексе и второй раз при обработке матча.
+
+Хочется, чтобы имена групп в регексе автоматически маппились на переменные в лексическом скоупе, то есть, чтобы можно было сделать вот так:
+
+\begin{lstlisting}[language=scala]
+val s = "foo=bar"
+s.forAllMatches("""^(?<key>.*?)=(?<value>.*)$""", println("key = %s, value = %s".format(key, value)))
+\end{lstlisting}%$
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Интерактивная презентация}
+
+За ходом реализации макроса можно проследить вживую. Для этого клонируем \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo}{https://github.com/xeno-by/alphakeplerdemo}} и выбираем бранч \texttt{skeleton}.
+
+\begin{lstlisting}[language=bash]
+> git clone git@github.com:xeno-by/alphakeplerdemo.git
+> git checkout skeleton
+\end{lstlisting}
+
+Скелет содержит всю необходимую обвязку, оставляя нереализованным лишь тело макроса. Исходники надо компилировать именно компилятором, который лежит рядом, так как они используют фичи, которых еще нет в апстриме.
+
+И еще одно замечание. Java до версии 1.7 не поддерживает именованные группы внутри макросов, поэтому я написал небольшой воркараунд. Этот подход не годится для продакшена (неправильно работает с вложенными группами), но вполне неплох для демки.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Знакомимся со скелетом макроса}
+
+Откроем \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/skeleton/Rx.scala\#L25}{Rx.scala}}, в котором уже определен макрос в виде икстеншн-метода (да, так можно делать!) с телом, содержащим три вопросика (вы знали о такое фиче?):
+
+\begin{lstlisting}[language=scala]
+object Rx {
+  ...
+  implicit def string2mx(pattern: String): Mx =
+    new Mx(pattern)
+}
+
+class Mx(val s: String) {
+  def macro forAllMatches(pattern: String, f: _): Unit = {
+    ???
+  }
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Сигнатура макроса}
+
+В сигнатуре макроса нет ничего необычного, кроме одного момента - подчеркивания вместо типа параметра \texttt{f}.
+
+\begin{lstlisting}[language=scala]
+def macro forAllMatches(pattern: String, f: _): Unit
+\end{lstlisting}
+
+Подчеркивание обозначает тот факт, что параметр не будет типизироваться тайпером, а сразу будет передан в макрос (эта нотация весьма свежая, поэтому есть шанс, что к релизу она изменится, но пока что будем использовать именно ее).
+
+Но зачем это надо? Почему бы не указать тип \texttt{f: => Unit}, аналогично тому, как это сделано в обычном \texttt{foreach}?
+
+\begin{lstlisting}[language=scala]
+def foreach(f: A => Unit): Unit
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Как раскрываются макросы}
+
+Обычная последовательность обработки макроса аналогична таковой для обработки вызова функции: вначале типизируются аргументы, после чего раскрывается макрос (что такое раскрытие макроса? это вызов его тела c набором AST, которые соответствуют его параметрам).
+
+Рассмотрим этот механизм на примере нашего гипотетического макроса:
+
+\begin{lstlisting}[language=scala]
+val s = "foo=bar"
+s.forAllMatches("""^(?<key>.*?)=(?<value>.*)$""", println("key = %s, value = %s".format(key, value)))
+\end{lstlisting}%$
+
+С паттерном все понятно - он будет типизирован как обычная строка, но что делать с функцией? Можем ли мы ее типизировать?
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Типизация аргументов макросов}
+
+На самом деле мы не можем типизировать выражение с \texttt{println} потому, что оно использует переменные \texttt{foo} и \texttt{bar}, которых еще нет в лексическом окружении - они будут магическим образом сгенерированы макросом.
+
+Конечно, в нашем случае живой человек мог бы догадаться, что эти переменные имеют тип \texttt{String}, но для компилятора макрос абсолютно непрозрачен (так как он выполняется уже после типизации аргументов). Возможно, в зависимости от фазы луны макрос будет возвращать то строки, то инты  - что тогда делать?
+
+Поэтому в данном случае компилятор вынужден пропустить типизацию выражения, передаваемого в макрос. Означает ли это, что макросы отменяют статическую проверку типов?
+\end{frame}
+
+
+\begin{frame}[t,fragile]
+\frametitle{Типобезопасность макросов}
+
+Со статической проверкой типов все в порядке, так как AST, которое вернет макрос в результате раскрытия, будет сразу же тайпчекнуто.
+
+Для интереса вот фрагмент из Typers.scala, который демонстрирует эту логику.
+\begin{lstlisting}[language=scala]
+if (inExprModeButNot(mode, FUNmode) && tree.symbol != null && tree.symbol.isMacro && !tree.isDef) {
+  val tree1 = expandMacro(tree)
+  if (tree1.isErroneous) tree1 else typed(tree1, mode, pt)
+}
+\end{lstlisting}
+
+Временный отказ от типизации неприятен - в худшем случае ошибки в аргументах макроса будут обработаны позже, чем следовало бы, и в другом контексте, что может привести к путанице. Но эта жертва необходима для должной гибкости (см. \text{\color{linkblue}\href{http://hackage.haskell.org/trac/ghc/blog/Template\%20Haskell\%20Proposal}{ретроспективу по Template Haskell}} насчет деталей).
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Тестовый запуск}
+Теперь, когда мы разобрались с точкой отсчета, попробуем запустить код как есть и посмотреть что случится. Наверняка, будет кое-что интересное.
+
+\begin{lstlisting}[language=bash]
+> scalac -Xmacros Rx.scala Test.scala
+Test.scala:5: error: macro implementation not found: forAllMatches
+\end{lstlisting}
+
+Упс! Результат занимательный, но не очень вдохновляющий. Мы наткнулись на проблему совместной компиляции макросов и их клиентов.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Раздельная компиляция}
+Дело вот в чем. Как упоминалось раньше, макросы - это мини-плагины к компилятору, которые загружаются из classpath и выполняются во время компиляции.
+
+Но как компилятор загрузит \texttt{forAllMatches}, если тот еще не скомпилировался?
+
+Можно теоретически представить себе компилятор, который автоматически анализирует зависимости и вначале компилирует макросы, после чего принимается за обычный код, но наш компилятор (пока что) так не умеет.
+
+Поэтому на текущий момент макросы надо компилировать отдельно от основной программы. При этом для компиляции программы надо не забыть добавить классы макросов в пользовательский classpath (\texttt{-cp}). На этих слайдах я не указываю путь к макросам явно, так как моя переменная окружения CLASSPATH содержит текущую папку.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Первые результаты}
+
+\begin{lstlisting}[language=bash]
+> scalac -Xmacros Rx.scala
+> scalac -Xmacros Test.scala
+Test.scala:5: error: exception during macro expansion:
+scala.NotImplementedError: an implementation is missing
+  at scala.Predef$.$qmark$qmark$qmark(Predef.scala:233)
+  at Mx$.defmacro$forAllMatches(Rx.scala:37)
+  at java.lang.reflect.Method.invoke(Method.java:597)
+  at scala.reflect.runtime.Mirror.invoke(Mirror.scala:46)
+  at ...Macros$class.macroExpand(Macros.scala:135)
+\end{lstlisting}
+
+Уже лучше! Макрос действительно вызывается - и падает с \texttt{NotImplementedError}.
+
+Заметим, что это исключение не рушит компилятор, а обрабатывается как обычная ошибка типизации (можно даже увидеть позицию, указывающую на макрос, при раскрытии которого произошла ошибка).
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Создаем деревья}
+Теперь приступим к написанию логики макроса. Как уже упоминалось, макросы работают на уровне абстрактных синтаксических деревьев, поэтому на входе у нас будут AST и на выходе мы тоже должны сгенерировать AST. Это весьма пугающий факт - формат AST нигде не документирован, что же нам делать?
+
+Нам помогут встроенные средства scalac по логгированию и преттипринтингу своих структур данных.
+
+С одной стороны, у \texttt{Tree} (базового класса нодов AST Скалы) перегружен метод \texttt{toString}, которые печатает деревья в виде симпатично отформатированного кода на Скале. С другой стороны, при помощи \texttt{showRaw} можно детально проинспектировать структуру AST.
+
+Эта функциональность также доступна через такие флаги компилятора как \texttt{-Xshow-phases} и \texttt{-Yshow-trees}.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Параметры макроса}
+
+Начнем исследование с изучения того, какие параметры приходят в макрос. Для этого определимся, во что именно макрос компилируется.
+
+Для этого можно посмотреть в файл \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/compiler/scala/tools/nsc/typechecker/Macros.scala\#L32}{Macros.scala}}, а можно запустить компиляцию макроса с флагом \texttt{-Ydebug}, в результате чего распечатается развернутый макрос:
+
+\begin{lstlisting}[language=sh]
+> scalac -Xmacros -Ydebug Rx.scala
+[running phase typer on Rx.scala]
+macro def: def defmacro$forAllMatches
+      (glob: api.this.Universe)
+      (_this: glob.Tree)
+      (pattern: glob.Tree, f: glob.Tree): glob.Tree = {
+  implicit val $glob: glob.type = glob;
+  import $glob._;
+  $qmark$qmark$qmark
+}
+added to module class Mx: method defmacro$forAllMatches
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Параметры макроса}
+
+Начнем по порядку. Во-первых, в макрос передается контекст компилятора - переменная \texttt{glob} типа \texttt{Universe} (публичный срез API компилятора, который содержит самые важные фичи вроде деревьев и типов).
+
+Во-вторых (надеюсь, к этому моменту это уже не новость), параметры макроса приходят в виде AST: \texttt{pattern}, \texttt{f} и даже \texttt{\_this} (макрос вызывается как инстанс метод, поэтому у него должен быть \texttt{this}).
+
+Еще один интересный момент - и параметры, и возвращаемое значение имеют path-dependent типы, которые зависят от контекста. Это сделано неслучайно - деревья компилятора мутабельные, поэтому нужно предотвратить их расшаривание между разными экземплярами компиляторов.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Исследование параметров}
+
+Наконец, можно посмотреть, что же именно приходит в параметры макроса. Для этого воспользуемся проверенным методом - вставим в тело макроса печать деревьев при помощи \texttt{showRaw}.
+
+\begin{lstlisting}[language=scala]
+_this: Apply(Select(Ident(newTermName("Rx")), newTermName("string2mx")), List(Select(This(newTypeName("Test")), newTermName("s"))))
+
+pattern: Literal(Constant("..."))
+
+f: Apply(Ident(newTermName("println")), List(Apply(Select(Literal(Constant("...")), newTermName("format")), List(Ident(newTermName("key")), Ident(newTermName("value"))))))
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Генерация результата}
+
+После того, как мы получили представление о входных параметрах, давайте решим, во что именно будет раскрываться макрос. Мне нравится вот такой код:
+
+\begin{lstlisting}[language=scala]
+"...".findAllIn(s).matchData.foreach(m => {
+  val key = m.group("key")
+  val value = m.group("value")
+  println("...".format(key, value))
+}))
+\end{lstlisting}
+
+Чтобы определить, какие деревья нужны для того, чтобы сгенерировать требуемый код, можно воспользоваться упомянутым выше трюком с \texttt{-Xprint:parser}. Флаг \texttt{-Yshow-trees} почти дословно покажет код, необходимый для создания деревьев вручную.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Замечание о работе \texttt{-Yshow-trees}}
+
+\texttt{-Yshow-trees} очень полезен, но к нему зачастую приходится применять ментальный постпроцессинг.
+
+Во-первых, имена дампер печатает в виде обычных строк, но в компиляторе они представляются объектами типа \texttt{Name}. Соответственно, эти строки надо оборачивать в \texttt{newTermName} или \texttt{newTypeName} в зависимости от контекста.
+
+Во-вторых, списки объектов выделяются отступами, а конструктор \texttt{List(...)} на печать не выводится. Чтобы узнать, что именно необходимо оборачивать в списки, лучше всего проконсультироваться с объявлениями подклассов \texttt{Tree} (\text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/sources/src/library/scala/reflect/api/Trees.scala}{ссылка на Trees.scala}}).
+
+Наконец, модификаторы выводятся в не очень наглядном виде. Мы не будем подробно останавливаться на этом моменте, только отметиим, что \texttt{Modifiers()} создает пустой объект-модификатор.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{PROFIT!}
+
+Вооружившись полученными знаниями и терпением, можно дописать макрос и получить долгожданный результат (подсказка находится в файлике \text{\color{linkblue}\href{https://github.com/xeno-by/alphakeplerdemo/blob/result/Rx.scala\#L24}{Rx.scala}} бранча \texttt{result}).
+
+\begin{lstlisting}[language=bash]
+> scalac -Xmacros Rx.scala
+> scalac -Xmacros Test.scala
+> scala Test
+key = foo, value = bar
+\end{lstlisting}
+
+Вопрос на засыпку. Попробуйте предсказать, что получится, если строчку-регекс вынести во временную переменную, то есть написать вот так:
+
+\begin{lstlisting}[language=scala]
+val s = "foo=bar"
+val pattern = """^(?<key>.*?)=(?<value>.*)$"""
+s.forAllMatches(pattern, println(...))
+\end{lstlisting}%$
+\end{frame}
+
+\section{Пару слов о квазицитатах}
+
+\begin{frame}[t,fragile]
+\frametitle{Квазицитаты}
+
+В процессе демонстрации был задан вопрос. "Собирать деревья вручную неудобно. Но ведь парсер компилятора умеет преобразовывать код на Скале в деревья. Почему бы не создавать деревья, пользуясь их строковым представлением?"
+
+И действительно, создание AST можно упростить с помощью механизма, известного как "квазицитирование".
+
+Я хотел обойти эту тему стороной потому, что дизайн квазицитат (в отличие от макросов) даже близко не завершен, поэтому финальная версия может радикально отличаться от текущего прототипа.
+
+Однако предоставляемый квазицитатами функционал действительно очень важен, поэтому мы немного поговорим на эту тему на следующих слайдах. Более подробно квазицитаты разобраны в \text{\color{linkblue}\href{http://scalamacros.org/news/2011/10/29/talk-at-scalaby-meetup.html}{предыдущем выступлении}}.
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Что умеют квазицитаты?}
+
+Квазицитаты превращают строки с кодом в эквивалентные синтаксические деревья:
+
+\begin{lstlisting}[language=scala]
+val two = c"2"
+Literal(Constant(2))
+\end{lstlisting}
+
+Маленькие квазицитаты можно вставлять в большие при помощи сплайсинга:
+
+\begin{lstlisting}[language=scala]
+val four = c"$two + $two"
+Apply(Select(two, newTermName("$plus")), List(two))
+\end{lstlisting}%$
+
+Квазицитаты можно использовать слева от стрелочки при паттерн-матчинге:
+
+\begin{lstlisting}[language=scala]
+import scala.reflect.mirror._
+four.tree match { case c"2 + $x" => println(showRaw(x)) }
+Literal(Constant(2))
+\end{lstlisting}%$
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Обобщенные квазицитаты}
+Механизм квазицитирования можно обобщить для встраивания совершенно чужеродных доменно-специфических языков.
+
+Реализовав парсинг, сплайсинг (и, возможно, паттерн-матчинг) для DSL, программист обеспечивает тесную интеграцию языка с Scala. Для использования провайдера необходимо просто задать идентификатор провайдера перед строчкой с квазицитатой.
+
+Провайдер квазицитаты выполняется во время компиляции, поэтому он может использовать семантическую информацию о программе (таблицы символов, сервис проверки типов, и т.д.), а также выполнять прекомпиляцию (аналогично тому, что мы недавно делали для регексов).
+
+Интересные способы применения квазицитат для создания доменно-специфических языков рассматриваются в работе \text{\color{linkblue}\href{http://www.eecs.harvard.edu/~mainland/publications/mainland07quasiquoting.pdf}{Why It’s Nice to be Quoted: Quasiquoting for Haskell}}.
+
+\end{frame}
+
+\section{Заключение}
+
+\begin{frame}[t,fragile]
+\frametitle{Резюме}
+\begin{itemize}
+\item Механизм макросов предоставляет прозрачные точки расширения компилятора. С помощью макросов можно  анализировать и оптимизировать код, генерировать бойлерплейт и \text{\color{linkblue}\href{http://scalamacros.org/usecases.html}{многое другое}}.
+\item Макросы в Скале - это уже реальность. В ближайшем будущем мы выпустим бета-версию и представим пропоузал по добавлению макросов в 2.10.
+\item Интересное направление исследования - квазицитаты. Они не только упрощают работу с макросами, но и позволяют интегрировать в Скалу внешние DSL. Эта фича находится на более ранней стадии по сравнению с макросами, но мы постараемся успеть сделать ее к 2.10.
+\item По шагам нашей демонстрации уже сейчас можно поэкспериментировать со своими собственными макросами. Если что-то не получится - напишите мне на \text{\color{linkblue}\href{mailto:eugene.burmako@epfl.ch}{eugene.burmako@epfl.ch}}, разберемся вместе.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t,fragile]
+\frametitle{Что дальше?}
+
+Наш следующий шаг - стабилизация рефлексии (которая используется макросами для доступа к деревьям и компилятору) и выпуск бета-версии макросов.
+
+Вместе с бета-версией мы опубликуем документы в рамках Scala Improvement Process, в которых предложим включить макросы и, возможно, квазицитаты в версию 2.10 (которая выйдет в первой половине 2012 года).
+
+За новостями можно следить по следующим направлениям: \text{\color{linkblue}\href{http://scalamacros.org/news.html}{новости на scalamacros.org}} (официальные объявления), \text{\color{linkblue}\href{http://xeno-by.livejournal.com/tag/macros2011}{посты в моем ЖЖ}} (дизайн-заметки и майлстоуны), \text{\color{linkblue}\href{http://www.twitter.com/\#!/xeno_by}{мессаги в моем твиттере}} (с этим все понятно :)).
+
+Наконец, за развитием проекта можно наблюдать на гитхабе: \text{\color{linkblue}\href{https://github.com/scalamacros/kepler}{https://github.com/scalamacros/kepler}}. Основная разработка ведется в \texttt{develop}, экспериментальные вещи (вроде квазицитат) имеют собственные бранчи.
+\end{frame}
+
+\begin{frame}[c, fragile]
+\frametitle{}
+
+\centering
+{\Large Вопросы и ответы}\\
+
+\centering
+\text{\color{linkblue}\href{mailto:eugene.burmako@epfl.ch}{eugene.burmako@epfl.ch}}
+
+\end{frame}
+
+\end{document}
