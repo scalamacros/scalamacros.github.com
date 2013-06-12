@@ -1,0 +1,768 @@
+\documentclass[svgnames,hyperref={bookmarks=false}]{beamer}
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \footnotesize\insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{alerted text}{fg=blue}
+\setbeamerfont{alerted text}{series=\bfseries,family=\ttfamily}
+\setbeamertemplate{section in toc}{\text{\color{black}{\inserttocsection}}}
+\usepackage[parfill]{parskip}
+\usepackage[linewidth=0.5pt]{mdframed}
+\newmdenv[innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=-1mm, innerbottommargin=2mm, leftmargin=-1mm, rightmargin=-1mm]{lstlistinglike}
+\usepackage{tikz}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage{textcomp}
+\usepackage{pifont}
+\usetikzlibrary{shapes.arrows}
+
+\tikzset{
+    myarrow/.style={
+        draw,
+        fill=orange,
+        single arrow,
+        minimum height=3.5ex,
+        single arrow head extend=1ex
+    }
+}
+\newcommand{\arrowup}{%
+\tikz [baseline=-0.5ex]{\node [myarrow,rotate=90] {};}
+}
+\newcommand{\arrowdown}{%
+\tikz [baseline=-1ex]{\node [myarrow,rotate=-90] {};}
+}
+
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Half a Year in Macro Paradise},pdftitle={Half a Year in Macro Paradise}}
+\title{Half a Year In Macro Paradise}
+
+\begin{document}
+
+\title{Half a Year in Macro Paradise}
+\author{Eugene Burmako}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\
+           \texttt{http://scalamacros.org/}}
+\date{12 June 2013}
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+}
+
+\begin{frame}[fragile]
+\frametitle{What this talk covers}
+
+\begin{itemize}
+\item New developments in macros after 2.10.0
+\item Reflection on our experience with macros
+\item The future of macros in Scala 2.10+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{What this talk doesn't cover}
+
+\begin{itemize}
+\item New developments powered by macros
+\begin{itemize}
+\item Pickles and spores (Heather's talk \text{\color{blue}\href{http://www.scaladays.org/\#/june-12/room2/13:30-14:15/On-Pickles-and-Spores\%3A-Improving-Scala\%27s-Support-for-Distributed-Programming}{today at 13:30}})
+\item scala-async (Philipp's and Jason's talk \text{\color{blue}\href{http://www.scaladays.org/\#/june-12/room1/14:30-15:15/Scala-Async\%3A-A-New-Way-to-Simplify-Asynchronous-Code-(Make-the-Compiler-Do-It!)}{today at 14:30}})
+\item shapeless (Miles' talk \text{\color{blue}\href{http://www.scaladays.org/\#/june-12/room3/14:30-15:15/Expanding-eta-expansion\%3A-shapeless-polymorphic-function-values-meet-macros}{today at 14:30}})
+\item scala-workflow (Evgeny's project \text{\color{blue}\href{https://github.com/aztek/scala-workflow/}{at GitHub}})
+\item Akka typed channels (the video of Roland presenting \text{\color{blue}\href{http://marakana.com/s/post/1407/akka_typed_channels_implementing_type_calculations_as_macros_scala_video}{at NEScala}})
+\item Yin-Yang (Vojin's paper \text{\color{blue}\href{http://infoscience.epfl.ch/record/185832}{at infoscience.epfl.ch}})
+\item Specialization 2.0 (Nicolas' and Vlad's project \text{\color{blue}\href{https://github.com/nicolasstucki/specialized}{at GitHub}})
+\item Type-safe JSON (Greg's talk \text{\color{blue}\href{http://2013.geecon.org/speakers/grzegorz-kossakowski}{at Geecon}})
+\item Improvements for the cake pattern (John Sullivan's talk \text{\color{blue}\href{http://www.scaladays.org/\#/june-12/room1/11:15-12:00/Taming-the-Cake-Pattern-with-Type-Macros}{today at 11:15}})
+\item Parallel collections 2.0 (coming \text{\color{blue}\href{http://axel22.github.io/home/professional/\#projects}{coming this summer}})
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{What this talk doesn't cover}
+
+\begin{itemize}
+\item New developments powered by macros (see the previous slide)
+\item Best practices (\text{\color{blue}\href{http://scalapeno.underscore.co.il/\#!macro-writers-guide-210x-and-beyond/c134f}{my upcoming talk at Scalape\~{n}o}})
+\item Design details (\text{\color{blue}\href{https://thestrangeloop.com/sessions/evolution-of-scala-macros}{my upcoming talk at Strange Loop}})
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Macros in Scala 2.10}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros}
+
+\begin{itemize}
+\item New experimental feature in Scala 2.10.0
+\item Macros are functions written in Scala against reflection API
+\item They are invoked by the compiler during compilation
+\item A lot of cool things can be done with a compiler API, so there are multiple macro flavors
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Def macros}
+
+\begin{itemize}
+\item The only macro flavor in Scala 2.10.0
+\item Calls to def macros expand into programmatically generated code
+\item \text{\color{blue}\href{http://docs.scala-lang.org/overviews/macros/overview.html}{http://docs.scala-lang.org/overviews/macros/overview.html}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example}
+
+\begin{semiverbatim}
+log(Error, "does not compute")
+
+                          \arrowdown
+
+if (Config.loggingEnabled)
+  Config.logger.log(Error, "does not compute")
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item We will now write a macro that automates logging
+\item Without macros this is impossible to achieve at zero performance cost
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{Example}
+
+\begin{semiverbatim}
+def log(severity: Severity, msg: String): Unit\only<1>{ = ...
+
+
+
+
+
+
+
+}\only<2->{ = macro impl}
+
+\only<2->{def impl(c: Context)
+    (severity: c.Expr[Severity],
+     msg: c.Expr[String]): c.Expr[Unit]}\only<2>{ = ...
+
+
+
+
+
+}\only<3->{ = \{
+  import c.universe._
+  reify \{
+    if (Config.loggingEnabled)
+      Config.logger.log(severity.splice, msg.splice)
+  \}
+\}}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Macro signatures look like signatures of normal methods
+\only<2->{\item Macro bodies are just stubs, implementations are defined outside}
+\only<3->{\item Implementations use reflection API to analyze and generate code}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{What are macros good for?}
+
+\begin{itemize}
+\item Code generation
+\item Language virtualization
+\item Type computations
+\item Compile-time checks
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros vs textual code generation}
+
+Highlights:
+\begin{itemize}
+\item Structured (macros work with ASTs)
+\item Type-aware (macros integrate with the typechecker)
+\item Reflective (macros can reflect against the program being compiled)
+\end{itemize}
+
+\pause
+\vskip15pt
+Limitations:
+\begin{itemize}
+\item Only hardcore (macros 1.0 are really cumbersome)
+\item Only expressions (macros 1.0 only include def macros)
+\item Only local (macros 1.0 cannot make global changes to the program)
+\item Only transient (macros 1.0 cannot generate code for humans)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Why am I highlighting the ``1.0'' part?}
+
+\begin{itemize}
+\item Because macros are rapidly evolving
+\item In part thanks to external contributors like you!
+\item A lot of cool things have been implemented after the 2.10.0 release
+\item Which makes a lot of problems and restrictions go away
+\item How? Now we're going to find out!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Macros in paradise}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro paradise}
+
+\begin{itemize}
+\item An experimental fork of \texttt{scalac}, available for 2.10.x and 2.11.0:
+\text{\color{blue}\href{http://docs.scala-lang.org/overviews/macros/paradise.html}{http://docs.scala-lang.org/overviews/macros/paradise.html}}
+\item Compatible with the latest releases, i.e. with 2.10.2 and 2.11.0-M3
+(this means you can use the libraries published for those releases!)
+\item Nightlies are published to Sonatype and are easily accessible in SBT:
+\begin{semiverbatim}
+scalaVersion := "2.11.0-SNAPSHOT" or "2.10.2-SNAPSHOT"
+scalaOrganization := "org.scala-lang.macro-paradise"
+resolvers += Resolver.sonatypeRepo("snapshots")
+\end{semiverbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Cool new features}
+
+\begin{itemize}
+\item \text{\color{blue}{Quasiquotes (Denys Shabalin)}}
+\item \text{\color{blue}{Implicit macros}}
+\item \text{\color{blue}{Type macros}}
+\item Macro annotations
+\item Untyped macros
+\item JIT compilation (Oleg Biruk)
+\item Relaxed macros
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Quasiquotes}
+
+\begin{semiverbatim}
+// tree manipulation 1.0
+reify(List[T](element.splice))
+
+
+                          \arrowdown
+
+// tree manipulation 2.0
+q"List[\$T](\$element)"
+\end{semiverbatim}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Untyped snippets}
+
+\begin{semiverbatim}
+val fieldMemberType: Type = ...
+reify \{
+  new TypeBuilder \{
+    type FieldType = fieldMemberType.splice // error!
+  \}
+\}
+
+                          \arrowdown
+
+
+q"new TypeBuilder \{ type FieldType = \$fieldMemberType \}"
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Unlike \texttt{reify}, quasiquotes don't require their snippets to be typed
+\item From experience, this is a vital feature for a metaprogramming system
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Better splicing}
+
+\begin{semiverbatim}
+def foo(xs: Any*) = ...
+val args: List[Expr[Any]] = ...
+reify \{ foo(args.splice) \} // error!
+
+
+                          \arrowdown
+
+
+def foo(xs: Any*) = ...
+q"foo(..\$args)"
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item \texttt{reify} supports splicing single strongly-typed trees and types
+\item Quasiquotes allow splicing virtually anything anywhere it makes sense
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Pattern matching}
+
+\begin{semiverbatim}
+expr match \{
+  case reify(foo.splice(x.splice)) => x // error!
+\}
+
+
+                          \arrowdown
+
+
+expr match \{
+  case q"\$foo(\$x)" => x
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Being strongly-typed, \texttt{reify} is hard to marry with destructuring
+\item Quasiquotes can pattern match in arbitrary positions in snippets
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implicit macros}
+
+\begin{semiverbatim}
+trait Reads[T] \{
+  def reads(json: JsValue): JsResult[T]
+\}
+
+object Json \{
+  def fromJson[T](json: JsValue)
+    (implicit fjs: Reads[T]): JsResult[T]
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Type classes are an idiomatic way of writing extensible code in Scala
+\item This is an example of typeclass-based design in Play
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implicit macros}
+
+\begin{semiverbatim}
+def fromJson[T](json: JsValue)
+  (implicit fjs: Reads[T]): JsResult[T]
+
+implicit val IntReads = new Reads[Int] \{
+  def reads(json: JsValue): JsResult[T] = ...
+\}
+
+fromJson[Int](json) // you write
+fromJson[Int](json)(IntReads) // you get
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item With type classes we externalize the moving parts
+\item And then specify them elsewhere
+\item Instances of type classes are provided once
+\item And then \texttt{scalac} fills them in automatically
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Before macros}
+
+\begin{semiverbatim}
+case class Person(name: String, age: Int)
+
+implicit val personReads = (
+  (__ \\ 'name).reads[String] and
+  (__ \\ 'age).reads[Int]
+)(Person)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Everything is done manually, hence boilerplate
+\item There are alternatives, but they have downsides
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Vanilla macros (2.10.0)}
+
+\begin{semiverbatim}
+implicit val personReads = Json.reads[Person]
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Boilerplate can be generated by a macro
+\item The code ends up being the same as if it were written manually
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implicit macros (2.10.2+)}
+
+\begin{semiverbatim}
+// no code necessary
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Implicit values can be synthesized on-the-fly by a macro
+\item Used with great success in scala-pickling
+\item More information in \text{\color{blue}\href{http://www.meetup.com/Bay-Area-Scala-Enthusiasts/events/121848382/}{my tomorrow's talk in San Francisco}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type macros}
+\begin{semiverbatim}
+val brazilian = Db.Coffees.insert("Brazilian", 99, 0)
+Db.Coffees.update(brazilian.copy(price = 10))
+println(Db.Coffees.all)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Term macros can generate terms, type macros generate types
+\item Imagine we need to create a strongly-typed wrapper for a database
+\item Type macros are a great solution for that!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type macros}
+\begin{semiverbatim}
+object Db extends H2Db("Coffees")\only<1>{
+
+
+
+
+
+
+}\only<2->{
+
+trait H2Db_Coffees \{
+  class Coffee \{ ... \}
+  val Coffees: Table[Coffee] = ...
+\}
+object Db extends H2Db_Coffees}
+
+\end{semiverbatim}
+\begin{itemize}
+\item The \texttt{H2Db} macro takes a connection string
+\only<1>{\item ...}
+\only<2>{\item Then connects to the database and generates the wrapper}
+\only<2>{\item Similar to type providers in F\#}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type macros}
+\begin{semiverbatim}
+type H2Db(url: String) = macro impl\only<1>{
+
+
+
+
+
+
+}\only<2->{
+
+def impl(c: Context)(url: c.Tree) = \{
+  val wrapper = q"trait Wrapper \{ \$\{generateCode(url)\} \}"\only<2>{
+  ...}\only<3->{
+  val wrapperRef = c.introduceTopLevel(wrappersPkg, wrapper)}\only<3>{
+  ...}\only<4->{
+  q"\$wrapperRef(\$url)"}
+\}}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\only<1>{\item Definition and usage of type macros are the same as for def macros}
+\only<1>{\item We start with a macro def and write its signature}
+\only<2>{\item Now we proceed with the implementation}
+\only<2->{\item The implementation creates a trait that encapsulates a database}
+\only<3->{\item And then makes the newly created trait visible to the entire program}
+\only<4->{\item Afterwards it expands into a reference to the wrapper}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Macro paradise hosts a lot of cool new features
+\item Immediately available from Sonatype
+\item Macro paradise is not a thing in itself, it targets upstream Scala
+\item The most successful paradise features have already made it into Scala
+\item Which ones? We'll see in a few minutes!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{The future of macros}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros 1.0 are great}
+
+\begin{itemize}
+\item Things that were previously impossible are now within reach
+\begin{itemize}
+\item People are using macros to bring their ideas to life
+\item Typesafe employs macros in a number of projects
+\item At LAMP we are using macros to power our research
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros 1.0 are complicated}
+
+\begin{itemize}
+\item Annoying
+\begin{itemize}
+\item Hard to grasp
+\item Hard to use
+\end{itemize}
+\vskip15pt
+\item Volatile
+\begin{itemize}
+\item A lot of freedom type-wise
+\item A lot of freedom execution-wise
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{The macro conundrum}
+
+\begin{itemize}
+\item Macros 1.0 are annoying
+\item Macros 1.0 are volatile
+\item But we still want macros, because they are so great!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros 2.0}
+
+\begin{itemize}
+\pause
+\item Simplify
+\begin{itemize}
+\item Quasiquotes!
+\item The rest of reflection API
+\item Better IDE support (debugging, inline expansion, Intellij)
+\end{itemize}
+\pause
+\vskip15pt
+\item Stratify
+\begin{itemize}
+\item Codify the conservative ones (stable subset)
+\item Let the powerful ones evolve (experimental subset)
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{How does one stratify macros?}
+
+\begin{itemize}
+\item By answering a simple question
+\begin{itemize}
+\item Do we have to expand this macro to typecheck the program?
+\end{itemize}
+
+\vskip20pt
+\item This is quite equivalent to the questions
+\begin{itemize}
+\item Does a human have to expand this macro to understand the program?
+\item Does an IDE have to expand this macro to analyze the program?
+\item Does this macro really taste like a method?
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Blackbox macros}
+
+\begin{itemize}
+\item The conservative ones
+\item Don't affect typechecking
+\item One can say they are opaque to the typer, hence the name
+\item \texttt{BlackboxContext} = quasiquotes + just a bit more
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Whitebox macros}
+
+\begin{itemize}
+\item The powerful ones
+\item For them everything stays as it is now and will continue evolving
+\item \texttt{WhiteboxContext} = \texttt{Context} of macros 1.0 + later developments
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Our primary goal for now is to make macros easy to use
+\item Then we plan to bring blackbox macros into the language
+\item Are blackbox macros good enough? Time will tell
+\item In the meanwhile we will still be experimenting with whitebox macros
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{\href{http://groups.google.com/group/scala-internals/browse_thread/thread/f755b4f8fc4c43d4}{The roadmap for macros in Scala 2.10+}}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{2.10.x}
+
+Experimental:
+\begin{itemize}
+\item Reflection (2.10.0+, not going anywhere)
+\item Macros 1.0 (2.10.0+, not going anywhere)
+\item Implicit macros (2.10.2+, single-parametric type classes only)
+\item Quasiquotes (2.10.0+, \text{\color{blue}\href{http://docs.scala-lang.org/overviews/macros/paradise.html\#macro_paradise_for_210x}{quasi-supported}} via paradise 2.10.x)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{2.11.0}
+
+Experimental (looking good for becoming stable in 2.12):
+\begin{itemize}
+\item Blackbox macros
+\item Quasiquotes
+\item Macro bundles
+\end{itemize}
+
+\vskip20pt
+Experimental (needing more time for evaluation):
+\begin{itemize}
+\item Reflection
+\item Whitebox macros
+\item Implicit macros (single-parametric type classes only)
+\item asInstanceOf[scala.reflect.internal.SymbolTable]
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Paradise}
+
+Look good for promotion to 2.11.0, but need time that we might not have before the release:
+\begin{itemize}
+\item Implicit macros (multi-parametric type classes)
+\item Macro annotations
+\end{itemize}
+
+\vskip20pt
+Won't be promoted to 2.11.0, ordered by descending likelihood of making it into any Scala at all:
+\begin{itemize}
+\item \texttt{introduceTopLevel}
+\item Untyped macros
+\item Type macros
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Macros are here to stay
+\item Blackbox macros are going to be stabilized in 2.12
+\item But whitebox macros will still stick around as experimental
+\item So your macros will continue working in 2.11 and probably in 2.12
+\item Type macros didn't make it, macro annotations will take their place
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Wrapping up}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Macros 1.0 are popular among production and research users of Scala
+\item We created a fork of \texttt{scalac} called macro paradise
+\item In paradise we have been experimenting with our design
+\item And we came up with a bunch of improvements for macros 1.0
+\item This will make macros easy to use and accessible for everyone
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Or in other words}
+
+\begin{itemize}
+\item Macros were created by man
+\item They rebelled
+\item They evolved
+\item There are many flavors
+\item And they have a plan
+\end{itemize}
+\end{frame}
+
+\end{document}
