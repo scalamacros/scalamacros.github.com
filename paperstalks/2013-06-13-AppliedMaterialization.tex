@@ -1,0 +1,1132 @@
+\documentclass[svgnames,hyperref={bookmarks=false}]{beamer}
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \footnotesize\insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{alerted text}{fg=blue}
+\setbeamerfont{alerted text}{series=\bfseries,family=\ttfamily}
+\setbeamertemplate{section in toc}{\text{\color{black}{\inserttocsection}}}
+\usepackage[parfill]{parskip}
+\usepackage[linewidth=0.5pt]{mdframed}
+\newmdenv[innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=-1mm, innerbottommargin=2mm, leftmargin=-1mm, rightmargin=-1mm]{lstlistinglike}
+\usepackage{tikz}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage{textcomp}
+\usepackage{pifont}
+\usepackage{tabu}
+\usepackage{fixltx2e}
+\usetikzlibrary{shapes.arrows}
+
+\tikzset{
+    myarrow/.style={
+        draw,
+        fill=orange,
+        single arrow,
+        minimum height=3.5ex,
+        single arrow head extend=1ex
+    }
+}
+\newcommand{\arrowup}{%
+\tikz [baseline=-0.5ex]{\node [myarrow,rotate=90] {};}
+}
+\newcommand{\arrowdown}{%
+\tikz [baseline=-1ex]{\node [myarrow,rotate=-90] {};}
+}
+
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Applied Materialization: When Macros Meet Implicits},pdftitle={Applied Materialization: When Macros Meet Implicits}}
+\title{Applied Materialization: When Macros Meet Implicits}
+
+\begin{document}
+
+\title{Applied Materialization}
+\subtitle{When Macros Meet Implicits}
+\author{Eugene Burmako}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\
+           \texttt{http://scalamacros.org/}}
+\date{13 June 2013}
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+}
+
+\begin{frame}[fragile]
+\frametitle{Agenda}
+
+\text{\color{blue}\href{http://scalamacros.org/paperstalks/2013-06-12-HalfYearInMacroParadise.pdf}{My yesterday's talk at ScalaDays}} was about:
+\begin{itemize}
+\item New developments in macros after 2.10.0
+\item Reflection on our experience with macros
+\item The future of macros in Scala 2.10+
+\end{itemize}
+
+\vskip20pt
+Today we will:
+\begin{itemize}
+\item Take on the challenge of generic programming
+\item Code up a couple of macros using new features from macro paradise
+\item Discuss materialization, my favorite application of macros
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Setting the stage}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Our running example}
+
+\begin{semiverbatim}
+trait Pickler[T] \{
+  def pickle(x: T): Pickle
+\}
+
+def toPickle[T: Pickler](x: T): Pickle = \{
+  implicitly[Pickler[T]].pickle(x)
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item This is an example of typeclass-based design
+\item Type classes are an idiomatic way of writing extensible code in Scala
+\item But let's leave off the type class discussion until \text{\color{blue}\href{http://www.meetup.com/Bay-Area-Scala-Enthusiasts/events/121849802/}{Vlad's talk in July}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{How it works - part 1}
+
+\begin{semiverbatim}
+def toPickle[T: Pickler](x: T) = \{
+  implicitly[Pickler[T]].pickle(x)
+\}
+
+def toPickle[T](x: T)(implicit evidence\$1: Pickler[T]) = \{
+  implicitly[Pickler[T]](evidence\$1).pickle(x)
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item The context bound is desugared into an implicit parameter
+\item The call to \texttt{implicitly} summons that implicit and calls it to action
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{How it works - part 2}
+
+\begin{semiverbatim}
+def toPickle[T](x: T)(implicit p: Pickler[T]): Pickle = ...
+
+implicit object IntPickler extends Pickler[Int] \{ ... \}
+
+toPickle(42) // toPickle(42)(IntPickler)
+toPickle("42") // compile-time error
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item To use \texttt{toPickle} we declared implicit picklers in scope
+\item The compiler is then smart enough to figure them out
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{How it works - part 3}
+
+\begin{semiverbatim}
+def toPickle[T](x: T)(implicit p: Pickler[T]): Pickle = ...
+
+object IntPickler extends Pickler[Int] \{ ... \}
+implicit def listPickler[T: Pickler]: List[Pickler[T]] = ...
+
+toPickle(List(42)) // toPickle(...)(listPickler(IntPickler))
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item It gets even better
+\item For instance, implicits are composable
+\item Here a \texttt{List[T]} pickler gets built up from a pickler for \texttt{T}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{How it works - part 4}
+
+\begin{itemize}
+\item The strength of the typeclass-based design lies in its flexibility
+\item Implicits are composable
+\item Implicits can be scoped
+\item Implicits allow for unanticipated evolution
+\item Though again I'm getting ahead of the \text{\color{blue}\href{http://www.meetup.com/Bay-Area-Scala-Enthusiasts/events/121849802/}{upcoming July talk}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{The problem statement}
+
+\begin{semiverbatim}
+def toPickle[T: Pickler](x: T): Pickle = ...
+case class Person(name: String)
+toPickle(Person("Eugene"))
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item How do we make this code snippet compile?
+\item Is our approach going to be scalable?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{A closer look}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Straightforward approach}
+
+\begin{semiverbatim}
+case class Person(name: String)
+
+implicit val personPickler = new Pickler[Person] \{
+  def pickle(x: Person): Pickle = \{
+    emptyPickle + toPickle(x.name)
+  \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Straightforward and obvious
+\item But what if we have some more classes?
+\item Do we copy/paste the code changing names and adding more fields?
+% \item What are we, savages? \copyright Paul Phillips
+\item We need some technique to abstract the tedium away
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Reflective approach}
+
+\begin{semiverbatim}
+implicit def genericPickler[T: TypeTag]: Pickler[T] =
+  new Pickler[T] \{ def pickle(x: T) = reflect(x) \}
+
+def reflect(x: T): Pickle = \{
+  val fields = typeOf[T].declarations.collect \{
+    case sym: MethodSymbol if sym.isGetter => sym \}
+  val m = currentMirror.reflect(x)
+
+  fields.foldLeft(emptyPickle)((p, f) => \{
+    p + \only<1>{toPickle(m.reflectMethod(g)())}\only<2>{\alert{toPickle(}m.reflectMethod(g)()\alert{: Any)}}
+  \})
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Properly generalizes over case classes, no client code required at all
+\item But has subpar performance
+\item And is not type-safe\only<1>{ (can you spot the bug?)}\only<2>{, because the reflective invocation returns \texttt{Any}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Typelevel approach}
+
+\begin{itemize}
+\item The good thing about reflection is that it can treat data uniformly
+\item The bad thing is that the representation it uses is dynamically typed
+\item Luckily there exists a statically typed solution
+\item Enter \texttt{HLists}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Typelevel approach}
+
+\begin{semiverbatim}
+case class Apple() extends Fruit
+case class Pear() extend Fruit
+
+val a: Apple = Apple()
+val p: Pear = Pear()
+\only<1>{}\only<2>{
+type APAP = Apple :: Pear :: Apple :: Pear :: HNil}
+val hlist\only<2>{\alert{: APAP}} = a :: p :: a :: p :: HNil
+val list\only<2>{\alert{: List[Fruit]}} = a :: p :: a :: p :: Nil
+
+\end{semiverbatim}
+\onslide
+
+\begin{itemize}
+\item On the surface \texttt{HList} is quite similar to \texttt{List}
+\pause
+\item But it is much more precise type-wise
+\item Yesterday at ScalaDays \text{\color{blue}\href{http://www.scaladays.org/\#/june-12/room3/14:30-15:15/Expanding-eta-expansion\%3A-shapeless-polymorphic-function-values-meet-macros}{Miles}} worked magic enabled by \texttt{HLists}
+\item And \text{\color{blue}\href{???}{Alois}} brought \texttt{HLists} even further by adding labels
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Typelevel approach}
+
+\begin{semiverbatim}
+trait Generic[T, R] \{
+  def to(t: T): R
+  def from(r: R): T
+\}
+
+implicit val persIso = new Generic[Person, String :: HNil] \{
+  def to(t: Person) = t.name :: HNil
+  def from(r: String :: HNil) = Person(r.head)
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item After the uniform representation for data is picked
+\item For every data type we define an isomorphism to the repr
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Typelevel approach}
+
+\begin{semiverbatim}
+implicit val hnilPickler: Pickler[HNil] =
+  new Pickler[HNil] \{ def pickle(x: HNil) = emptyPickle \}
+
+implicit def hlistPickler[H, T <: HList]
+  (implicit ph: Pickler[H],
+            pt: Pickler[T]): Pickler[H :: T] = \{
+  new Pickler[H :: T] \{
+    def pickle(x: H :: T) =
+      ph.pickle(x.head) + pt.pickle(x.tail)
+  \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Now the compiler knows how to treat our data types uniformly
+\item Therefore a single serializer for repr will make all our data serializable
+\item This is type-safe and overall cool, but still not very performant
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A detour: the bootstrapping challenge}
+
+\begin{semiverbatim}
+implicit val persIso = new Generic[Person, String :: HNil] \{
+  def to(t: Person) = t.name :: HNil
+  def from(r: String :: HNil) = Person(r.head)
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item To serialize data types generically, we need to isomorphize them
+\item But isomophization itself is a generic programming task!
+\item Which comes first, the chicken or the egg?
+\pause
+\begin{itemize}
+\item The chicken
+\item Isomophization can be treated differently from the other GP problems
+\item Once somehow solved, it will take care of everything else
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary of generic programming techniques}
+
+{\tabulinesep=1.5mm
+\begin{tabu}{ | p{2cm} | p{3cm} | p{2.5cm} | p{2.5cm} | }
+  \hline
+  Technique & \parbox{3cm}{Client-side \\ convenience\textsuperscript{1}} & Performance\textsuperscript{2} & \parbox{2.5cm}{Library-side \\ convenience\textsuperscript{3}} \\ \hline
+  Manual\textsuperscript{*} & Bad & Excellent & Excellent \\ \hline
+  Reflection & Excellent & Bad & Decent \\ \hline
+  Typelevel & Good & Good & Good \\ \hline
+\end{tabu}
+}
+
+\textsuperscript{*} Not a generic programming technique, is here just for comparison\\
+\textsuperscript{1} How much effort is required to add support for a new data type?\\
+\textsuperscript{2} How does the performance fare against manually written code?\\
+\textsuperscript{3} How much effort is required from a library author?\\
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Level 1: def macros}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro-based approach}
+
+\begin{semiverbatim}
+implicit val personPickler = new Pickler[Person] \{
+  def pickle(x: Person): Pickle = \{
+    emptyPickle + toPickle(x.name)
+  \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Temporarily back to square one
+\item We will start with the simplest thing possible
+\item And will make it enjoyable to use
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro-based approach}
+
+\begin{semiverbatim}
+implicit val personPickler = \alert{Pickler.genericPickler[Person]}
+
+
+
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Def macros expand method calls into code blocks
+\item Expansion happens at compile-time when compiler sees a macro call
+\item When invoked, macros programmatically construct their expansion
+\item Arguments of a macro call are available via the reflection API
+\item Therefore we can write a macro to generate the body of the implicit
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Let's write a macro}
+
+\begin{itemize}
+\item Compile-time reflection has the same API as runtime reflection
+\item With the newly introduced quasiquotes code generation is a breeze
+\item Therefore we can easily turn our reflective pickler into a macro!
+\item For details tag along or follow
+\text{\color{blue}\href{http://docs.scala-lang.org/overviews/}{our documentation}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Before we begin}
+
+\begin{itemize}
+\item Some of the features we are going to use aren't yet in Scala 2.10
+\item Those features come from macro paradise, an experimental fork of \texttt{scalac}, available for 2.10.x and 2.11.0
+(details at \text{\color{blue}\href{http://docs.scala-lang.org/overviews/macros/paradise.html}{docs.scala-lang.org}})
+\item A lot of new developments from paradise are going to end up in 2.11.0
+\item When introducing features, I will be mentioning their Scala versions
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{Step 1: Start with a reflective pickler}
+
+\begin{semiverbatim}
+
+
+import scala.reflect.runtime.universe.\_
+object Pickler \{
+  implicit def genericPickler[T: TypeTag]: Pickler[T] = \{
+    val T = typeOf[T]
+    val fields = T.declarations.collect \{ ... \}
+    def reflect(x: T): Pickle = ...
+    new Pickler[T] \{ def pickle(x: T) = reflect(x) \}
+  \}
+\}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{Step 2: Rebrand it as a macro}
+
+\begin{semiverbatim}
+\alert{def genericPickler[T]: Pickler[T] =
+  macro PicklerMacro.genericPickler[T]}
+
+\alert{trait PicklerMacro extends scala.reflect.macros.Macro} \{
+  \text{\color{black}{def genericPickler[T: TypeTag]: Pickler[T] = \{}}
+    \text{\color{black}{val T = typeOf[T]}}
+    \text{\color{black}{val fields = T.declarations.collect \{ ... \}}}
+    \text{\color{black}{def reflect(x: T): Pickle = ...}}
+    \text{\color{black}{new Pickler[T] \{ def pickle(x: T) = reflect(x) \}}}
+  \text{\color{black}{\}}}
+\}
+\end{semiverbatim}
+\end{frame}
+
+% \begin{frame}[t, fragile]
+% \frametitle{Step 2: Rebrand it as a macro}
+
+% \begin{semiverbatim}
+% \alert{def genericPickler[T]: Pickler[T] =
+%   macro PicklerMacro.genericPickler[T]}
+
+% trait PicklerMacro extends scala.reflect.macros.Macro \{
+%   ...
+%   ...
+%   ...
+%   ...
+%   ...
+%   ...
+% \}
+% \end{semiverbatim}
+% \end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{Step 3: Make it produce trees}
+
+\begin{semiverbatim}
+def genericPickler[T]: Pickler[T] =
+  macro PicklerMacro.genericPickler[T]
+
+trait PicklerMacro extends scala.reflect.macros.Macro \{
+  def genericPickler[T: WeakTypeTag]: \alert{Tree} = \{
+    val T = weakTypeOf[T]
+    val fields = T.declarations.collect \{ ... \}
+    def reflect: \alert{Tree} = ...
+    \alert{q"}new Pickler[\alert{\$}T] \{ def pickle(x: \alert{\$}T) = \alert{\$}reflect \}\alert{"}
+  \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item This macro can be written in Scala 2.10.0, yet in a very verbose way
+\item However here we use quasiquotes planned for 2.11.0-M4 (8 Jul 2013)
+\item Those who wrote macros in 2.10, note how easy it is to do it now!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Step 4: Enjoy!}
+
+In the source file you write:
+\begin{semiverbatim}
+implicit val personPickler = Pickler.genericPickler[Person]
+
+\end{semiverbatim}
+
+Under the covers it becomes:
+\begin{semiverbatim}
+implicit val personPickler = new Pickler[Person] \{
+  def pickle(x: Person): Pickle = \{
+    emptyPickle + toPickle(x.name)
+  \}
+\}
+\end{semiverbatim}
+\end{frame}
+
+% \begin{frame}[fragile]
+% \frametitle{Some remarks}
+
+% \begin{itemize}
+% \item This code should work with 2.11.0-final
+% \item Those wrote wrote macros in 2.10, note how easy it is to do it now!
+% \item Quasiquotes are already magic, but are not yet hygienic
+% \begin{itemize}
+% \item Therefore things like \texttt{q"Pickler"} need to be fully qualified
+% \item Like that: \texttt{q"scala.pickling.Pickler"}
+% \item But not like that: \texttt{q"import scala.pickling.\_"}
+% \item Because in the latter case \texttt{Pickler} might be hijacked by a local
+% \end{itemize}
+% \end{itemize}
+% \end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary of generic programming techniques}
+
+{\tabulinesep=1.5mm
+\begin{tabu}{ | p{2cm} | p{3cm} | p{2.5cm} | p{2.5cm} | }
+  \hline
+  Technique & \parbox{3cm}{Client-side \\ convenience} & Performance & \parbox{2.5cm}{Library-side \\ convenience} \\ \hline
+  Manual & Bad & Excellent & Excellent \\ \hline
+  Reflection & Excellent & Bad & Decent \\ \hline
+  Typelevel & Good & Good & Good \\ \hline
+  \text{\color{blue}{Macros\textsuperscript{\textdagger}}} & \text{\color{blue}{Good}} & \text{\color{blue}{Excellent}} & \text{\color{blue}{Decent}} \\
+  \hline
+\end{tabu}}
+
+\onslide
+\text{\color{blue}{\textsuperscript{\textdagger} Requires def macros (Scala 2.10.0+)}}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Level 2: materialization}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A detour: synergy}
+
+In Scala, macros work in harmony with rich syntax and static types:
+\begin{itemize}
+\item String interpolation + macros
+\item Implicits + macros
+\item Types + macros
+\item Annotations + macros
+\end{itemize}
+
+\vskip20pt
+More on that in my recent paper:
+\text{\color{blue}\href{http://scalamacros.org/paperstalks/2013-04-22-LetOurPowersCombine.pdf}{"Scala Macros: Let Our Powers Combine!"}}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Revisiting our current solution}
+
+\begin{semiverbatim}
+def genericPickler[T]: Pickler[T] = macro ...
+implicit val personPickler = Pickler.genericPickler[Person]
+implicit val repoPickler = Pickler.genericPickler[Repo]
+implicit val commitPickler = Pickler.genericPickler[Commit]
+...
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item One generic implementation
+\item One line of code per data type
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implicit macros}
+
+\begin{semiverbatim}
+\alert{implicit} def genericPickler[T]: Pickler[T] = macro ...
+
+
+
+
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item One generic implementation
+\item \alert{Zero} lines of code per data type
+\item When a \texttt{Pickler} is missing, one is generated on the fly
+\item This is a new feature in Scala 2.10.2+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{How it works - part 1}
+
+\begin{semiverbatim}
+trait Pickler[T] \{ def pickle(x: T): Pickle \}
+
+object Pickler \{
+  implicit def genericPickler[T]: Pickler[T] = macro ...
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item When \texttt{scalac} looks for implicits, it traverses the implicit scope
+\item Implicit scope transcends lexical scope
+\item Among others it includes members of the target's companion
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{How it works - part 2}
+
+\begin{semiverbatim}
+\alert{implicit} def genericPickler[T]: Pickler[T] = macro ...
+
+trait PicklerMacro extends Macro \{
+  def genericPickler[T: WeakTypeTag]: Tree = \{
+    ...
+    q"new Pickler[\$T] \{ def pickle(x: \$T) = \$reflect \}"
+  \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Here's our def macro from before
+\item We have just made it implicit
+\item Are we done yet? No!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{How it works - part 2}
+
+\begin{semiverbatim}
+case class List(head: Int, tail: List)
+
+val list: List = ...
+toPickle(list)
+
+
+
+
+
+
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item To illustrate the caveat let's take a recursive data type
+\item And see how its materializer is going to expand
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{How it works - part 2}
+
+\begin{semiverbatim}
+case class List(head: Int, tail: List)
+
+val list: List = ...
+toPickle(list)(\{
+  new Pickler[List] \{
+    def pickle(x: List) = \{
+      emptyPickle +
+      toPickle(x.head)\only<2>{(IntPickler)} +
+      toPickle(x.tail)\only<2>{(\alert{new Pickler[List] \{ ... \}})}
+    \}
+  \}
+\})
+\end{semiverbatim}
+
+\begin{itemize}
+\item After the first expansion we get two recursive calls to \texttt{toPickle}
+\item The first one will be resolved to \texttt{IntPickler}, that's easy
+\item But what about the second one? \pause Uh-oh!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{How it works - part 2}
+
+\begin{semiverbatim}
+case class List(head: Int, tail: List)
+
+val list: List = ...
+toPickle(\{
+  \alert{implicit object ListPickler} extends Pickler[List] \{
+    def pickle(x: List) = \{
+      emptyPickle +
+      toPickle(x.head)(IntPickler) +
+      toPickle(x.tail)(\alert{ListPickler})
+    \}
+  \}
+  ListPickler
+\})
+\end{semiverbatim}
+
+\begin{itemize}
+\item We also need to deal with possible recursion
+\item And we do that by tying the knot using implicits themselves!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{Nitpicking time!}
+
+\begin{semiverbatim}
+case class List(head: Int, tail: List)
+
+val list: List = ...
+toPickle(list)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Our design has just stood up to a serious test
+\item But, in fact, this very example is spectacularly incomplete
+\item It hints at design issues we haven't yet discussed. What are they?
+\pause
+\begin{itemize}
+\item Are algebraic data types supported?
+\item Can we declare \texttt{head} to be polymorphic?
+\item If not polymorphic, can it be \texttt{Any}?
+\end{itemize}
+\end{itemize}
+
+\vskip15pt
+Heather's \text{\color{blue}\href{http://lampwww.epfl.ch/~hmiller/pickling/}{recent paper}} answers all these questions, and her
+cool new \text{\color{blue}\href{http://github.com/scala/pickling}{scala-pickling project}} makes the dreams come true!
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary of generic programming techniques}
+
+{\tabulinesep=1.5mm
+\begin{tabu}{ | p{2cm} | p{3cm} | p{2.5cm} | p{2.5cm} | }
+  \hline
+  Technique & \parbox{3cm}{Client-side \\ convenience} & Performance & \parbox{2.5cm}{Library-side \\ convenience} \\ \hline
+  Manual & Bad & Excellent & Excellent \\ \hline
+  Reflection & Excellent & Bad & Decent \\ \hline
+  Typelevel & Good & Good & Good \\ \hline
+  Macros\textsuperscript{\textdagger} & Good / \text{\color{blue}{Excellent\textsuperscript{$\ddagger$}}} & Excellent & Decent \\
+  \hline
+\end{tabu}
+}
+
+\textsuperscript{\textdagger} Requires def macros (Scala 2.10.0+)
+\text{\color{blue}{\textsuperscript{$\ddagger$} Requires implicit macros (Scala 2.10.2+)}}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Level 3: fundep materialization}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Isomorphisms}
+
+\begin{semiverbatim}
+trait Generic[T, R] \{
+  def to(t: T): R
+  def from(r: R): T
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Let's use our newly acquired proficiency in materialization
+\item By writing a materializer for the isomorphisms mentioned earlier
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{Materializing isomorphisms}
+
+\begin{semiverbatim}
+implicit def materialize[T\only<2>{\alert{, R}}]: Generic[T\only<2>{\alert{, R}}] =
+  macro GenericMacro.materialize[T]
+
+trait GenericMacro extends Macro \{
+  def materialize[T: WeakTypeTag]: Tree = \{
+    val T = weakTypeOf[T]
+    val R = calculateRepr(T)
+    q"new Generic[\$T, \$R] \{ ... \}"
+  \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Copy/pasting, adjusting - okay, so far so good
+\item There is a mistake here. Where is it?
+\pause
+\begin{itemize}
+\item We forgot the second type parameter of \texttt{Generic}
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{Using the materializer}
+
+\begin{semiverbatim}
+implicit def materialize[T, R]: Generic[T, R] =
+  macro GenericMacro.materialize[T]
+
+implicit def genericPickler[T, R]
+  (implicit iso: Generic[T, R],
+            p: Pickler[R]): Pickler[T] = \{
+  new Pickler[T] \{
+    def pickle(x: T) = p.pickle(iso.to(x))
+  \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Double materialization!
+\item Requests for a pickler for \texttt{T} will be processed by \texttt{genericPickler}
+\item That will materialize \texttt{Generic[T, R]} which will figure out \texttt{R}
+\item And that will materialize \texttt{Pickler[R]} that does the heavylifting
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\only<1>{\frametitle{Problem \#1}}
+\only<2>{\frametitle{Non-problem \#1}}
+
+\begin{semiverbatim}
+implicit val hnilPickler: Pickler[HNil] = ...
+
+implicit def hlistPickler[H, T <: HList]
+  (implicit ph: Pickler[H],
+            pt: Pickler[T]): Pickler[H :: T] = ...
+
+implicit def genericPickler[T, R]
+  (implicit iso: Generic[T, R],
+            p: Pickler[R]): Pickler[T] = ...
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item We have overlapping implicits
+\item Is that going to be a problem?
+\pause
+\begin{itemize}
+\item Not really
+\item For any given \texttt{T}, \texttt{scalac} can figure out the most specific one
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Problem \#2}
+
+\begin{semiverbatim}
+09:09 ~/Projects/210x \$ scalac Test.scala -Xlog-implicits
+Test.scala:6: error: could not find implicit value
+for parameter iso: Generic[Test.Foo,R]
+  toPickle(Person("Eugene"))
+          ^
+\end{semiverbatim}
+
+\begin{itemize}
+\item The ever so helpful missing implicit message!
+\item Let's figure out what went wrong with the help of \texttt{-Xlog-implicits}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Problem \#2}
+
+\begin{semiverbatim}
+09:09 ~/Projects/210x \$ scalac Test.scala -Xlog-implicits
+Test.scala:13: materialize is not a valid implicit value
+for Generic[Person, R] because:
+hasMatchingSymbol reported error: type mismatch;
+ found   : Generic[Person, String :: HNil]
+ required: Generic[Person, Nothing]
+  toPickle(Person("Eugene"))
+          ^
+\end{semiverbatim}
+
+\begin{itemize}
+\item What's going on? Where did the \texttt{Nothing} come from?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Problem \#2}
+
+\begin{semiverbatim}
+toPickle(Person("Eugene"))
+
+                          \arrowdown
+
+toPickle(Person("Eugene"))(materialize[?, ?])
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item When inferring the implicit argument for the call to \texttt{toPickle}
+\item \texttt{scalac} finds \texttt{Generic.materialize} as a candidate
+\item And then it needs to check whether the type parameters work out
+\item The first is replacing all of them with unknowns
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Problem \#2}
+
+\begin{semiverbatim}
+toPickle(Person("Eugene"))(materialize[?, ?])
+
+                          \arrowdown
+
+toPickle(Person("Eugene"))(materialize[Person, ?])
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Using the information provided in the call to \texttt{toPickle}
+\item \texttt{scalac} is able to infer \texttt{T} to \texttt{Person}
+\item However \texttt{R} remains unknown, because nothing hints \texttt{scalac} about it
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Problem \#2}
+
+\begin{semiverbatim}
+toPickle(Person("Eugene"))(materialize[Person, ?])
+
+                          \arrowdown
+
+toPickle(Person("Eugene"))(materialize[Person, Nothing])
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Macros cannot expand with uninferred type arguments
+\item Therefore \texttt{scalac} has to go to extreme measures
+\item Inferring \texttt{R} to a default, which is in this case \texttt{Nothing}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Problem \#2}
+
+\begin{semiverbatim}
+toPickle(...)(materialize[Person, Nothing])
+
+                          \arrowdown
+
+toPickle(...)(new Generic[Person, String :: HNil] \{ ... \})
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Now the macro gets to finally expand
+\item But unfortunately typer now expects \texttt{Generic[Person, Nothing]}
+\item And that leads to the compilation error we observed
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Let's take a step back}
+
+\begin{semiverbatim}
+implicit val personIso:
+  Generic[Person, String :: HNil] = ...
+implicit val repoIso:
+  Generic[Repo, Url :: String :: HNil] = ...
+implicit val commitIso:
+  Generic[Commit, Id :: Array[Byte] :: HNil] = ...
+
+implicit def genericPickler[T, R]
+  (implicit iso: Generic[T, R],
+            p: Pickler[R]): Pickler[T] = ...
+toPickle(Person("Eugene"))
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item No macros for now. Can the compiler figure out this one?
+\item Yes, it can, because we don't have conflicting implicit instances
+\item Therefore all that we need here is just a little nudge from the macro
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Fundep materialization}
+
+\begin{itemize}
+\item My first try was the \texttt{onInfer} callback (New Year's Eve 2013)
+\item But later we found out a beautifully simple solution (May 2013)
+\item Let macros expand even if they contain undertermined type params
+\item The type of the expansion will help the compiler infer the undets!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary of generic programming techniques}
+
+{\tabulinesep=1.5mm
+\begin{tabu}{ | p{2cm} | p{3cm} | p{2.5cm} | p{2.5cm} | }
+  \hline
+  Technique & \parbox{3cm}{Client-side \\ convenience} & Performance & \parbox{2.5cm}{Library-side \\ convenience} \\ \hline
+  Manual & Bad & Excellent & Excellent \\ \hline
+  Reflection & Excellent & Bad & Decent \\ \hline
+  Typelevel & Good / \text{\color{blue}{Excellent\textsuperscript{$\S$}}} & Good & Good \\ \hline
+  Macros\textsuperscript{\textdagger} & Good / Excellent\textsuperscript{$\ddagger$} & Excellent & Decent \\
+  \hline
+\end{tabu}
+}
+
+\textsuperscript{\textdagger} Requires def macros (Scala 2.10.0+)\\
+\textsuperscript{$\ddagger$} Requires implicit macros (Scala 2.10.2+)\\
+\text{\color{blue}{\textsuperscript{$\S$} Requires fundep materialization (Paradise, maybe Scala 2.11.0+)}}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Summary}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Macros can effectively abstract away boilerplate
+\item In Scala 2.10 macros are useful
+\item In Scala 2.11 macros will become enjoyable
+\item Typelevel programming can sometimes be a viable alternative
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary of generic programming techniques}
+
+{\tabulinesep=1.5mm
+\begin{tabu}{ | p{2cm} | p{3cm} | p{2.5cm} | p{2.5cm} | }
+  \hline
+  Technique & \parbox{3cm}{Client-side \\ convenience} & Performance & \parbox{2.5cm}{Library-side \\ convenience} \\ \hline
+  Manual & Bad & Excellent & Excellent \\ \hline
+  Reflection & Excellent & Bad & Decent \\ \hline
+  Typelevel & Good / Excellent\textsuperscript{$\S$} & Good & Good \\ \hline
+  Macros\textsuperscript{\textdagger} & Good / Excellent\textsuperscript{$\ddagger$} & Excellent & Decent \\
+  \hline
+\end{tabu}
+}
+
+\textsuperscript{\textdagger} Requires def macros (Scala 2.10.0+)\\
+\textsuperscript{$\ddagger$} Requires implicit macros (Scala 2.10.2+)\\
+\textsuperscript{$\S$} Requires fundep materialization (Paradise, maybe Scala 2.11.0+)
+\end{frame}
+
+% explain availability of all the features (including c.Tree)
+% verify that all questions end with qmarks, mention that in the intro
+
+\end{document}
