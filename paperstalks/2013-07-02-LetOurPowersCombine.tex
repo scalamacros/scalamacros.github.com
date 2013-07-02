@@ -1,0 +1,666 @@
+\documentclass[svgnames,hyperref={bookmarks=false}]{beamer}
+\usepackage[T1]{fontenc}
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \footnotesize\insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{alerted text}{fg=blue}
+\setbeamerfont{alerted text}{series=\bfseries,family=\ttfamily}
+\setbeamertemplate{section in toc}{\text{\color{black}{\inserttocsection}}}
+\usepackage[parfill]{parskip}
+\usepackage[linewidth=0.5pt]{mdframed}
+\newmdenv[innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=-1mm, innerbottommargin=2mm, leftmargin=-1mm, rightmargin=-1mm]{lstlistinglike}
+\usepackage{tikz}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage{textcomp}
+\usepackage{pifont}
+\usetikzlibrary{shapes.arrows}
+
+\tikzset{
+    myarrow/.style={
+        draw,
+        fill=orange,
+        single arrow,
+        minimum height=3.5ex,
+        single arrow head extend=1ex
+    }
+}
+\newcommand{\arrowup}{%
+\tikz [baseline=-0.5ex]{\node [myarrow,rotate=90] {};}
+}
+\newcommand{\arrowdown}{%
+\tikz [baseline=-1ex]{\node [myarrow,rotate=-90] {};}
+}
+\tikzset{
+    mydoublearrow/.style={
+        draw,
+        fill=orange,
+        double arrow,
+        minimum height=5.5ex,
+        double arrow head extend=1ex
+    }
+}
+\newcommand{\arrowupdown}{%
+\tikz [baseline=-0.5ex]{\node [mydoublearrow,rotate=90] {};}
+}
+
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Let Our Powers Combine!},pdftitle={Let Our Powers Combine!}}
+\title{Let Our Powers Combine!}
+
+\begin{document}
+
+\author{Eugene Burmako}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\
+           \texttt{http://scalamacros.org/}}
+\date{02 July 2013}
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+}
+
+\begin{frame}[fragile]
+\frametitle{Agenda}
+
+\begin{itemize}
+\item Compile-time metaprogramming with macros
+\item Integration with rich syntax and static types
+\item Hammers: a number of macro flavors for Scala
+\item Nails: case studies for the macro flavors
+\item No details of the underlying macro system
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Hammers: The Macro Flavors}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros}
+
+\begin{itemize}
+\item Realize textual abstraction in Scala 2.10.0+
+\item Written in Scala against the Scala reflection API
+\item Invoked by the compiler during compilation
+\item Influence compilation: change code, affect types, etc
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro flavors}
+
+\begin{itemize}
+\item Scala has rich syntax
+\item It distinguishes terms and types, expressions and definitions
+\item To abstract over syntax we take that into account:
+\begin{itemize}
+\item Terms => def macros
+\item Types => type macros
+\item Definitions => macro annotations
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Def macros}
+
+\begin{semiverbatim}
+printf("hello \%s", "world!")
+
+                          \arrowdown
+
+def tmp\$1: String = "world!"
+print("hello ")
+print(tmp\$1)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Def macros syntactically replace terms with other terms
+\item Generated code might contain arbitrary Scala constructs
+\item Code generation might involve arbitrary computations
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Def macros}
+
+\begin{semiverbatim}
+def printf(format: String, args: Any*): Unit = macro impl
+
+def impl(c: Context)(
+      format: c.Expr[String],
+      args: c.Expr[Any]*): c.Expr[Unit] = \{
+  \only<2->{import c.universe._}
+  \only<2->{val q"\$\{sFormat: String\}" = format}
+  \only<2->{val (defs, parts) = parse(sFormat, args)}
+  \only<3->{val stmts = defs ++ parts.map(part => q"print(\$part)")}
+  \only<3->{q"..\$stmts"}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Def macros = definitions + implementations
+\item Definitions look and feel like normal Scala methods (almost!)
+\item Implementations are code-transforming metaprograms
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type macros}
+
+\begin{semiverbatim}
+object Db extends H2Db("jdbc:h2:coffees.h2.db")
+
+                          \arrowdown
+
+@synthetic trait CoffeesH2Db\$1 \{
+  case class Coffee(...)
+  val Coffees: Table[Coffee] = ...
+  ...
+\}
+object Db extends CoffeesH2Db\$1
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Type macros syntactically replace types with other types
+\item Can generate auxiliary classes or objects in the process
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type macros}
+
+\begin{semiverbatim}
+type H2Db(connString: String) = macro impl
+
+def impl(c: Context)(connString: c.Expr[String]) = \{
+  \only<2->{val schema = loadSchema(connString)}
+  \only<2->{val name = schema.dbName + "H2Db"}
+  \only<2->{val members = generateCode(schema)}
+  \only<3->{c.introduce(q"@synthetic trait \$name \{ \$members \}")}
+  \only<3->{q"\$name"}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Type macros = definitions + implementations
+\item Definitions look and feel like normal Scala types (almost!)
+\item Implementations are code-transforming metaprograms
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro annotations}
+
+\begin{semiverbatim}
+@serializable class C(x: Int)
+
+                          \arrowdown
+
+class C(x: Int) \{
+  def serialize = ...
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Macro annotations syntactically replace definitions with other definitions
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro annotations}
+
+\begin{semiverbatim}
+class serializable extends MacroAnnotation \{
+  def transform = macro impl
+\}
+
+def impl(c: Context) = \{
+  \only<2->{val logic = generateCode(c.annottee)}
+  \only<2->{val serialize = q"def serialize = \$logic"}
+  \only<3->{val q"class \$name(\$params) \{ \$members \}" = c.annottee}
+  \only<3->{q"class \$name(\$params) \{ \${members :+ serialize} \}"}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Macro annotations = definitions + implementations
+\item Definitions look and feel like normal Scala annotations (almost!)
+\item Implementations are code-transforming metaprograms
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Overarching theme}
+
+\begin{itemize}
+\item Metaprograms are hidden behind vanilla Scala features
+\item This integrates macros into the language in a very natural way
+\item Therefore allowing to enrich existing features with new meanings
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Synergy with rich syntax and static types}
+
+\begin{itemize}
+\item Scala builds a lot of features on top of others
+\begin{itemize}
+\item Application: \texttt{apply}
+\item Getters and setters: \texttt{foo} and \texttt{foo\_=}
+\item For comprehensions: \texttt{flatMap}, \texttt{map}, \texttt{withFilter}, \texttt{foreach}
+\item Dynamic: \texttt{selectDynamic}, \texttt{updateDynamic}, \texttt{applyDynamic}
+\item String interpolation: extension methods on \texttt{StringContext}
+\item Implicits: \texttt{implicit} modifier on methods
+\end{itemize}
+\item All those can be defined as macros, gaining
+\begin{itemize}
+\item Compile-time programmability
+\item Code generation powers
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Nails: The Macro Applications}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Language virtualization}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Language virtualization}
+
+\begin{semiverbatim}
+coffees.filter(c => c.price < 10)
+
+                          \arrowdown
+
+coffees.filter(LessThan(Ref("price"), Literal(10)))
+
+
+
+
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Take a code snippet written in Scala and represent it as data
+\item Then interpret this data, potentially with different semantics
+\item Can be used for deep embedding of internal DSLs
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Language virtualization}
+
+\begin{semiverbatim}
+case class Queryable[T](val query: Query) \{
+  def filter(p: T => Boolean): Queryable[T] =
+    macro QueryableMacros.filter[T]
+
+  def toList: List[T] = \{
+    val translatedQuery = query.translate
+    translatedQuery.execute.asInstanceOf[List[T]]
+  \}
+  ...
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Query operators can be implemented as macros
+\item These macros have their arguments lifted automatically
+\item Lifted arguments can then be remembered and accumulated
+\item No additional language features are necessary
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Language virtualization}
+
+\begin{semiverbatim}
+object QueryableMacros \{
+  def filter[T: c.TypeTag](c: Context)(p: c.Tree) = \{
+    \only<1->{import c.universe._}
+    \only<1->{val lifted: c.Tree = QueryableMacros.lift(p)}
+    \only<2->{val T: c.Type = typeOf[T]}
+    \only<2->{val callee: c.Tree = c.prefix}
+    \only<2->{q"Queryable[\$T](\$callee.query.filter(\$lifted))"}
+  \}
+  ...
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Query operators can be implemented as macros
+\item These macros have their arguments lifted automatically
+\item Lifted arguments can then be remembered and accumulated
+\item No additional language features are necessary
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Comparison with staging}
+
+\begin{itemize}
+\item Macros allow for earlier error detection
+\item Macros don't need stage annotations
+\item Staging composes better
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Composability}
+
+\begin{semiverbatim}
+case class Coffee(name: String, price: Double)
+val coffees: Queryable[Coffee] = Db.coffees
+
+// closed world
+coffees.filter(c => c.price < 10)
+
+// open world
+def isAffordable(c: Coffee) = c.price < 10
+scoffees.filter(isAffordable)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Code is only lifted within macro arguments
+\item Therefore separate compilation doesn't work out of the box
+\begin{itemize}
+\item Decompilation to recreate abstract syntax trees
+\item \texttt{@lifted} macro annotation to retain abstract syntax trees
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Type providers}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type providers}
+
+\begin{semiverbatim}
+type NetFlix = ODataService<\textquotedbl...\textquotedbl>
+let netflix = NetFlix.GetDataContext()
+let avatarTitles = query \{
+  for t in netflix.Titles do
+  where (t.Name.Contains "Avatar") sortBy t.Name take 100
+\}
+
+\end{semiverbatim}
+\begin{itemize}
+\item F\# features type providers, a compile-time facility for code generation
+\item Type providers can be mostly reimplemented with macros
+\end{itemize}
+\end{frame}
+\begin{frame}[fragile]
+
+\frametitle{Picking a macro flavor}
+
+\begin{semiverbatim}
+object Db extends H2Db("jdbc:h2:coffees.h2.db")
+
+                          \arrowupdown
+
+@H2Db("jdbc:h2:coffees.h2.db")
+object Db
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Type macros provide very similar codegen capabilities to type providers
+\item But thanks to first-class modules macro annotations also fit the bill
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Erased type providers}
+
+\begin{semiverbatim}
+object Netflix \{
+  case class Title(name: String)
+  def Titles: List[Title] = ...
+
+  case class Director(name: String)
+  def Directors: List[Director] = ...
+
+  ...
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Sometimes being strongly-typed is too wasteful
+\item If data comes in untyped anyway, it might be unnecessary to wrap it
+\item In F\# one can avoid unnecessary classes using erased type providers
+\item In Scala we can't reimplement them, but we can emulate
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Emulating erasure}
+
+\begin{semiverbatim}
+object Netflix \{
+  type Title = XmlEntity\only<2->{["http://.../Title".type]}
+  def Titles: List[Title] = ...
+
+  type Director = XmlEntity\only<2->{["http://.../Director".type]}
+  def Directors: List[Director] = ...
+
+  ...
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\only<1>{\item We want to replace strongly-typed wrappers with underlying classes}
+\only<1>{\item And not to lose static typing like in the code of the example}
+\only<1>{\item This is possible due to synergies of macros and vanilla Scala features!}
+\only<2->{\item Wrappers are replaced with type aliases parameterized by identities}
+\only<2->{\item (The \texttt{"...".type} cannot be written, but can be generated!)}
+\only<2->{\item All selections and calls are then statically intercepted with macros}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Emulating erasure}
+
+\begin{semiverbatim}
+class XmlEntity[Url] extends Dynamic \{
+  def selectDynamic(field: String) = macro XmlEntity.impl
+\}
+
+object XmlEntity \{
+  def impl(c: Context)(field: c.Tree) = \{
+    \only<2->{import c.universe._}
+    \only<2->{val TypeRef(_, _, tUrl) = c.prefix.tpe}
+    \only<2->{val ConstantType(Constant(sUrl: String)) = tUrl}
+    \only<2->{val schema = loadSchema(sUrl)}
+    \only<3->{val Literal(Constant(sField: String)) = field}
+    \only<3->{if (schema.contains(sField)) q"\$\{c.prefix\}(\$sField)"}
+    \only<3->{else c.abort(s"value \$sField is not a member of \$sUrl")}
+  \}
+\}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Materialization of type class instances}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type classes as objects and implicits}
+
+\begin{semiverbatim}
+trait Showable[T] \{ def show(x: T): String \}
+def show[T](x: T)(implicit s: Showable[T]) = s show x
+
+implicit object IntShowable \{
+  def show(x: Int) = x.toString
+\}
+
+show(42) // "42"
+show("42") // compilation error
+
+\end{semiverbatim}
+\begin{itemize}
+\item In Scala type classes can be modelled with traits
+\item Type class instances are modelled with implicit values
+\item Implicit search automates type-driven selection of instances
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Boilerplate}
+
+\begin{semiverbatim}
+class C(x: Int)
+implicit def cShowable = new Showable[C] \{
+  def show(c: C) = "C(" + c.x + ")"
+\}
+
+class D(x: Int)
+implicit def dShowable = new Showable[D] \{
+  def show(d: D) = "D(" + d.x + ")"
+\}
+
+\end{semiverbatim}
+\begin{itemize}
+\item Instance definitions for similar types are frequently very similar
+\item Leads to proliferation of boilerplate code
+\item There are techniques to abstract boilerplate, but they have downsides
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Materialization}
+
+\begin{semiverbatim}
+trait Showable[T] \{ def show(x: T): String \}
+
+object Showable \{
+  implicit def materialize[T]: Showable[T] = macro ...
+\}
+
+\end{semiverbatim}
+\begin{itemize}
+\item Implicit scope of \texttt{Showable} includes the members of its companion
+\item Failed searches for \texttt{Showable[T]} fall back to \texttt{materialize[T]}
+\item \texttt{materialize[T]} analyzes \texttt{T} and generates an appropriate instance
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Synergy}
+
+\begin{semiverbatim}
+implicit def listShowable[T](implicit s: Showable[T]) =
+  new Showable[List[T]] \{
+    def show(x: List[T]) = \{
+      x.map(s.show).mkString("List(", ", ", ")")
+    \}
+  \}
+
+show(List(42))
+// prints: List(42)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Materialization seamlessly melds into vanilla implicit search
+\item In the example above, \texttt{Showable[List[Int]]} will be provided by \texttt{listShowable}
+\item Building up on a materialized instance of \texttt{Showable[Int]}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Comparison with generic programming}
+
+\begin{itemize}
+\item Materialization provides performance of manually written code
+\item Generic programming is arguably easier to use (no tree manipulation)
+\item Is it possible to combine the strong points of both approaches?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Summary}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Scala Macros, macros that enjoy rich syntax and static types
+\item Seamlessly integrate with vanilla Scala features
+\item Empower existing features with code generation and compile-time programmability capabilities
+\item Work well in a production version of Scala for a number of case studies
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Future work}
+
+\begin{itemize}
+\item Formalize the design of macros in a flexible and tractable framework
+\item Explore compile-time techniques that don't fit into textual abstraction
+\end{itemize}
+\end{frame}
+
+\end{document}
