@@ -1,0 +1,106 @@
+---
+layout: news
+title: Macro paradise 2.0.0-SNAPSHOT
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>It is my pleasure to announce a new major version of macro paradise, featuring new exciting functionality
+and repackaged for the ultimate ease of use.</p>
+
+<code><pre>00:58 ~/210x $ scalac -Xplugin:macro-paradise_2.10.2-2.0.0-SNAPSHOT.jar -Xshow-phases
+             phase name  id  description
+             ----------  --  -----------
+                 parser   1  parse source into ASTs, perform simple desugaring
+          macroparadise   2  let our powers combine
+                  namer   3  resolve names, attach symbols to named trees in paradise
+         packageobjects   4  load package objects in paradise
+                  typer   5  the meat and potatoes: type the trees in paradise
+                         ...
+</pre></code>
+
+<p><b>Now a compiler plugin for 2.10.x</b></p>
+
+<p><a href="/news/2012/12/18/macro-paradise.html">Previous versions</a> of macro paradise were distributed as custom builds
+of a fork of Scala compiler. They were reasonably easy to experiment with, but tricky for everything else - being a custom build
+of <code>scalac</code> creates problems with SBT and Eclipse, complicates usage of third-party libraries, and ultimately
+locks us into an eternal snapshot preventing from reasonable versioning.</p>
+
+<p>However since today, paradise is a compiler plugin targetting official Scala compilers of the 2.10.x series,
+making latest macro developments available to anyone using the latest stable version of Scala.
+For example, there's no longer need to wait for Scala 2.11 to make use of quasiquotes -
+with the paradise plugin, quasiquotes already work in the production Scala environment.</p>
+
+<p><b>Featuring quasiquotes and macro annotations</b></p>
+
+<p>The first preview of macro paradise 2.0 includes: 1) quasiquotes that immensely simplify construction and deconstruction of ASTs,
+and 2) macro annotations that provide a robust and powerful facility for doing global code generation.
+You can check out the macro corner at <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">docs.scala-lang.org</a> for details,
+and here I will provide a short summary.</p>
+
+<p>Quasiquotes are a backport of what's been recently released as a part of Scala 2.11.0-M4 and scheduled for inclusion
+in Scala 2.11. They allow one to write <code>q"..."</code>, <code>tq"..."</code>, <code>cq"..."</code>, and <code>pq"..."</code>
+with Scala code and possibly interpolation splices in quotes, to construct and deconstruct trees in a WYSIWYG fashion.
+In paradise, just like in the recent milestone release of 2.11, to enable quasiquotes you only need to import
+the members of the corresponding universe, e.g. <code>import scala.reflect.runtime.universe._</code> or <code>import c.universe._</code>
+(trick question: how did we pull this off given that paradise is just a compiler plugin that can't change the standard library?).</p>
+
+<p>Macro annotations bring textual abstraction to the level of definitions. Annotating any top-level or nested definition with something
+that Scala recognizes as a macro will let it expand, possibly into multiple members. Unlike in the previous versions of macro paradise,
+macro annotations in 2.0 are done right in the sense that they: 1) apply not just to classes and objects, but to arbitrary definitions,
+2) allow to introduce static members (i.e. expansions of classes can affect companions).
+This opens a number of new possibilities in code generation land, including customizable case classes and better enums.
+
+<p>In the spirit of Scala macros, macro annotations are as untyped as possible to stay flexible and
+as typed as possible to remain useful. On the one hand, macro annottees are untyped, so that we can change their signatures (e.g. lists
+of class members). But on the other hand, the thing about all flavors of Scala macros is integration with the typechecker, and
+macro annotations are not an exceptions. During expansion we can have all the type information that's possible to have
+(e.g. we can reflect against the surrounding program or perform type checks / implicit lookups in the enclosing context).</p>
+
+<p><b>Type macros are out</b></p>
+
+<p>If you have been using paradise before, you might've noticed that the list of supported features doesn't include
+<a href="http://docs.scala-lang.org/overviews/macros/typemacros.html">type macros</a>. You might've also heard rumors that type macros
+are unlikely to be included in future versions of Scala. This is not a coincidence - let me elaborate.</p>
+
+<p>Type macros are an embodiment of textual abstraction - they recognize pieces of text that match a specification
+and replace them according to a procedure. Even though this concept is less useful for types than for terms, it has still found its niches:
+1) encoding computations at type level by naturally extending what type aliases already do, 2) generating publicly visible code by
+expanding references to parents in definitions of classes and objects.</p>
+
+<p>However, as practice shows, type macros are not the best fit for both of these tasks. 1) Textual abstraction alone isn't enough
+for type-level computations, because most often immediate expansion is not what's really needed. Think of it that way:
+when writing <code>List[T]</code> in a function definition, you don't want it to be replaced with some newly generated type,
+but rather want it to be retained in the signature to be used later during type checking and inference. 2) Treating references to parents
+as something expandable is interesting, but this notion doesn't scale to codegen over members.</p>
+
+<p>Therefore there have been concerns that type macros don't pull their weight as a dedicated language feature
+in a potential future release of Scala, and we've been very worried about that, because marrying research with production for the greater good
+has been the ultimate goal of Scala macros from day one.</p>
+
+<p>After careful consideration, we have found replacements for most of the use cases of type macros in order to both meet
+the requirements of the language design committee and to provide an upgrade path for our valued early adopters who have already invested
+in macro-based solutions. <a href="http://docs.scala-lang.org/overviews/macros/implicits.html">Implicit macros</a> provide a macro-based
+approach for a great share of type computation use cases,
+and <a href="http://docs.scala-lang.org/overviews/macros/implicits.html">macro annotations</a> fill the code generation role.
+Both are immediately available in macro paradise 2.0.0-SNAPSHOT.</p>
+
+<p><b>What's coming next?</b></p>
+
+<p>In the next few weeks we plan to introduce
+<a href="http://docs.scala-lang.org/overviews/macros/implicits.html#fundep_materialization">fundep materialization</a>
+along with some fixes to implicit search that will reveal the full potential of implicit macros. We also have several
+other features in the works, but it's too early to share details now - stay tuned for updates.</p>
+
+<p>And as always, development of Scala macros is very much shaped by early adopters. We value your opinion,
+are glad to help with your macro questions, and are always up for a good discussion over a macro or two:
+<ul><li>Are there solid use cases for
+<a href="http://docs.scala-lang.org/overviews/macros/untypedmacros.html">untyped macros</a>, or we shouldn't even port them to the new paradise now that we have macro annotations?</li>
+<li>What else would you like to see in paradise and ultimately in Scala?</li>
+<li>Existing features don't work for you?</li></ul></p>
+
+<p>Speak up <a href="http://groups.google.com/group/scala-language">at scala-language</a> or
+drop me a note <a href="https://twitter.com/xeno_by">on Twitter</a>!</p>
+
+<p><a href="/news/rss.xml"><img height="16" width="16" src="/media/images/rss.png" /> Subscribe to updates</a></p>

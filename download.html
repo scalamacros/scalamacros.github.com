@@ -7,11 +7,11 @@ plusone: false
 <p>Macros ship with the Scala compiler starting from 2.10.0.</p>
 
 <p>To get started:
-<ul><li>Create a separate project for your macros.</li>
+<ul><li>Create a dedicated project for your macros, as they must be compiled separately from the rest of the program.</li>
 <li>Reference <code>scala-reflect.jar</code> in the macro project.</li>
-<li>Use <code>import language.experimental.macros</code> in the files where you define macros.</li>
+<li>Use <code>import scala.language.experimental.macros</code> in the files where you define macros.</li>
 <li>If in doubt, consult <a href="http://docs.scala-lang.org/overviews/macros/overview.html">the docs</a>.</ul></p>
 
-<p>Macros are also in active development within so-called macro paradise, an experimental branch in the official Scala repository.
-Follow instructions at <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">
-http://docs.scala-lang.org/overviews/macros/paradise.html</a> to download and use our nightly builds.</a>
+<p>Within so-called macro paradise, we are implementing new features targetting future Scala releases.
+Follow the instructions at <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">
+docs.scala-lang.org</a> to download and use our compiler plugin for official Scala 2.10.x compilers.</p>
