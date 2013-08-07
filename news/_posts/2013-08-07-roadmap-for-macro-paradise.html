@@ -1,0 +1,37 @@
+---
+layout: news
+title: Roadmap for macro paradise
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>Over the last few days there have been several questions about the roadmap for macro paradise and
+the future of its current features, and this post will elaborate on that.</p>
+
+<p>The foundation of the Scala macros project is having production Scala as the ultimate target.
+Within this project, macro paradise is intended to be an incubator of features that we are proposing or
+will at some point of time propose for inclusion in mainline Scala. Macro bundles and quasiquotes
+have successfully graduated from paradise and are already in Scala 2.11.0-M4, soon to be ported
+fundep materializers are planned to follow as well.</p>
+
+<p>On the road from paradise to trunk, some features change their shape according to the feedback we receive
+from the community and the Scala improvement process committee. However, when changing features, we always try to
+retain their core ideas and provide a migration path to our users. (And so far, we've been pretty successful at that.)</p>
+
+<p>Therefore it's useful to think about paradise features as notions. For example, the notion of quasiquoting
+has been with us since December 2011. It's been rejected once, but then it made a glorious reappearance in another form
+and is now part of trunk. Another example would be the notion of generating publicly visible definitions.
+It was tough luck for type macros, but we've reimplemented them as macro annotations, and now macro annotations will carry the banner
+of global codegen to the official Scala.</p>
+
+<p>On a more concrete note, once Scala 2.11 is released, we will update macro paradise to support it.
+All the features in the current paradise (quasiquotes, macro annotations), along with soon-to-arrive fundep materializers,
+will be supported in paradise for 2.11. We are currently working with the Typesafe compiler team to define an explicit interface
+to the compiler that will guarantee that our plugin (that currently uses undocumented ways to hijack the compilation pipeline)
+remains operational after the changes introduced in 2.11.</p>
+
+<p>Long story short, the goal of macro paradise is to make official Scala better. Your feedback helps that immensely,
+and we're working hard on making paradise as easy to use as possible. We also guarantee that current features are not going
+to disappear in the next release, so you can use them today without the fear that they're going to stop working tomorrow
+or the day after tomorrow.</p>
