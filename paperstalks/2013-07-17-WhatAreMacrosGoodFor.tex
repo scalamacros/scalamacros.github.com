@@ -1,0 +1,1068 @@
+\documentclass[svgnames,hyperref={bookmarks=false}]{beamer}
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \footnotesize\insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{alerted text}{fg=blue}
+\setbeamerfont{alerted text}{series=\bfseries,family=\ttfamily}
+\setbeamertemplate{section in toc}{\text{\color{black}{\inserttocsection}}}
+\usepackage[parfill]{parskip}
+\usepackage[linewidth=0.5pt]{mdframed}
+\newmdenv[innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=-1mm, innerbottommargin=2mm, leftmargin=-1mm, rightmargin=-1mm]{lstlistinglike}
+\usepackage{tikz}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage{textcomp}
+\usepackage{pifont}
+\usetikzlibrary{shapes.arrows}
+
+\tikzset{
+    myarrow/.style={
+        draw,
+        fill=orange,
+        single arrow,
+        minimum height=3.5ex,
+        single arrow head extend=1ex
+    }
+}
+\newcommand{\arrowup}{%
+\tikz [baseline=-0.5ex]{\node [myarrow,rotate=90] {};}
+}
+\newcommand{\arrowdown}{%
+\tikz [baseline=-1ex]{\node [myarrow,rotate=-90] {};}
+}
+
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={What Are Macros Good For?},pdftitle={What Are Macros Good For?}}
+\title{What Are Macros Good For?}
+
+\begin{document}
+
+\title{What Are Macros Good For?}
+\author{Eugene Burmako}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\
+           \texttt{http://scalamacros.org/}}
+\date{17 July 2013}
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+}
+
+\begin{frame}[fragile]
+\frametitle{What are macros good for?}
+
+\begin{itemize}
+\item Code generation
+\item Static checks
+\item Domain-specific languages
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Macros 101}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{What are macros?}
+
+\begin{itemize}
+\item An experimental feature of 2.10.x and 2.11.0
+\item You write functions against the reflection API
+\item Compiler invokes them during compilation
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro flavors}
+
+\begin{itemize}
+\item Many ways to hook into the compiler \text{\textrightarrow} many macro flavors
+\item Type macros, annotation macros, untyped macros, etc
+\item However in 2.10.x and 2.11.0 there are only def macros
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Def macros}
+
+\begin{semiverbatim}
+log(Error, "does not compute")
+
+                          \arrowdown
+
+if (Config.loggingEnabled)
+  Config.logger.log(Error, "does not compute")
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Def macros replace well-typed terms with other well-typed terms
+\item Generated code might contain arbitrary Scala constructs
+\item Codegeneration might involve arbitrary computations
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{Def macros}
+
+\begin{semiverbatim}
+def log(severity: Severity, msg: String): Unit\only<1>{ = ...
+
+
+
+
+
+
+
+}\only<2->{ = macro impl}
+
+\only<2->{def impl(c: Context)
+    (severity: c.Expr[Severity],
+     msg: c.Expr[String]): c.Expr[Unit]}\only<2>{ = ...
+
+
+
+
+
+}\only<3->{ = \{
+  import c.universe._
+  reify \{
+    if (Config.loggingEnabled)
+      Config.logger.log(severity.splice, msg.splice)
+  \}
+\}}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Macro signatures look like signatures of normal methods
+\only<2->{\item Macro bodies are just stubs, implementations are defined outside}
+\only<3->{\item Implementations use reflection API to analyze and generate code}
+\end{itemize}
+\end{frame}
+
+% \begin{frame}[t, fragile]
+% \frametitle{Improvements in 2.11.0}
+
+% \begin{semiverbatim}
+% def log(severity: Severity, msg: String): Unit =
+%   macro Log.impl
+
+% trait Log extends Macro \{
+%   import c.universe._
+%   def impl(severity: c.Tree, msg: c.Tree): c.Tree = q"""
+%     if (Config.loggingEnabled)
+%       Config.logger.log(\$severity, \$msg)
+%   """
+% \}
+
+% \end{semiverbatim}
+
+% \begin{itemize}
+% \item Quasiquotes can be used to construct and deconstruct trees
+% \item Macros can be defined in bundles inheriting from \texttt{Macro}
+% \item It's no longer mandatory to use \texttt{Expr}'s everywhere
+% \end{itemize}
+% \end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{semiverbatim}
+log(Error, "does not compute")
+
+                          \arrowdown
+
+if (Config.loggingEnabled)
+  Config.logger.log(Error, "does not compute")
+
+\end{semiverbatim}
+\begin{itemize}
+\item Local expansion of method calls
+\item Well-formed and well-typed arguments
+\item Now what is this good for?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Code generation}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Code generation}
+
+\begin{itemize}
+\item Create code on-the-fly
+\item More convenient and robust than textual codegen
+\item Impossible to create globally visible classes
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#1 - Performance}
+
+\begin{semiverbatim}
+def createArray[T: ClassTag](size: Int, el: T) = \{
+  val a = new Array[T](size)
+  for (i <- 0 until size) a(i) = el
+  a
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item We want to write beautiful generic code, and Scala makes that easy
+\item Unfortunately, abstractions oftentimes bring overhead
+\item E.g. in this case erasure will cause boxing leading to a slowdown
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#1 - Performance}
+
+\begin{semiverbatim}
+def createArray[@specialized T: ClassTag](...) = \{
+  val a = new Array[T](size)
+  for (i <- 0 until size) a(i) = el
+  a
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Methods can be \texttt{@specialized}, but it's viral and heavyweight
+\item Viral = the entire call chain needs to be specialized
+\item Heavyweight = specialization leads to duplication of bytecode
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#1 - Performance}
+
+\begin{semiverbatim}
+def createArray[T: ClassTag](size: Int, el: T) = \{
+  val a = new Array[T](size)
+  \alert{def specBody[@specialized T](el: T) \{}
+    \alert{for (i <- 0 until size) a(i) = el}
+  \alert{\}}
+  \alert{classTag[T] match \{}
+    \alert{case ClassTag.Int => specBody(el.asInstanceOf[Int])}
+    \alert{...}
+  \alert{\}}
+  a
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item We want to specialize just as much as we need
+\item As described in the fresh \text{\color{blue}\href{http://lampwww.epfl.ch/\~hmiller/scala2013/resources/pdfs/paper10.pdf}{Bridging Islands of Specialized Code}} paper
+\item But that's tiresome to do by hand, and here's where macros shine
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#1 - Performance}
+
+\begin{semiverbatim}
+\alert{def specialized[T: ClassTag](code: => T) = macro ...}
+
+def createArray[T: ClassTag](size: Int, el: T) = \{
+  val a = new Array[T](size)
+  \alert{specialized[T] \{}
+    for (i <- 0 until size) a(i) = el
+  \alert{\}}
+  a
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item \texttt{specialized} macro gets pretty code and transforms it into fast code
+\item This is a typical scenario of using macros for performance
+\item \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI-6711}{Can be non-trivial to implement}}, but things should become better
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Materialization}
+
+\begin{semiverbatim}
+trait Reads[T] \{
+  def reads(json: JsValue): JsResult[T]
+\}
+
+object Json \{
+  def fromJson[T](json: JsValue)
+    (implicit fjs: Reads[T]): JsResult[T]
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Type classes are an idiomatic way of writing extensible code in Scala
+\item This is an example of typeclass-based design in Play
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Materialization}
+
+\begin{semiverbatim}
+def fromJson[T](json: JsValue)
+  (implicit fjs: Reads[T]): JsResult[T]
+
+implicit val IntReads = new Reads[Int] \{
+  def reads(json: JsValue): JsResult[T] = ...
+\}
+
+fromJson[Int](json) // you write
+fromJson[Int](json)(IntReads) // you get
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item With type classes we externalize the moving parts
+\item Instances of type classes are provided once
+\item And then \texttt{scalac} fills them in automatically
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Before macros}
+
+\begin{semiverbatim}
+case class Person(name: String, age: Int)
+
+implicit val personReads = (
+  (__ \\ 'name).reads[String] and
+  (__ \\ 'age).reads[Int]
+)(Person)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Everything is done manually, hence boilerplate
+\item There are alternatives, but they have downsides
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Vanilla macros (2.10.0)}
+
+\begin{semiverbatim}
+implicit val personReads = Json\alert{.reads[}Person\alert{]}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Boilerplate can be generated by a macro
+\item The code ends up being the same as if it were written manually
+\item Therefore performance remains excellent
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Implicit macros (2.10.2+)}
+
+\begin{semiverbatim}
+// no code necessary
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Implicit values can be generated by a macro
+\item Used with great success in \text{\color{blue}\href{http://github.com/scala/pickling}{scala-pickling}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Implicit macros (2.10.2+)}
+
+\begin{semiverbatim}
+trait Reads[T] \{ def reads(json: JsValue): JsResult[T] \}
+
+object Reads \{
+  \alert{implicit def materializeReads[T]: Reads[T] = macro ...}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item When \texttt{scalac} looks for implicits, it traverses the implicit scope
+\item Implicit scope transcends lexical scope
+\item Among others it includes members of the targetâ€™s companion
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Implicit macros (2.10.2+)}
+
+\begin{semiverbatim}
+fromJson[Person](json)
+
+                          \arrowdown
+
+fromJson[Person](json)(\alert{materializeReads[}Person\alert{]})
+
+                          \arrowdown
+
+fromJson[Person](json)(new Reads[Person]\{ ... \})
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Every time a \texttt{Reads[T]} isn't found, the compiler will call our macro
+\item More information in \text{\color{blue}\href{http://www.meetup.com/Bay-Area-Scala-Enthusiasts/events/121848382/}{my talk about materialization}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Implicit macros (2.10.2+)}
+
+\begin{semiverbatim}
+implicit def listShowable[T](implicit s: Showable[T]) =
+  new Showable[List[T]] \{
+    def show(x: List[T]) = \{
+      x.map(s.show).mkString("List(", ", ", ")")
+  \}
+\}
+
+show(List(42))
+// prints: List(42)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item This is an example of how macros synergize with other features
+\item Here a macro is transparently integrated with a vanilla \texttt{listShowable}
+\item We will see a couple more applications of the same principle today
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - A \#typelevel alternative}
+
+\begin{semiverbatim}
+product   :: C[A] => C[B] => C[(A, B)]
+coproduct :: C[A] => C[B] => C[Either[A, B]]
+project   :: C[B] => (A => B, B => A) => C[A]
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Lars Hupel \text{\color{blue}\href{https://speakerdeck.com/larsrh/generating-type-class-instances-automatically}{recently introduced}} an approach inspired by Haskell's GP
+\item Uniform representation + type class combinators = materialization
+\item Beautiful, but has some problems with performance
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#3 - Fake type providers}
+
+\begin{semiverbatim}
+println(Db.Coffees.all)
+Db.Coffees.insert("Brazilian", 99, 0)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item In F\# one can generate wrappers over datasources
+\item These wrappers can then be used in a strongly-typed manner
+\item Can this be implemented with def macros?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#3 - Fake type providers}
+
+\begin{semiverbatim}
+\alert{def h2db(connString: String): Any = macro ...}
+val db = \alert{h2db(}"jdbc:h2:coffees.h2.db"\alert{)}
+
+                          \arrowdown
+
+val db = \{
+  trait Db \{
+    case class Coffee(...)
+    val Coffees: Table[Coffee] = ...
+  \}
+  new Db \{\}
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Unfortunately for this use case, def macros expand locally
+\item Therefore the best we can have is a bunch of local classes
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#3 - Fake type providers}
+
+\begin{semiverbatim}
+scala> val db = h2db("jdbc:h2:coffees.h2.db")
+db: AnyRef \{
+  type Coffee \{ val name: String; val price: Int; ... \}
+  val Coffees: Table[this.Coffee]
+\} = \$anon\$1...
+
+scala> db.Coffees.all
+res1: List[Db\$1.this.Coffee] = List(Coffee(Brazilian,99,0))
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Luckily for us, local classes are erased to structural types
+% \item \text{\color{blue}\href{http://meta.plasm.us/posts/2013/06/19/macro-supported-dsls-for-schema-bindings/}{A little nudge suggested by Travis Brown}} makes \texttt{scalac} happy
+\item This means that we are strongly-typed (static checking, completions)
+\item But we have to live with reflective overhead of structural types
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#3 - Fake type providers}
+
+\begin{semiverbatim}
+class Coffee(row: Row[\alert{"...".type}]) with Dynamic \{
+  \alert{def selectDynamic = macro ...}
+\}
+
+db: AnyRef\{type Coffee <: Dynamic; ...\}
+coffee\alert{.}name // rewritten to: coffee.\alert{selectDynamic(}"name"\alert{)}
+
+                          \arrowdown
+
+coffee.row["name"].asInstanceOf[String]
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item It turns out that \text{\color{blue}\href{http://meta.plasm.us/posts/2013/07/11/fake-type-providers-part-2/}{we don't need to go through structural types}}
+\item \texttt{Dynamic} typing + compile-time macros = static typing
+\item But now we lost IDEs, because we no longer expose any members
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#3 - Fake type providers}
+
+\begin{semiverbatim}
+class Coffee(row: Row["...".type]) \{
+  \alert{def name: String = macro ...}
+\}
+
+db: AnyRef\{type Coffee <: AnyRef\{\alert{def name: String}\}; ...\}
+coffee.\alert{name}
+
+                          \arrowdown
+
+coffee.row["name"].asInstanceOf[String]
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Therefore we need to go even deeper
+\item Reflective calls + compile-time macros = static calls
+\item Meet structural types powered by \text{\color{blue}\href{http://meta.plasm.us/posts/2013/07/12/vampire-methods-for-structural-types/}{vampire methods}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#3 - Real type providers}
+
+\begin{semiverbatim}
+\alert{@H2Db(}"jdbc:h2:coffees.h2.db"\alert{)} object Db
+println(Db.Coffees.all)
+Db.Coffees.insert("Brazilian", 99, 0)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item This was a fun exercise stretching the boundaries of macrology
+\item The technique was discovered just last weekend, so use it with care
+\item In the meanwhile keep an eye on \text{\color{blue}\href{http://docs.scala-lang.org/overviews/macros/annotations.html}{macro annotations}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Static checks}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Static checks}
+
+\begin{itemize}
+\item Check your program during compilation
+\item Report errors and warnings
+\item Impossible to do global checks
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#4 - Strongly-typed strings}
+
+\begin{semiverbatim}
+scala> val x = "42"
+x: String = 42
+
+scala> "%d".format(x)
+j.u.IllegalFormatConversionException: d != java.lang.String
+  at java.util.Formatter\$FormatSpecifier.failConversion...
+\only<2>{
+scala> f"\$x\%d"
+<console>:31: error: type mismatch;
+ found   : String
+ required: Int
+}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Strings are typically perceived to be unsafe
+\only<2>{\item Though with macros they don't have to be}
+\only<2>{\item Even more so with the new string interpolation}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#4 - Strongly-typed strings}
+
+\begin{semiverbatim}
+implicit class Formatter(c: StringContext) \{
+  \alert{def f(args: Any*): String = macro ???}
+\}
+
+val x = "42"
+f"\$x\%d" // rewritten into: StringContext("", "%d").\alert{f(}x\alert{)}
+
+                          \arrowdown
+
+\{
+  val arg\$1: Int = x \alert{// doesn't compile}
+  "%d".format(arg\$1)
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item \texttt{f} is a macro that inserts type ascriptions in strategic places
+\item Similar techniques can be used for regexen, binary literals, etc
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#4 - Quasiquotes}
+
+\begin{semiverbatim}
+reify(List[T](element.splice))
+
+                          \arrowdown
+
+q"List[\$T](\$element)"
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Now our strings are both flexible and statically checked
+\item This means that we can \text{\color{blue}\href{https://github.com/densh/talks/raw/master/ecoop-2013-07-02/index.pdf}{robustly embed}} entire languages
+\item That's how quasiquotes were born (already in 2.11.0-M4)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#5 - Akka typed channels}
+
+\begin{semiverbatim}
+trait Request
+case class Command(msg: String) extends Request
+
+trait Reply
+case object CommandSuccess extends Reply
+case class CommandFailure(msg: String) extends Reply
+
+\only<1>{val actor = someActor}\only<2>{type Spec = (Request, Reply) :+: TNil}
+\only<1>{actor ! Command}\only<2>{val actor = new ChannelRef[Spec](someActor)}
+\alert{\only<2>{actor <-!- Command // doesn't compile}}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\only<1>{\item Akka actors are dynamically typed, i.e. the \texttt{!} method takes \texttt{Any}}
+\only<1>{\item This loosens type guarantees provided by Scala}
+\only<2>{\item We can implement type specification for actors even in standard Scala}
+\only<2>{\item But this became practical only when we got macros}
+\only<2>{\item \text{\color{blue}\href{http://doc.akka.io/docs/akka/snapshot/scala/typed-channels.html}{Akka typed channels}} are specifically designed to make use of macros}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#5 - Akka typed channels}
+
+\begin{semiverbatim}
+type Spec = (Request, Reply) :+: TNil
+val actor = new ChannelRef[Spec](someActor)
+\alert{actor <-!- Command // doesn't compile}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item The \texttt{<-!-} macro takes the type of its prefix and extracts the spec
+\item Then it takes the argument type and validates it against the spec
+\item This all can be done with implicits and type-level computations
+\item But it will be non-trivial both for the programmer and for the users
+\end{itemize}
+\end{frame}
+
+% \begin{frame}[fragile]
+% \frametitle{Example \#5 - Akka typed channels}
+
+% \begin{semiverbatim}
+% def replyChannels(l: Type, msg: Type): List[Type] = \{
+%   def rec(l: Type, acc: List[Type]): List[Type] = \{
+%     l match \{
+%       case TypeRef(_, _, TypeRef(_, _, in :: out :: Nil) :: tl :: Nil)
+%       if msg <:< in =>
+%           rec(tl, if (acc contains out) acc else out :: acc)
+%       case TypeRef(_, _, _ :: tl :: Nil) => rec(tl, acc)
+%       case _ => acc.reverse
+%     \}
+%   \}
+%   val n = typeOf[Nothing]
+%   if (msg =:= n) List(n) else rec(list, Nil)
+% \}
+% \end{semiverbatim}
+% \end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#6 - Spores}
+
+\begin{semiverbatim}
+def future[T](body: => T) = ...
+
+def receive = \{
+  case Request(data) =>
+    future \{
+      val result = transform(data)
+      sender ! Response(result)
+    \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Capturing \texttt{sender} in the above closure is dangerous
+\item That's because \texttt{sender} is not a value, but a stateful method
+\item To validate captures we can use macros: \text{\color{blue}\href{http://docs.scala-lang.org/sips/pending/spores.html}{SIP-21 \text{\textendash} Spores}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#6 - Spores}
+
+\begin{semiverbatim}
+def future[T](body: \alert{Spore[T]}) = ...
+
+\alert{def spore[T](body: => T): Spore[T] = macro ...}
+
+def receive = \{
+  case Request(data) =>
+    future(\alert{spore \{}
+      val result = transform(data)
+      sender ! Response(result) \alert{// doesn't compile}
+    \alert{\}})
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item The \texttt{spore} macro takes its body and figures out all free variables
+\item If any of the free variables are deemed dangerous, an error is reported
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#6 - Spores}
+
+\begin{semiverbatim}
+def future[T](body: Spore[T]) = ...
+
+\alert{implicit def anyToSpore[T](body: => T): Spore[T] = macro ...}
+
+def receive = \{
+  case Request(data) =>
+    future \alert{\{}
+      val result = transform(data)
+      sender ! Response(result) \alert{// doesn't compile}
+    \alert{\}}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item The conversion to \texttt{Spore} can be made implicit
+\item That will verify closures without bothering the user
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Domain-specific languages}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Domain-specific languages}
+
+\begin{itemize}
+\item Take a program written in an internal or external DSL
+\item Work with it as with a domain-specific data structure
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#7 - Language-INtegrated Query}
+
+\begin{semiverbatim}
+val usersMatching = query[String, (Int, String)](
+  "select id, name from users where name = ?")
+usersMatching("John")
+
+\only<2->{case class User(id: Column[Int], name: Column[String])}
+\only<2->{users.filter(_.name === "John")}
+
+\only<3->{case class User(id: Int, name: String)}
+\only<3->{users\alert{.filter(}_.name == "John"\alert{)}}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Database queries can be written in SQL
+\only<2->{\item They can also be written in a DSL, at times slightly awkward}
+\only<3->{\item Or they can be written in Scala and virtualized by a macro}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#7 - Language-INtegrated Query}
+
+\begin{semiverbatim}
+trait Query[T] \{
+  \alert{def filter(p: T => Boolean): Query[T] = macro ...}
+\}
+
+val users: Query[User] = ...
+users\alert{.filter(}_.name == "John"\alert{)}
+
+
+                          \arrowdown
+
+Query(Filter(users, Equals(Ref("name"), Literal("John"))))
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item The \texttt{filter} macro turns a method call on a query into another query
+\item The derived query captures the previous one and the predicate
+\item We've built a deeply-embedded query DSL
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#7 - Comparison with staging}
+
+\begin{semiverbatim}
+implicit def queryOps[T](q: Rep[Query[T]]) = new \{
+  def filter(p: Rep[T] => Rep[Boolean]): Rep[Query[T]] = ...
+\}
+
+val users: Rep[Query[User]] = ...
+users.filter(_.name == "John")
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item In order to deeply embed your DSL, work with \texttt{Rep[T]} instead of \texttt{T}
+\item Powered by implicits and \texttt{scala-virtualized}, a fork of \texttt{scalac}
+\item Staged execution: compile your program, stage it, run the result
+\item This technique is called \text{\color{blue}\href{http://scala-lms.github.io/}{lightweight modular staging}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#7 - Comparison with staging}
+
+\begin{itemize}
+\item Macros allow for earlier error detection
+\item Macros don't need stage annotations
+\item Staging composes better
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#7 - Comparison with staging}
+
+\begin{semiverbatim}
+case class Coffee(name: String, price: Double)
+val coffees: Queryable[Coffee] = Db.coffees
+
+// closed world
+coffees.\alert{filter(}c => c.price < 10\alert{)}
+
+// open world
+def isAffordable(c: Coffee) = c.price < 10
+scoffees.\alert{filter(}isAffordable{)}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Code is only processed specially within macro arguments
+\item Therefore separate compilation doesn't work out of the box
+\item We experiment with ways of dealing with that
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#8 - Async}
+
+\begin{semiverbatim}
+val futureDOY: Future[Response] =
+  WS.url("http://api.day-of-year/today").get
+
+val futureDaysLeft: Future[Response] =
+  WS.url("http://api.days-left/today").get
+
+futureDOY.flatMap \{ doyResponse =>
+  val dayOfYear = doyResponse.body
+  futureDaysLeft.map \{ daysLeftResponse =>
+    val daysLeft = daysLeftResponse.body
+    Ok(s"\$dayOfYear: \$daysLeft days left!")
+  \}
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Turning a synchronous program into an async one isn't easy
+\item One has to manually manage callbacks, introduce temps, etc
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#8 - Async}
+
+\begin{semiverbatim}
+\alert{def async[T](body: => T): Future[T] = macro ...}
+\alert{def await[T](future: Future[T]): T = macro ...}
+
+\alert{async \{}
+  val dayOfYear = \alert{await(}futureDOY\alert{)}.body
+  val daysLeft = \alert{await(}futureDaysLeft\alert{)}.body
+  Ok(s"\$dayOfYear: \$daysLeft days left!")
+\alert{\}}
+
+
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Turning a synchronous program into an async one isn't easy
+\item Macros can do the transformation automatically: \text{\color{blue}\href{http://docs.scala-lang.org/sips/pending/async.html}{SIP-22 \text{\textendash} Async}}
+\item C\# \texttt{yield} and Python generators can also be emulated by macros
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#9 - Datomisca}
+\begin{semiverbatim}
+scala> \alert{Query(}"""
+|      [ :find ?e ?n
+|        :in \$ ?char
+|        :where  [ ?e :person/name ?n ]
+|                [ ?e person/character ?char ]
+|      ]
+|      """\alert{)}
+res0: TypedQueryAuto2[DatomicData, DatomicData, (DatomicData,
+DatomicData)] = [ :find ?e ?n :in \$ ?char :where ... ]
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Macros can also deeply embed external DSLs
+\item In this example a query to Datomic becomes \text{\color{blue}\href{http://pellucidanalytics.github.io/datomisca/index.html}{first-class Scala citizen}}
+\item This means static validation, typechecking and maybe even interop
+\end{itemize}
+\end{frame}
+
+% \begin{frame}[fragile, t]
+% \frametitle{Example \#9 - Quasiquotes}
+% \begin{semiverbatim}
+% @quasiquote object lambda \{
+%   sealed abstract class Tree
+%   case class Abs(v: Var, body: Tree) extends Tree
+%   case class App(f: Tree, arg: Tree) extends Tree
+%   case class Var(name: String) extends Tree
+
+%   object parse extends StdTokenParsers \{
+%     lexical.delimiters ++= List("(", ")", "\\", ".")
+%     def main = rep1(parens | varr | abs | hole) ^^ App
+%     def abs = ("\\\\" ~> (varr | hole) <~ ".") ~ main) ^^ Abs
+%     def varr = ident ^^ Var
+%     def parens = "(" ~> main <~ ")"
+%   \}
+% \}
+% \end{semiverbatim}
+
+% \begin{itemize}
+% \item
+% \item
+% \end{itemize}
+% \end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Summary}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{What are macros good for?}
+
+\begin{itemize}
+\item Code generation
+\item Static checks
+\item Domain-specific languages
+\end{itemize}
+\end{frame}
+
+\end{document}
