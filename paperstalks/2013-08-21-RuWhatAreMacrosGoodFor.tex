@@ -1,0 +1,897 @@
+\documentclass[svgnames,hyperref={bookmarks=false},11pt]{beamer}
+\usepackage{polyglossia}
+\useoutertheme{infolines}
+\setdefaultlanguage{russian}
+\newfontfamily\cyrillicfont{Cambria}
+\newfontfamily\cyrillicfontsf{Calibri}
+\newfontfamily\cyrillicfonttt[Scale=0.8]{Monaco}
+\defaultfontfeatures{Ligatures=TeX}
+\setmainfont{Calibri}
+\setsansfont[Scale=MatchLowercase,Mapping=tex-text]{Calibri}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \footnotesize\insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{alerted text}{fg=blue}
+\setbeamerfont{alerted text}{series=\bfseries,family=\ttfamily}
+\setbeamertemplate{section in toc}{\text{\color{black}{\inserttocsection}}}
+\usepackage[parfill]{parskip}
+\usepackage[linewidth=0.5pt]{mdframed}
+\newmdenv[innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=-1mm, innerbottommargin=2mm, leftmargin=-1mm, rightmargin=-1mm]{lstlistinglike}
+\usepackage{tikz}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage{textcomp}
+\usepackage{pifont}
+\usetikzlibrary{shapes.arrows}
+
+\tikzset{
+    myarrow/.style={
+        draw,
+        fill=orange,
+        single arrow,
+        minimum height=3.5ex,
+        single arrow head extend=1ex
+    }
+}
+\newcommand{\arrowup}{%
+\tikz [baseline=-0.5ex]{\node [myarrow,rotate=90] {};}
+}
+\newcommand{\arrowdown}{%
+\tikz [baseline=-1ex]{\node [myarrow,rotate=-90] {};}
+}
+
+\hypersetup{pdfauthor={Евгений Бурмако},pdfsubject={Для чего полезны макросы?},pdftitle={Для чего полезны макросы?}}
+\title{Для чего полезны макросы?}
+
+\begin{document}
+
+\title{Для чего полезны макросы?}
+\author{Евгений Бурмако}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\
+           \texttt{http://scalamacros.org/}}
+\date{21 августа 2013}
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+}
+
+\begin{frame}[fragile]
+\frametitle{Для чего полезны макросы?}
+
+\begin{itemize}
+\item Генерация кода
+\item Статические проверки
+\item Предметные языки
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Введение в макросы}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Что такое макросы?}
+
+\begin{itemize}
+\item Экспериментальная функциональность Скалы 2.10.x и 2.11.0
+\item Программист пишет функции, использующие Scala Reflection API
+\item Компилятор вызывает эти функции во время компиляции
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Виды макросов}
+
+\begin{itemize}
+\item Много способов расширения компилятора \text{\textrightarrow} много видов макросов
+\item Макротипы, макро-аннотации, нетипизированные макросы и т.д.
+\item В официальной поставке 2.10.x и 2.11.0 есть только макрометоды
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Макрометоды}
+
+\begin{semiverbatim}
+log(Error, "does not compute")
+
+                          \arrowdown
+
+if (Config.loggingEnabled)
+  Config.logger.log(Error, "does not compute")
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Раскрывают типизированные термы в типизированные термы
+\item Результат может содержать произвольные конструкции Скалы
+\item Кодогенератор может выполнять произвольные вычисления
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t, fragile]
+\frametitle{Макрометоды}
+
+\begin{semiverbatim}
+def log(severity: Severity, msg: String): Unit\only<1>{ = ...
+
+
+
+
+
+
+
+}\only<2->{ = macro impl}
+
+\only<2->{def impl(c: Context)
+    (severity: c.Expr[Severity],
+     msg: c.Expr[String]): c.Expr[Unit]}\only<2>{ = ...
+
+
+
+
+
+}\only<3->{ = \{
+  import c.universe._
+  reify \{
+    if (Config.loggingEnabled)
+      Config.logger.log(severity.splice, msg.splice)
+  \}
+\}}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Сигнатуры макросов выглядят как сигнатуры обычных методов
+\only<2->{\item Тела макросов \text{\textendash} ссылки на отдельно определяемые реализации}
+\only<3->{\item Реализации используют Scala Reflection API для анализа и синтеза}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Резюме}
+
+\begin{semiverbatim}
+log(Error, "does not compute")
+
+                          \arrowdown
+
+if (Config.loggingEnabled)
+  Config.logger.log(Error, "does not compute")
+
+\end{semiverbatim}
+\begin{itemize}
+\item Макрометоды умеют преобразовывать свои вызовы в новый код
+\item Преобразования осуществляются только локально
+\item Аргументы должны быть статически типизируемы
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Генерация кода}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Генерация кода}
+
+\begin{itemize}
+\item Создание нового кода на лету
+\item Более удобно и надежно, чем генерировать текст
+\item Пока что невозможно создавать глобально видимые классы
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №1: улучшение производительности}
+
+\begin{semiverbatim}
+def createArray[T: ClassTag](size: Int, el: T) = \{
+  val a = new Array[T](size)
+  for (i <- 0 until size) a(i) = el
+  a
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item На Скале легко писать красивый обобщенный код
+\item К сожалению, абстракции зачастую приносят накладные расходы
+\item Например, в этом случае трансляция полиморфизма в байткод JVM приведет к боксингу, что сильно ухудшит производительность
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №1: улучшение производительности}
+
+\begin{semiverbatim}
+def createArray[@specialized T: ClassTag](...) = \{
+  val a = new Array[T](size)
+  for (i <- 0 until size) a(i) = el
+  a
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Методы можно специализировать, но это нудно и тяжеловесно
+\item Нудно = приходится специализировать всю цепочку вызовов
+\item Тяжеловесно = специализация приводит к дубликации байткода
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №1: улучшение производительности}
+
+\begin{semiverbatim}
+def createArray[T: ClassTag](size: Int, el: T) = \{
+  val a = new Array[T](size)
+  \alert{def specBody[@specialized T](el: T) \{}
+    \alert{for (i <- 0 until size) a(i) = el}
+  \alert{\}}
+  \alert{classTag[T] match \{}
+    \alert{case ClassTag.Int => specBody(el.asInstanceOf[Int])}
+    \alert{...}
+  \alert{\}}
+  a
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Хотелось бы специализировать ровно столько, сколько нужно
+\item Прямо как в недавней работе \text{\color{blue}\href{http://lampwww.epfl.ch/\~hmiller/scala2013/resources/pdfs/paper10.pdf}{Bridging Islands of Specialized Code}}
+\item Также хотелось бы не писать подобный низкоуровневый код руками
+\item И вот здесь оказываются очень полезными макросы!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №1: улучшение производительности}
+
+\begin{semiverbatim}
+\alert{def specialized[T: ClassTag](code: => T) = macro ...}
+
+def createArray[T: ClassTag](size: Int, el: T) = \{
+  val a = new Array[T](size)
+  \alert{specialized[T] \{}
+    for (i <- 0 until size) a(i) = el
+  \alert{\}}
+  a
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Макрос \texttt{specialized} берет красивый код и делает его быстрым
+\item Это типичный сценарий применения ускоряющих макросов
+\item \text{\color{blue}\href{https://issues.scala-lang.org/browse/SI-6711}{Иногда такие макросы нетривиальны}}, но прогресс не стоит на месте
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №2: материализация}
+
+\begin{semiverbatim}
+trait Reads[T] \{
+  def reads(json: JsValue): JsResult[T]
+\}
+
+object Json \{
+  def fromJson[T](json: JsValue)
+    (implicit fjs: Reads[T]): JsResult[T]
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Классы типов \text{\textendash} красивый подход к написанию расширяемого кода
+\item Вот пример сериализатора из Play, основанного на классах типов
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №2: материализация}
+
+\begin{semiverbatim}
+def fromJson[T](json: JsValue)
+  (implicit fjs: Reads[T]): JsResult[T]
+
+implicit val IntReads = new Reads[Int] \{
+  def reads(json: JsValue): JsResult[T] = ...
+\}
+
+fromJson[Int](json) // пишем
+fromJson[Int](json)(IntReads) // получаем
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Классы типов абстрагируют варьирующиеся части алгоритмов
+\item Для каждого используемого типа определяются экземпляры
+\item Компилятор автоматически подставляет их в нужные вызовы
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №2: без макросов (Скала 2.9.х)}
+
+\begin{semiverbatim}
+case class Person(name: String, age: Int)
+
+implicit val personReads = (
+  (__ \\ 'name).reads[String] and
+  (__ \\ 'age).reads[Int]
+)(Person)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Экземпляры классов типов пишутся вручную
+\item Много некрасивого, избыточного кода
+\item Есть \text{\color{blue}\href{https://speakerdeck.com/larsrh/generating-type-class-instances-automatically}{альтернативы}}, но у них есть свои недостатки
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №2: макрометоды (Скала 2.10.0)}
+
+\begin{semiverbatim}
+implicit val personReads = Json\alert{.reads[}Person\alert{]}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Как мы уже видели, избыточный код можно генерировать
+\item Байткод будет идентичен байткоду предыдущего примера
+\item Поэтому производительность останется на отличном уровне
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №2: неявные макросы (Скала 2.10.2+)}
+
+\begin{semiverbatim}
+// не требуется вообще никакого кода
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Экземпляры классов типов можно генерировать на лету
+\item Поэтому объявлять неявные значения нет необходимости
+\item Подход применяется в таких библиотеках как \text{\color{blue}\href{http://github.com/scala/pickling}{Pickling}}
+и \text{\color{blue}\href{http://github.com/milessabin/shapeless}{Shapeless}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №2: неявные макросы (Скала 2.10.2+)}
+
+\begin{semiverbatim}
+trait Reads[T] \{ def reads(json: JsValue): JsResult[T] \}
+
+object Reads \{
+  \alert{implicit def materializeReads[T]: Reads[T] = macro ...}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Поиск неявных значений затрагивает не только область видимости
+\item Но также и список полей и методов компаньонов
+\item Поэтому неявный макрос, объявленный в компаньоне, будет виден всем, кто захочет использовать наш класс типов.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №2: неявные макросы (Скала 2.10.2+)}
+
+\begin{semiverbatim}
+fromJson[Person](json)
+
+                          \arrowdown
+
+fromJson[Person](json)(\alert{materializeReads[}Person\alert{]})
+
+                          \arrowdown
+
+fromJson[Person](json)(new Reads[Person]\{ ... \})
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Если экземпляр \texttt{Reads[T]} не находится, будет вызываться макрос
+\item Макрос посмотрит на значение \texttt{T} и сгенерирует нужный экземпляр
+\item Подробности можно почитать в \text{\color{blue}\href{http://www.meetup.com/Bay-Area-Scala-Enthusiasts/events/121848382/}{слайдах другого выступления}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №3: поставщики типов}
+
+\begin{semiverbatim}
+println(Db.Coffees.all)
+Db.Coffees.insert("Brazilian", 99, 0)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item F\# позволяет генерировать обертки вокруг источников данных
+\item Будучи статически типизированными, эти обертки приятны и удобны
+\item Можно ли что-то похожее реализовать на макрометодах?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №3: поставщики типов}
+
+\begin{semiverbatim}
+\alert{def h2db(connString: String): Any = macro ...}
+val db = \alert{h2db(}"jdbc:h2:coffees.h2.db"\alert{)}
+
+                          \arrowdown
+
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №3: поставщики типов}
+
+\begin{semiverbatim}
+\alert{def h2db(connString: String): Any = macro ...}
+val db = \alert{h2db(}"jdbc:h2:coffees.h2.db"\alert{)}
+
+                          \arrowdown
+
+val db = \{
+  trait Db \{
+    case class Coffee(...)
+    val Coffees: Table[Coffee] = ...
+  \}
+  new Db \{\}
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Макрометоды раскрываются локально
+\item Поэтому максимум, чего можно добиться в данном случае, это набор локальных классов, которые не видны извне
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №3: поставщики типов}
+
+\begin{semiverbatim}
+scala> val db = h2db("jdbc:h2:coffees.h2.db")
+db: AnyRef \{
+  type Coffee \{ val name: String; val price: Int; ... \}
+  val Coffees: Table[this.Coffee]
+\} = \$anon\$1...
+
+scala> db.Coffees.all
+res1: List[Db\$1.this.Coffee] = List(Coffee(Brazilian,99,0))
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item К счастью, локальные классы стираются в структурные типы
+\item Поэтому все работает как надо (статическая типизация, IDE)
+\item Единственная проблема - накладные расходы на рефлексию
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №3: поставщики типов}
+
+\begin{semiverbatim}
+class Coffee(row: Row[\alert{"...".type}]) with Dynamic \{
+  \alert{def selectDynamic = macro ...}
+\}
+
+db: AnyRef\{type Coffee <: Dynamic; ...\}
+coffee\alert{.}name // преобразуется в: coffee.\alert{selectDynamic(}"name"\alert{)}
+
+                          \arrowdown
+
+coffee.row["name"].asInstanceOf[String]
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Оказывается, \text{\color{blue}\href{http://meta.plasm.us/posts/2013/07/11/fake-type-providers-part-2/}{можно обойтись без структурных типов}}
+\item Динамическая типизация + макросы = статическая типизация
+\item Этот подход \text{\color{blue}\href{http://meta.plasm.us/posts/2013/07/12/vampire-methods-for-structural-types/}{можно улучшать и дальше}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №3: честные поставщики типов}
+
+\begin{semiverbatim}
+\alert{@H2Db(}"jdbc:h2:coffees.h2.db"\alert{)} object Db
+println(Db.Coffees.all)
+Db.Coffees.insert("Brazilian", 99, 0)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Эмуляция поставщиков типов на структурных типах это прикольно
+\item Но ее стоит воспринимать только как временное решение
+\item \text{\color{blue}\href{http://docs.scala-lang.org/overviews/macros/annotations.html}{Макро аннотации}} должны закрыть этот вопрос раз и навсегда
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Статические проверки}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Статические проверки}
+
+\begin{itemize}
+\item Поиск ошибок в программе во время компиляции
+\item Можно выдавать собственные ошибки и предупреждения
+\item Невозможно выполнять глобальные проверки
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №4: статически типизированные строки}
+
+\begin{semiverbatim}
+scala> val x = "42"
+x: String = 42
+
+scala> "%d".format(x)
+j.u.IllegalFormatConversionException: d != java.lang.String
+  at java.util.Formatter\$FormatSpecifier.failConversion...
+\only<2>{
+scala> f"\$x\%d"
+<console>:31: error: type mismatch;
+ found   : String
+ required: Int
+}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Строки обычно считаются небезопасными
+\only<2>{\item Но, когда за дело берутся макросы, все меняется}
+\only<2>{\item Особенно если использовать строковую интерполяцию}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №4: статически типизированные строки}
+
+\begin{semiverbatim}
+implicit class Formatter(c: StringContext) \{
+  \alert{def f(args: Any*): String = macro ...}
+\}
+
+val x = "42"
+f"\$x\%d" // преобразуется в: StringContext("", "%d").\alert{f(}x\alert{)}
+
+                          \arrowdown
+
+val arg\$1: Int = x \alert{// ошибка компиляции}
+"%d".format(arg\$1)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Макрос \texttt{f} превращает отформатированные строки в блоки кода
+\item Явные аннотации типов гарантируют отсутствие ошибок
+\item Похожие техники есть для регулярных выражений, двоичных литералов и т.д.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №5: типизированные каналы Акки}
+
+\begin{semiverbatim}
+trait Request
+case class Command(msg: String) extends Request
+
+trait Reply
+case object CommandSuccess extends Reply
+case class CommandFailure(msg: String) extends Reply
+
+\only<1>{val actor = someActor}\only<2>{type Spec = (Request, Reply) :+: TNil}
+\only<1>{actor ! Command}\only<2>{val actor = new ChannelRef[Spec](someActor)}
+\alert{\only<2>{actor <-!- Command // ошибка компиляции}}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\only<1>{\item Актеры в Акке динамически типизированы, т.е. \texttt{!} принимает \texttt{Any}}
+\only<1>{\item Это делает невозможным статическую проверку сообщений}
+\only<2>{\item В принципе, сигнатуры актеров можно описать и без макросов}
+\only<2>{\item Но практичным это становится только на макросах}
+\only<2>{\item \text{\color{blue}\href{http://doc.akka.io/docs/akka/snapshot/scala/typed-channels.html}{Типизированные каналы Акки}} разработаны специально для этого}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №5: типизированные каналы Акки}
+
+\begin{semiverbatim}
+type Spec = (Request, Reply) :+: TNil
+val actor = new ChannelRef[Spec](someActor)
+\alert{actor <-!- Command // ошибка компиляции}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Макрос \texttt{<-!-} берет тип префикса и извлекает спецификацию канала
+\item Потом он вычисляет тип аргумента и проверяет его на соответствие
+\item Все это можно реализовать при помощи вычислений на типах
+\item Но это будет очень сложно и для программиста, и для пользователей
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №6: споры}
+
+\begin{semiverbatim}
+def future[T](body: => T) = ...
+
+def receive = \{
+  case Request(data) =>
+    future \{
+      val result = transform(data)
+      sender ! Response(result)
+    \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Пример выше иллюстрирует распространенную ошибку
+\item Захват переменной \texttt{sender} в замыкание \text{\textendash} это плохая идея
+\item \texttt{sender} это не значение, как может показаться, а изменяемый метод
+\item Такого рода ошибки можно ловить макросами: \text{\color{blue}\href{http://docs.scala-lang.org/sips/pending/spores.html}{SIP-21 \text{\textendash} Spores}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №6: споры}
+
+\begin{semiverbatim}
+def future[T](body: \alert{Spore[T]}) = ...
+
+\alert{def spore[T](body: => T): Spore[T] = macro ...}
+
+def receive = \{
+  case Request(data) =>
+    future(\alert{spore \{}
+      val result = transform(data)
+      sender ! Response(result) \alert{// ошибка компиляции}
+    \alert{\}})
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Макрос \texttt{spore} вычисляет свободные переменные в своем аргументе
+\item Если какая-либо из этих переменных изменяемая, выдается ошибка
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №6: споры}
+
+\begin{semiverbatim}
+def future[T](body: Spore[T]) = ...
+
+\alert{implicit def anyToSpore[T](body: => T): Spore[T] = macro ...}
+
+def receive = \{
+  case Request(data) =>
+    future \alert{\{}
+      val result = transform(data)
+      sender ! Response(result) \alert{// ошибка компиляции}
+    \alert{\}}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Преобразование в споры можно сделать неявным
+\item В этом случае проверка замыканий будет совершенно незаметной
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Предметные языки}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Мечта разработчиков предметных языков}
+
+\begin{itemize}
+\item Пользователь пишет обычную программу
+\item Компилятор прозрачно превращает ее в структуру данных
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Мечта разработчиков предметных языков}
+
+\begin{itemize}
+\item Даже из коробки Скала очень хороша
+\item \text{\color{blue}\href{http://scala-lms.github.io/}{LMS}} (также известный как Scala Virtualized) делает Скалу еще лучше
+\item Однако LMS тяжеловесен и не работает с официальной Скалой
+\item Макросы предоставляют легковесную альтернативу
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №7: LINQ}
+
+\begin{semiverbatim}
+val usersMatching = query[String, (Int, String)](
+  "select id, name from users where name = ?")
+usersMatching("John")
+
+\only<2->{case class User(id: Column[Int], name: Column[String])}
+\only<2->{users.filter(_.name === "John")}
+
+\only<3->{case class User(id: Int, name: String)}
+\only<3->{users\alert{.filter(}_.name == "John"\alert{)}}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Запросы к базам данных можно писать на SQL
+\only<2->{\item Их также можно закодировать в DSL, правда с некоторым трудом}
+\only<3->{\item Или же, благодаря макросам, можно все писать на обычной Скале}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Пример №7: LINQ}
+
+\begin{semiverbatim}
+trait Query[T] \{
+  \alert{def filter(p: T => Boolean): Query[T] = macro ...}
+\}
+
+val users: Query[User] = ...
+users\alert{.filter(}_.name == "John"\alert{)}
+
+
+                          \arrowdown
+
+Query(Filter(users, Equals(Ref("name"), Literal("John"))))
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Макрос \texttt{filter} превращает вызовы методов в структуры данных
+\item Дальше эти структуры можно транслировать в SQL
+\item Можно делать и по-другому: \text{\color{blue}\href{https://github.com/amirsh/master-thesis}{An Embedded Query Language in Scala}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №8: асинхронные вычисления}
+
+\begin{semiverbatim}
+val futureDOY: Future[Response] =
+  WS.url("http://api.day-of-year/today").get
+
+val futureDaysLeft: Future[Response] =
+  WS.url("http://api.days-left/today").get
+
+futureDOY.flatMap \{ doyResponse =>
+  val dayOfYear = doyResponse.body
+  futureDaysLeft.map \{ daysLeftResponse =>
+    val daysLeft = daysLeftResponse.body
+    Ok(s"\$dayOfYear: \$daysLeft days left!")
+  \}
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Сделать программу асинхронной совсем непросто
+\item По сути, приходится выворачивать поток управления наизнанку
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №8: асинхронные вычисления}
+
+\begin{semiverbatim}
+\alert{def async[T](body: => T): Future[T] = macro ...}
+\alert{def await[T](future: Future[T]): T = macro ...}
+
+\alert{async \{}
+  val dayOfYear = \alert{await(}futureDOY\alert{)}.body
+  val daysLeft = \alert{await(}futureDaysLeft\alert{)}.body
+  Ok(s"\$dayOfYear: \$daysLeft days left!")
+\alert{\}}
+
+
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Сделать программу асинхронной совсем непросто
+\item Но макросы могут сделать это автоматически: \text{\color{blue}\href{http://docs.scala-lang.org/sips/pending/async.html}{SIP-22 \text{\textendash} Async}}
+\item Генераторы из C\# и Python эмулируются похожим образом
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Пример №9: Datomisca}
+\begin{semiverbatim}
+scala> \alert{Query(}"""
+|      [ :find ?e ?n
+|        :in \$ ?char
+|        :where  [ ?e :person/name ?n ]
+|                [ ?e person/character ?char ]
+|      ]
+|      """\alert{)}
+res0: TypedQueryAuto2[DatomicData, DatomicData, (DatomicData,
+DatomicData)] = [ :find ?e ?n :in \$ ?char :where ... ]
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Благодаря макросам строковая интерполяция становится механизмом встраивания внешних языков
+\item В этом примере в Скалу были интегрированы \text{\color{blue}\href{http://pellucidanalytics.github.io/datomisca/index.html}{запросы к Datomic}}
+\item Почти даром получаются статические проверки синтаксиса и типов
+\item Механизм можно обобщить до \text{\color{blue}\href{https://github.com/densh/talks/raw/master/ecoop-2013-07-02/index.pdf}{Modular Quasiquote Abstraction}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Заключение}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Для чего полезны макросы?}
+
+\begin{itemize}
+\item Генерация кода
+\item Статические проверки
+\item Предметные языки
+\end{itemize}
+\end{frame}
+
+\end{document}
