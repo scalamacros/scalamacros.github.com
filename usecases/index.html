@@ -5,38 +5,6 @@ comments: false
 plusone: true
 ---
 
-<p>Recently <a href="/news/2013/04/22/let-our-powers-combine.html">we have published a paper</a> covering the state of the art of macrology in Scala 2.10. It provides an interesting perspective and an up-to-date interpretation of some of the use cases below, most of which were written before 2.10.</p>
+<p>Recently <a href="/news/2013/04/22/let-our-powers-combine.html">we have published a paper</a> covering the state of the art of macrology in Scala 2.10. It provides an interesting perspective and an up-to-date interpretation of some of the originally envisioned use cases for Scala macros.</p>
 
 <p><span style="background-color: #46A546; color: #FFFFFF; border-radius: 3px 3px 3px 3px; font-size: 9.75px; font-weight: bold; padding: 1px 3px 2px">NEW</span> Our new talk <a href="/paperstalks/2013-07-17-WhatAreMacrosGoodFor.pdf">"What Are Macros Good For?"</a> describes and systemizes uses that macros found among Scala 2.10 users. The thesis of the talk is that macros are good for code generation, static checking and DSLs, illustrated with a number of examples from research and industry.</p>
-
-{% for post in site.posts %}
-  {% if post.categories contains "usecases" %}
-    {% if post.tags contains "important" %}
-      <p>
-        <span class="title"><a class="link" href="{{ post.url }}">{{ post.title }}</a></span>
-      </p>
-    {% endif %}
-  {% endif %}
-{% endfor %}
-
-{% for post in site.posts %}
-  {% if post.categories contains "usecases" %}
-    {% if post.tags contains "important" %}
-    {% else %}
-      <p>
-        <span class="title"><a class="link" href="{{ post.url }}">{{ post.title }}</a></span>
-      </p>
-    {% endif %}
-  {% endif %}
-{% endfor %}
-
-<p>We're open to new ideas and feature requests. The design of macros is still in flux, so it can be easily
-adjusted to embrace your personal use-cases and make the world a better place to live.</p>
-
-<p>To submit a new use case to the repository (this is exactly how we included units of measurements
-and data types "a la carte"), write to us at <a href="mailto:{{site.email}}">{{site.email}}</a> or
-post the use-case <a href="{{site.google.group.url}}">to the mailing list</a>.</p>
-
-<p>
-  <a href="/usecases/rss.xml"><img height="16" width="16" src="/media/images/rss.png" /> Subscribe to updates</a>
-</p>
