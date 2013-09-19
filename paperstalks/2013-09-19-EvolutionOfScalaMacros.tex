@@ -1,0 +1,1020 @@
+\documentclass[svgnames,hyperref={bookmarks=false}]{beamer}
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \footnotesize\insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{alerted text}{fg=blue}
+\setbeamerfont{alerted text}{series=\bfseries,family=\ttfamily}
+\setbeamertemplate{section in toc}{\text{\color{black}{\inserttocsection}}}
+\usepackage[parfill]{parskip}
+\usepackage[linewidth=0.5pt]{mdframed}
+\newmdenv[innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=-1mm, innerbottommargin=2mm, leftmargin=-1mm, rightmargin=-1mm]{lstlistinglike}
+\usepackage{tikz}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage{textcomp}
+\usepackage{pifont}
+\usetikzlibrary{shapes.arrows}
+
+\tikzset{
+    myarrow/.style={
+        draw,
+        fill=orange,
+        single arrow,
+        minimum height=3.5ex,
+        single arrow head extend=1ex
+    }
+}
+\newcommand{\arrowup}{%
+\tikz [baseline=-0.5ex]{\node [myarrow,rotate=90] {};}
+}
+\newcommand{\arrowdown}{%
+\tikz [baseline=-1ex]{\node [myarrow,rotate=-90] {};}
+}
+
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={Evolution of Scala Macros},pdftitle={Evolution of Scala Macros}}
+\title{Evolution of Scala Macros}
+
+\begin{document}
+
+\title{Evolution of Scala Macros}
+\author{Eugene Burmako}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\
+           \texttt{http://scalamacros.org/}}
+\date{19 September 2013}
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+}
+
+\begin{frame}[fragile]
+\frametitle{In this talk}
+
+\begin{itemize}
+\item History: how Scala got macros and how people liked them
+\item Philosophy: what is the essence of Scala macros
+\item Relativity: how traditional macros map onto this
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{How did Scala get macros?}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Inception}
+
+\begin{quote}
+me 9/17/11\\
+\vskip10pt
+Hi folks! My name is Eugene Burmako. I'm a first-year PhD student from Martin Odersky's lab at EPFL
+starting a semester project.\\
+\vskip10pt
+The idea, which I like the most at the moment, is to implement
+a full-fledged metaprogramming facility for Scala with quasiquotations and hygienic macros.
+\end{quote}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Inception}
+
+\begin{itemize}
+\item First it was just a fun project inspired by Nemerle
+\item Quickly escalated to a language feature for the upcoming 2.10 release
+\item Why? Industrial demand for the power of metaprogramming
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Slick}
+
+\begin{itemize}
+\item Scala Language-Integrated Connection Kit
+\item Seamless data access for your Scala application
+\item Joint EPFL + Typesafe project, initiated in Oct 2011
+\item Needed some form of language-integrated queries
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{LINQ}
+
+\begin{semiverbatim}
+val users: Queryable[User] = ...
+users.filter(u => u.name == "John")
+
+
+                          \arrowdown
+
+val users: Queryable[User] = ...
+Queryable(Filter(users, Equals(Ref("name"), Literal("John"))))
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Allow users to write queries in normal Scala
+\item Automatically lift these queries to data structures
+\item Achieving deep embedding of domain-specific languages
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\only<1>{\frametitle{Macros: a sketch}}
+\only<2>{\frametitle{Related language features}}
+
+\begin{semiverbatim}
+class Queryable[T](val query: Query[T]) \{
+  \alert{macro def filter(p: T => Boolean): Queryable[T]} = <[
+    val liftedp = $\{lift(p)\}
+    Queryable(Filter($this.query, liftedp))
+  ]>
+\}
+
+val users: Queryable[User] = ...
+users\alert{.filter(}u => u.name == "John"\alert{)}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\only<1>{\item Macros realize textual abstraction}
+\only<1>{\item Compiler expands snippets in the program being compiled}
+\only<1>{\item Programmer defines expanders as normal Scala functions}
+\only<2>{\item Compile-time function execution}
+\only<2>{\item Quasiquotes}
+\only<2>{\item Hygiene}
+\only<2>{\item Macro flavors}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Towards macros in Scala 2.10}
+
+\begin{itemize}
+\item As we have just seen, macros don't like to party alone
+\item However we didn't really have budget for huge parties
+\item Therefore we set out to find the most minimalistic design possible
+\item Even at the cost of leaving some features out
+\item This is a very empowering experience
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Towards macros in Scala 2.10}
+
+\begin{quote}
+martin\\
+- show quoted text -\\
+We'd need to be convinced that it is beautifully simple, or it won't go into Scala.
+\end{quote}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macros: as implemented in 2.10}
+
+Def macros:
+\begin{itemize}
+\item Just a single feature: unhygienic expansion of typed method calls
+\item CTFE = macro defs + precompiled macro impls invoked by reflection
+\item Quasiquotes and hygiene bootstrapped over the unhygienic core
+\item Other macro flavors got deferred to future releases
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Macros: as implemented in 2.10}
+
+\begin{semiverbatim}
+
+
+class Queryable[T](val query: Query[T]) \{
+  def filter(p: T => Boolean) = macro \only<1>{...}\only<2->{Macros.filter[T]}
+\}
+
+\only<2->{object Macros \{
+  def filter[T: c.WeakTypeTag]
+      (c: Context \{ type PrefixType = Queryable[T] \})
+      (p: c.Expr[T => Boolean]) = \only<2>{...}\only<3->{
+    c.universe.reify \{
+      val liftedp = lift(p).splice
+      new Queryable(Filter(c.prefix.splice.query, liftedp))
+    \}}
+\}}
+
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{On the verge of the release}
+
+\begin{quote}
+odersky\\
+Why macros? I was a long-time skeptic. I now tend to think about them differently
+because I believe we hit on a brilliantly simple scheme that can express a lot of
+different use-cases.
+\end{quote}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{How did people like macros?}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Adoption}
+
+\begin{itemize}
+\item Even though in 2.10 we only support expansion of typed method calls
+\item And there are rough edges that we are fixing for 2.11 and 2.12
+\item Macros ended up being much more useful than we anticipated
+\item Widely used in popular libraries, industry and research
+\item All Scala talks at this conference are powered by macros
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Recognition}
+
+\begin{itemize}
+\item Jan 2013: released in experimental capacity
+\item Apr 2013: deemed worthy of becoming part of language standard
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{The main question of today's talk}
+
+Why did macros work?
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Our hypothesis}
+
+\begin{itemize}
+\item Macros piggyback on a familiar concept of a typed method call
+\item Macros transparently empower features represented with method calls
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Features represented with method calls}
+
+\begin{itemize}
+\item Fields: \texttt{foo} and \texttt{foo\_=}
+\item Application: \texttt{apply}
+\item Pattern matching: \texttt{unapply}, \texttt{isEmpty}, \texttt{get} and \texttt{\_N}
+\item Implicits: \texttt{implicit} modifier on methods
+\item For comprehensions: \texttt{flatMap}, \texttt{map}, \texttt{withFilter} and \texttt{foreach}
+\item String interpolation: extension methods on \texttt{StringContext}
+\item Dynamic: \texttt{selectDynamic}, \texttt{updateDynamic} and \texttt{applyDynamic}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Our experience}
+
+\begin{itemize}
+\item Scala'13: Let Our Powers Combine!
+\item Scalape\~no 2013: What Are Macros Good For?
+\item Today we'll see some excerpts
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#1 - Empowered method calls}
+
+\begin{semiverbatim}
+val futureDOY: Future[Response] =
+  WS.url("http://api.day-of-year/today").get
+
+val futureDaysLeft: Future[Response] =
+  WS.url("http://api.days-left/today").get
+
+futureDOY.flatMap \{ doyResponse =>
+  val dayOfYear = doyResponse.body
+  futureDaysLeft.map \{ daysLeftResponse =>
+    val daysLeft = daysLeftResponse.body
+    Ok(s"\$dayOfYear: \$daysLeft days left!")
+  \}
+\}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Turning a synchronous program into an async one isn't easy
+\item One has to manually manage callbacks, introduce temps, etc
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile, t]
+\frametitle{Example \#1 - Empowered method calls}
+
+\begin{semiverbatim}
+\alert{def async[T](body: => T): Future[T] = macro ...}
+\alert{def await[T](future: Future[T]): T = macro ...}
+
+\alert{async \{}
+  val dayOfYear = \alert{await(}futureDOY\alert{)}.body
+  val daysLeft = \alert{await(}futureDaysLeft\alert{)}.body
+  Ok(s"\$dayOfYear: \$daysLeft days left!")
+\alert{\}}
+
+
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Turning a synchronous program into an async one isn't easy
+\item But \texttt{scala/async} macros can do the transformation automatically
+\item To the user it looks and feels like a call to a vanilla method
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Empowered interpolation}
+
+\begin{semiverbatim}
+scala> val x = "42"
+x: String = 42
+
+scala> "%d".format(x)
+j.u.IllegalFormatConversionException: d != java.lang.String
+  at java.util.Formatter\$FormatSpecifier.failConversion...
+\only<2>{
+scala> f"\$x\%d"
+<console>:31: error: type mismatch;
+ found   : String
+ required: Int
+}
+\end{semiverbatim}
+
+\begin{itemize}
+\item Strings are typically perceived to be unsafe
+\only<2>{\item Though with macros they don't have to be}
+\only<2>{\item Even more so with the new string interpolation}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Empowered interpolation}
+
+\begin{semiverbatim}
+implicit class Formatter(c: StringContext) \{
+  \alert{def f(args: Any*): String = macro ...}
+\}
+
+val x = "42"
+f"\$x\%d" // rewritten into: StringContext("", "%d").\alert{f(}x\alert{)}
+
+                          \arrowdown
+
+\{
+  val arg\$1: Int = x \alert{// doesn't compile}
+  "%d".format(arg\$1)
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item \texttt{f} is a macro that inserts type ascriptions in strategic places
+\item With macros, interpolation and many other features gain new powers
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#2 - Empowered interpolation}
+
+\begin{semiverbatim}
+reify(List[T](element.splice))
+
+                          \arrowdown
+
+\alert{q"}List[\$T](\$element)\alert{"}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Now our strings are both flexible and statically checked
+\item This means that we can deeply embed entire languages
+\item That's exactly how we bootstrapped quasiquotes
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#3 - Empowered implicits}
+
+\begin{semiverbatim}
+trait Pickler[T] \{
+  def pickle(picklee: T): Pickle
+\}
+
+def pickle[T](picklee: T)(implicit p: Pickler[T]): Pickle
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Type classes are an idiomatic way of writing extensible code in Scala
+\item This is an example of typeclass-based design of a pickling library
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#3 - Empowered implicits}
+
+\begin{semiverbatim}
+def pickle[T](picklee: T)(implicit p: Pickler[T]): Pickle
+
+implicit val IntPickler = new Pickler[Int] \{
+  def pickle(picklee: Int): Pickle = ...
+\}
+pickle(42) // you write
+pickle(42)(IntPickler) // you get
+
+pickle("42") // compilation error
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item With type classes we externalize the moving parts
+\item Instances of type classes are provided once
+\item And then \texttt{scalac} fills them in automatically
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#3 - Before macros}
+
+\begin{semiverbatim}
+case class Person(name: String, age: Int)
+
+implicit val personPickler = new Pickler[Person] \{
+  def pickle(picklee: Person): Pickle = \{
+    val p = new Pickle
+    p += ("name" -> p.name.pickle)
+    p += ("age" -> p.age.pickle)
+    p
+  \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Everything is done manually, hence boilerplate
+\item There are alternatives, but they have downsides
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#3 - Vanilla macros}
+
+\begin{semiverbatim}
+implicit val personPickler = Pickler\alert{.generate[}Person\alert{]}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Boilerplate can be generated by a macro
+\item The code ends up being the same as if it were written manually
+\item Therefore performance remains excellent
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#3 - Implicit macros}
+
+\begin{semiverbatim}
+// no code necessary
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Implicit values can be generated by a macro
+\item Much like \texttt{deriving} in Haskell
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#3 - Implicit macros}
+
+\begin{semiverbatim}
+trait Pickler[T] \{ def pickle(picklee: T): Pickle \}
+
+object Pickler \{
+  \alert{implicit def materializePickler[T]: Pickler[T] = macro ...}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item When \texttt{scalac} looks for implicits, it traverses the implicit scope
+\item Implicit scope transcends lexical scope
+\item Among others it includes members of the target's companion
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Example \#3 - Implicit macros}
+
+\begin{semiverbatim}
+pickle(person)
+
+                          \arrowdown
+
+pickle(person)(\alert{Pickler.materializePickler[}Person\alert{]})
+
+                          \arrowdown
+
+pickle(person)(new Pickler[Person]\{ ... \})
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Every time a \texttt{Pickler[T]} isn't found, the compiler will call our macro
+\item More information in my Applied Materialization talk from this June
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implicits and macros: a match made in heaven}
+
+\begin{itemize}
+\item Implicits are a thing of conceptual beauty
+\item Macros make them even better
+\item Don't miss out today's talk by Heather Miller: \\ Pickles \& Spores: Improving Distributed Programming in Scala
+\item Tomorrow's talk by Miles Sabin and Edwin Brady: \\ Scala vs Idris: Dependent types, now and in the future
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implicits and macros: a retrospective}
+
+\begin{quote}
+me 18/10/2011 (from an early design document)\\
+\vskip10pt
+Okay, we can have macro defs, macro types and macro packages. Let’s explore the design space a bit more to look for other sensible applications of macros.\\
+\vskip10pt
+The gist of all these macro XXX thingies is defining something that can be used in place of those XXXs. For example, macro types can be used wherever you use regular types (e.g. in generic type arguments).\\
+\vskip10pt
+To put it in a nutshell, macros can virtualize definitions, i.e. XXXs that are covered in Chapter 4 “Basic Declarations and Definitions”. Namely: vals, vars, defs, types, classes, traits\\
+(\textbf{but not implicits: that would be too much, lol}).
+\end{quote}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+Def macros worked because:
+\begin{itemize}
+\item They piggyback on a familiar concept of a typed method call
+\item They transparently empower features desugared into method calls
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{The phenomenon of whitebox macros}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Limitations of def macros}
+
+\begin{itemize}
+\item Def macros are neat, but they are missing an important feature
+\item The ability to affect bindings
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Limitation \#1 - Can't affect local bindings}
+
+\begin{semiverbatim}
+\alert{def lambda(params: ???)(body: ???): ??? = macro ...}
+\alert{lamdba(x, y)\{} x + y \alert{\}} // does not compute
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Def macros typecheck arguments prior to expansion
+\item Therefore no \texttt{lambda} macro in 2.10
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Limitation \#2 - Can't affect global bindings}
+
+\begin{semiverbatim}
+\alert{def h2db(connString: String): Any = macro ...}
+val db = \alert{h2db(}"jdbc:h2:coffees.h2.db"\alert{)}
+
+val db = \{
+  trait Db \{
+    case class Coffee(...)
+    val Coffees: Table[Coffee] = ...
+  \}
+  new Db \{\}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Def macros typecheck expansions as expression
+\item Therefore no definitions can be visible to the outer world in 2.10
+\item (Actually they can, in a way, but that's a story for another talk)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro paradise}
+
+\begin{itemize}
+\item In Dec 2012, after 2.10 ship has sailed, I established macro paradise
+\item Focus on features that extend the notion of def macros
+\item Implemented untyped macros, type macros and macro annotations
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Untyped macros}
+
+\begin{semiverbatim}
+\alert{def lambda(params: _)(body: _) = macro ...}
+\alert{lamdba(x, y)\{} x + y \alert{\}}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Untyped macros suppress typechecking of arguments before expansion
+\item Type safety isn't subverted, as expansions are typechecked as usual
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Type macros}
+
+\begin{semiverbatim}
+\alert{type H2Db(url: String) = macro ...}
+object Db extends \alert{H2Db(}"jdbc:h2:coffees.h2.db"\alert{)}
+
+                          \arrowdown
+
+@synthetic trait CoffeesH2Db\$1 \{
+  case class Coffee(...)
+  val Coffees: Table[Coffee] = ...
+\}
+object Db extends CoffeesH2Db\$1
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Type macros are to types what def macros are to terms
+\item By expanding into synthetic types they can introduce global bindings
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Macro annotations}
+
+\begin{semiverbatim}
+\alert{@h2db(}"jdbc:h2:coffees.h2.db"\alert{)}
+object Db
+
+                          \arrowdown
+
+object Db \{
+  case class Coffee(...)
+  val Coffees: Table[Coffee] = ...
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Just as def macros expand calls, annotation macros expand definitions
+\item This can naturally introduce definitions at local and global scale
+\item These definitions can be scoped thanks to Scala's first-class modules
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Two faces of Scala macros}
+
+\vskip70pt
+\begin{itemize}
+\item Blackbox macros: faithfully conform to their type signatures
+\item Whitebox macros: can't have signatures in Scala's type system
+\end{itemize}
+
+\vskip50pt
+Note that:\\
+(1) Blackbox macros != generative macros\\
+(2) Blackbox macros != statically typed quasiquotes
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{The phenomenon of whitebox macros}
+
+\begin{itemize}
+\item Manipulation of bindings is fundamental to Lisp macros
+\item However in Scala land it doesn't seem to be very popular
+\item Adoption of the whitebox flavors from paradise isn't quite stellar
+\item Why didn't it work?
+\end{itemize}
+\end{frame}
+
+% \begin{frame}[fragile]
+% \frametitle{Our hypothesis}
+
+% \begin{itemize}
+% \item Whitebox macros are too malleable
+% \item Whitebox macros can easily transcend intuitions about Scala code
+% \end{itemize}
+% \end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Explanation \#1 - Scala is not very whitebox}
+
+\begin{itemize}
+\item In Scala people are much more used to reasoning about types
+\item Even if the types are very advanced
+\item It is considered to be very stylish to hack up typelevel solutions
+\item A lot of features to work with terms and types, not so much for defs
+\item Therefore there are no powerful synergies to exploit (yet!)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Explanation \#2 - Whitebox is not very Scala}
+
+\begin{semiverbatim}
+class Day(name: String) \{
+  override def equals(other: Any): Boolean = ...
+  override def hashCode(): Int = ...
+  override def toString() = ...
+\}
+
+object Day \{
+  val Monday = new Day("Monday")
+  val Tuesday = new Day("Tuesday")
+  ...
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Suppose we want to come up with an alternative to Scala enums
+\item To do that we need to generate the aforementioned boilerplate
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Explanation \#2 - Whitebox is not very Scala}
+
+\begin{semiverbatim}
+\alert{@Enum}
+object Day \{
+  Monday
+  Tuesday
+  ...
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item We can use the ablity of macro annotations to reshape their annottees
+\item The \texttt{Enum} annotation infers enum names from the constructor and generates the necessary code
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Explanation \#2 - Whitebox is not very Scala}
+
+\begin{semiverbatim}
+def Monday = ...
+
+\alert{@Enum}
+object Day \{
+  Monday
+  Tuesday
+  ...
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Unfortunately closer scrutiny exposes disturbing syntactic irregularities
+\item What are the "hanging" names supposed to mean to a newcomer?
+\item How do these names work with definitions in enclosing scopes?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Explanation \#2 - Whitebox is not very Scala}
+
+\begin{semiverbatim}
+\alert{@Enum}
+object Day \{
+  val Monday, Tuesday, ...: Day
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item This slightly less succinct proposal looks much nicer
+\item Enum values remain values, they just get enriched
+\item But now again, where does the \texttt{Day} class come from?
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+Whitebox macros didn't quite work because:
+\begin{itemize}
+\item They are too malleable
+\item They can easily transcend intuition about Scala code
+\end{itemize}
+
+\vskip25pt
+Nowadays in macro paradise we're experimenting with metaphors for whitebox macros.
+Finding the best way to tap into the power of Lisp while remaining idiomatic is
+a goal worth pursuing!
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{The bottom line}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{The bottom line}
+
+\begin{itemize}
+\item Started as a fun project, Scala macros got quickly promoted to a language feature
+in Scala 2.10 thanks to industrial demand.
+\item Scala macros are a success. Their "just a method" look and feel allows code
+to absorb new meanings without losing comprehensibility.
+\item A lot of language features in Scala desugar into method calls, which makes these
+features transparently empowered by macros.
+\item When applied to Scala, the concept of traditional Lisp macros
+transforms into blackbox macros and whitebox macros.
+\item Finding a way to naturally integrate whitebox macros is an exciting
+challenge that we're solving, aiming for the Scala 2.12 release
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Additional slides}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Modern macro paradise}
+
+\begin{itemize}
+\item Nowadays in paradise we look for a metaphor for whitebox macros
+\item Let's see some of the use cases we have explored
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use case \#1 - Enrich your definition}
+
+Applying an orthogonal concept to a definition:
+\begin{itemize}
+\item Case classes
+\item Lazy values
+\item Enumeration modules
+\item Inheritance by delegation
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use case \#1 - Enrich your definition}
+
+\begin{semiverbatim}
+class Wrapper(\alert{@delegate} wrapped: Api) extends Api \{
+  // the macro delegates Api methods
+  // to the annotated parameter
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Annotations are a nice metaphor for this scenario
+\item They have a clear scope of effect
+\item People are used to annotations doing magic in Java and .NET
+\item However there's an open problem of controlling their power
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use case \#2 - Generation of boilerplate}
+
+\begin{itemize}
+\item Some boilerplate can be avoided with advanced typelevel techniques
+\item But there are always boiler plates to scrap
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use case \#2 - Generation of boilerplate}
+
+\begin{semiverbatim}
+type db = SqliteDb<"Data Source=coffees.sqlite" >
+printfn "\%A" db.Coffees.all
+
+\alert{@h2db("jdbc:h2:coffees.h2.db")} object Db \{\}
+println(Db.Coffees.all)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Annotations can handle this scenario, but it becomes a stretch
+\item Virtual modules generated by F\# look natural
+\item But public classes summoned out of thin air - not so much
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use case \#2 - Generation of boilerplate}
+
+\begin{semiverbatim}
+\alert{mixin} \alert{h2db(}"jdbc:h2:coffees.h2.db"\alert{)}
+println(Coffees.all)
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item A straightforward HULK GENERATE approach might be an answer
+\item Similar to splicing in TH, \texttt{mixin} in D and \texttt{@eval} in Julia
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use case \#3 - Context injection}
+
+Abstraction over contextual operations:
+\begin{itemize}
+\item Database manipulations
+\item STM transactions
+\item Domain-specific languages
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use case \#3 - Context injection}
+
+\begin{semiverbatim}
+\alert{Vectors \{}
+  val v = Vector.rand(100)
+\alert{\}}
+
+                          \arrowdown
+
+abstract class DSLprog extends VectorsApp \{
+  def apply = \{
+    val v = Vector.rand(100)
+  \}
+\}
+(new DSLprog with VectorsCompiler).result
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Inspired by scope injection from the world of LMS and Delite
+\item Recent paper presented at ECOOP'13 provides a nice example
+\end{itemize}
+\end{frame}
+
+\end{document}
