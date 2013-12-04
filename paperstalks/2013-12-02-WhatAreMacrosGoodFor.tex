@@ -244,11 +244,12 @@ def createArray[@specialized T: ClassTag](...) = \{
 \begin{semiverbatim}
 def createArray[T: ClassTag](size: Int, el: T) = \{
   val a = new Array[T](size)
-  def specBody[@specialized T](el: T) \{
+  def specBody[@specialized T](a: Array[T], el: T) \{
     for (i <- 0 until size) a(i) = el
   \}
   classTag[T] match \{
-    case ClassTag.Int => specBody(el.asInstanceOf[Int])
+    case ClassTag.Int => specBody(
+      a.asInstanceOf[Array[Int]], el.asInstanceOf[Int])
     ...
   \}
   a
