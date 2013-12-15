@@ -1,0 +1,15 @@
+---
+layout: news
+title: Macro paradise 2.0.0-M1
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>We have just released the first milestone of paradise under <code>org.scalamacros % paradise % 2.0.0-M1</code> (please note the changed Maven group ID!) cross versioned against 2.10.3 and 2.11.0-M7. The release is already available at Sonatype and will be synchronized to Maven Central in the coming days.</p>
+
+<p>Both 2.10 and 2.11 releases of paradise feature <a href="http://docs.scala-lang.org/overviews/macros/annotations.html">macro annotations</a> that have already proven useful to <a href="http://notes.implicit.ly/post/65499474588/specs2-2-3">generate of matchers for Specs2</a>, <a href="https://groups.google.com/d/msg/scala-language/C7Pm6ab1sPs/NjGoQirw3u0J">build boilerplate-less, Java-compatible enumerations</a>, and <a href="http://www.warski.org/blog/2013/09/automatic-generation-of-delegate-methods-with-macro-annotations/">implement first-class delegation</a>. We want to heartily thank everyone who's been experimenting with macro annotations, helping us to understand them better and shape them for the greater good!</p>
+
+<p>Moreover, the 2.10 version of paradise backports several important improvements that have been implemented in Scala 2.11, including <a href="http://docs.scala-lang.org/overviews/macros/quasiquotes.html">quasiquotes</a>. With macro paradise you can enjoy quasiquotes even in Scala 2.10.x, without having to wait for Scala 2.11 to be released. Note that macros written with quasiquotes from paradise don't carry source or binary dependencies on paradise, which means that they can be reliably used with vanilla 2.10.x, saving you hours developing your production macros.</p>
+
+<p>In the near future, we plan to closely follow Scala's development cycle, publishing new milestone builds as soon as 2.10.4 and 2.11.0-M8 are released, and ultimately releasing 2.0.0-final when 2.11.0-final goes live. In the coming months, we're looking forward to experimenting with more exciting use cases for macro annotations, including type providers, and working towards a Scala improvement proposal.</p>
