@@ -1,0 +1,15 @@
+---
+layout: news
+title: Macro paradise 2.0.0-M3
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>We have just released the 2.0.0-M3 version of macro paradise that is already available at Sonatype and will arrive at Macen Central within a couple of days. This new version doesn't provide any new functionality, and only introduces several refactorings to the inner workings of the plugin.</p>
+
+<p>First of all, the 2.10.x family of paradise builds does away with magic injection of classes that support quasiquotes and instead factors out these classes into a traditional library dependency. This should fix SBT recompilation problems and close <a href="https://github.com/scalamacros/paradise/issues/11">#11</a>.</p>
+
+<p>Secondly, paradise for 2.11.0-M8 and later now makes use of <a href="https://github.com/scala/scala/pull/3235">the new hooks in namer and type</a> to avoid the necessity of <a href="https://github.com/scalamacros/paradise/blob/dde9dcc1728d2cec806ab83ad204f84023bef0b5/plugin/src/main/scala/org/scalamacros/paradise/Plugin.scala#L15">hacking the compiler</a> to implement macro annotations. This should make the implementation more stable and future-proof.</p>
+
+<p>Please feel free to contact us with questions, bug reports and new feature proposals either <a href="https://github.com/scalamacros/paradise/issues">at GitHub</a> or <a href="mailto:eugene.burmako@epfl.ch">via email</a>. We are looking forward to making sure that paradise works the way you'd like it for your use cases!</p>
