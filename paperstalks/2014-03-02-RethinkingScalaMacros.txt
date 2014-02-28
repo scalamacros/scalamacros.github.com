@@ -1,0 +1,11 @@
+Scala 2.10 has seen a flurry of macro flavors: def macros, implicit macros, untyped macros, type macros and more recently macro annotations. These flavors have brought a lot of feedback, and we've been thinking hard how to make sense of it.
+
+At this point it is clear that macros are useful. However there's still quite some work to be done in order to make macros enjoyable. The main issues that remain to be addressed are verbosity and complexity of the underlying API, difficulties with tool integration, and potential for confusion caused by leaking compiler internals and cryptic error messages.
+
+Today, in the company of well-spoken peers and refined types at Northeast Scala Symposium, it is my pleasure to announce the kickoff of Project Palladium, whose goal is to make macros as natural and as universal as typed functions: simple to write, simple to use, and simple to reason about. Towards this goal, we have rethought our macro engine and the underlying reflection API, keeping existing capabilities in place and at the same time fixing fundamental problems intrinsic to the original implementation.
+
+The first public demo of Palladium is scheduled for Scala Days 2014, where I will present the first milestone of the shiny new macro engine along with modules providing improved support for our ecosystem's tools. Our intent is to target both Scala and Dotty, but at the moment it is too early to tell which components of Palladium are going to become part of respective languages, and when that's going to happen.
+
+To learn more, take a look at the slides from the today's presentation outlining features that we plan to support and components of the macro engine that are going to make these features happen. Looking forward to your feedback!
+
+Slides: http://scalamacros.org/paperstalks/2014-03-02-RethinkingScalaMacros.pdf
