@@ -1,0 +1,475 @@
+\documentclass[svgnames,dvipsnames,hyperref={bookmarks=false}]{beamer}
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \footnotesize\insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{alerted text}{fg=blue}
+\setbeamerfont{alerted text}{series=\bfseries,family=\ttfamily}
+\setbeamertemplate{section in toc}{\text{\color{black}{\inserttocsection}}}
+\usepackage[parfill]{parskip}
+\usepackage[linewidth=0.5pt]{mdframed}
+\newmdenv[innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=-1mm, innerbottommargin=2mm, leftmargin=-1mm, rightmargin=-1mm]{lstlistinglike}
+\usepackage{tikz}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage{textcomp}
+\usepackage{pifont}
+\usetikzlibrary{shapes.arrows}
+\usepackage[T2A,T1]{fontenc}
+\newcommand{\ZheZhe}{\mbox{\usefont{T2A}{\rmdefault}{m}{n}\CYRZH\CYRZH}}
+\newcommand{\Meta}{\mbox{\usefont{T2A}{\rmdefault}{m}{n}\cyrm\cyre\cyrt\cyra\cyrp\cyrr\cyro\cyrg\cyrr\cyra\cyrm\cyrm\cyri\cyrr\cyro\cyrv\cyra\cyrn\cyri\cyre}}
+\newcommand{\nextitem}{\par\hspace*{\labelsep}\textbullet\hspace*{\labelsep}}
+\definecolor{light-gray}{gray}{0.80}
+
+\tikzset{
+    myarrow/.style={
+        draw,
+        fill=orange,
+        single arrow,
+        minimum height=3.5ex,
+        single arrow head extend=1ex
+    }
+}
+\newcommand{\arrowup}{%
+\tikz [baseline=-0.5ex]{\node [myarrow,rotate=90] {};}
+}
+\newcommand{\arrowdown}{%
+\tikz [baseline=-1ex]{\node [myarrow,rotate=-90] {};}
+}
+
+\tikzset{
+    myshadedarrow/.style={
+        draw,
+        fill=light-gray,
+        single arrow,
+        minimum height=3.5ex,
+        single arrow head extend=1ex
+    }
+}
+\newcommand{\shadedarrowup}{%
+\tikz [baseline=-0.5ex]{\node [myshadedarrow,rotate=90] {};}
+}
+\newcommand{\shadedarrowdown}{%
+\tikz [baseline=-1ex]{\node [myshadedarrow,rotate=-90] {};}
+}
+
+\hypersetup{pdfauthor={Eugene Burmako},pdfsubject={The First Palladium Meeting},pdftitle={The First Palladium Meeting}}
+\title{The First Palladium Meeting}
+
+\begin{document}
+
+\title{Rethinking Scala Macros}
+\subtitle{\textcolor{red}{Work in progress, not available yet}}
+\author{Eugene Burmako}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\
+           \texttt{http://scalamacros.org/}}
+\date{02 March 2014}
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+\end{frame}
+}
+
+\begin{frame}[fragile]
+\frametitle{Outline}
+
+\begin{itemize}
+\item What is Palladium?
+\item Planned features
+\item Planned deliverables
+\item Final words
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{What is Palladium?}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Project Palladium}
+
+\begin{itemize}
+\item Successor of Project Kepler
+\item Goal of Project Kepler: bring macros to Scala
+\item Goal of Project Palladium: make macros in Scala easy to use
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Scala macros: the good parts}
+
+\begin{itemize}
+\item Enable \text{\color{blue}\href{http://scalamacros.org/paperstalks/2014-02-04-WhatAreMacrosGoodFor.pdf}{cool use cases}} that were previously impossible/impractical
+\item Have a significant community of research and production users
+\item A lot of popular libraries in Scala ecosystem use macros
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Scala macros: the bad parts}
+
+\begin{itemize}
+\item Using macros is easy, developing macros is hard
+\item This contributes to the public image of metaprogramming
+\item Useful, but hacky and obscure
+\end{itemize}
+
+\vskip25pt
+\begin{quote}
+I'm very envious of Racket macros, because it's very extensible. But I don't know how to do it for Haskell. TH is the nearest, but it's nowhere near.
+\end{quote}
+\begin{flushright}
+\textemdash Simon Peyton Jones
+\end{flushright}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Palladium goal \#1: Being straightforward}
+
+\begin{semiverbatim}
+coll.map(x => x + 1)
+
+                          \arrowdown
+
+\{
+  def fn(x: Int) = x + 1
+  val buf = Coll.newBuilder[T]
+  var i = 0
+  while (i < coll.length) buf += fn(coll(i))
+  buf.result
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item A canonical example that illustrates current problems with macros
+\item Currently possible, but prohibitively complex to get right
+\item To goal of Palladium is to make such macros writeable on autopilot
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Palladium goal \#2: Being portable}
+
+The trick is to make this work with:
+\begin{itemize}
+\item Scala compilers other than \texttt{scalac}
+\item Integrated development environments
+\item Incremental compilation
+\item Interactive documentation
+\item Runtime reflection
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+Palladium will make macros straightforward and portable
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Planned features}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Our running example}
+
+\begin{semiverbatim}
+coll.map(x => x + 1)
+
+                          \arrowdown
+
+\{
+  def fn(x: Int) = x + 1
+  val buf = Coll.newBuilder[T]
+  var i = 0
+  while (i < coll.length) buf += fn(coll(i))
+  buf.result
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Let's take another look at Paul's declosurify
+\item Possible but ridiculously hard at the moment
+\item How can Palladium help?
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Disclaimer}
+\begin{itemize}
+\item What follows is just a sketch, nothing's implemented yet
+\item We might or might not be able to figure out everything
+\item But all in all, the plan seems reasonable enough
+\item After we have results, we'll see how/when this can be part of Scala
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle<1>{Feature \#1: Simple definitions}
+\frametitle<2>{Feature \#2: Simple reflection}
+\frametitle<3>{Feature \#3: Simple trees}
+\frametitle<4>{Feature \#4: Simple types}
+\frametitle<5>{Feature \#5: Simple symbols}
+
+\begin{semiverbatim}\small{
+\alert<2>{import scala.reflect._}
+import scala.language.macros
+
+implicit class Mapper[Coll[_], A](coll: Coll[A]) \{
+  \alert<1>{macro map[B](fn: A => B): Coll[B]} = \{
+    val \alert<3>{q"(..\$ps) => \$body"} = fn
+    val newBuilder = \alert<5>{\alert<2>{\alert<4>{t"Coll"}.companion.method("newBuilder")}}
+    \alert<3>{q"""
+      \alert<5>{def fn(..\$ps) = \$body}
+      val buf = \$newBuilder[\alert<4>{\$A}]
+      var i = 0
+      while (i < coll.length) buf += fn(coll(i))
+      buf.result
+    """}
+  \}
+\}}
+\end{semiverbatim}
+
+\begin{itemize}
+\only<1>{\item No longer necessary to split macro defs and macro impls}
+\only<1>{\item No longer necessary to write tiresome c.Expr and c.WeakTypeTag}
+\only<2>{\item Explicit macro context will be gone, along with path dependencies}
+\only<2>{\item Redesigned reflection API that makes introspection and codegen easy}
+\only<3>{\item No more manual construction/deconstruction, reification, exprs}
+\only<3>{\item Trees won't carry types or symbols, but will be typecheckable}
+\only<4>{\item Convenient notation to construct and deconstruct types}
+\only<4>{\item No more tags, no more \texttt{case TypeRef(...)}, no more \texttt{appliedType}}
+\only<5>{\item Symbols as we know them should be gone for good}
+\only<5>{\item Introspection serviced by \texttt{Member}s, bindings handled by hygiene}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Feature \#6: Inline expansion}
+\begin{itemize}
+\item We can treat macro applications as folded regions of code
+\item When you press [+], a given macro application expands
+\item When you press [-], a given macro expansion collapses back
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Feature \#7: Expansion error highlighting}
+\begin{itemize}
+\item Inline expansion will provide long-awaited interactivity
+\item For one, errors in macro expansions are going to make sense
+\item Have an error? Click [+] and see what exactly causes it!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Feature \#8: Expansion error troubleshooting}
+\begin{itemize}
+\item Quasiquotes can be smart, capturing locations they originate from
+\item That would enable tracking culprits of errors in generated code
+\item One could even imagine interactive fixes to codegen errors
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Feature \#9: Inline debugging}
+\begin{itemize}
+\item The concept of interactive expansion is also applicable to debugging
+\item Once a macro is expanded, you will be able to set breakpoints in expanded code
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Feature \#10: Incremental compilation}
+
+SBT will correctly handle macro expansions:
+\begin{itemize}
+\item No more whole project recompilations on a tiny change in a macro
+\item Changes to macro arguments will recompile expansions
+\item Changes to macro bodies and their helpers will recompile expansions
+\item Changes to types introspected by macros will recompile expansions
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Simple macro definitions
+\item Simple reflection API
+\item Interactive expansion
+\item Inline debugging
+\item Incremental compilation
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Planned deliverables}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{M1}
+
+\begin{itemize}
+\item Aims to deliver a demoable prototype of the Palladium macro system
+\item That works nicely with the existing ecosystem of tools
+\item And is reasonably compatible with existing popular macros
+\item By ScalaDays 2014 (16-18 June)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Component \#1: New reflection API}
+
+\begin{itemize}
+\item Reflection Core, a redesigned compile-time/runtime reflection library
+\item Interface shared between Scala, Dotty, Eclipse, Intellij, SBT, etc
+\item Specced and developed independently of implementors
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Component \#2: Hygienic quasiquotes}
+
+\begin{itemize}
+\item Smart quasiquoting facility that respects hygiene and ref transparency
+\item Very much relies on getting trees right
+\item Denys will elaborate on that at Scala Days
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Component \#3: AST interpretation}
+
+\begin{itemize}
+\item Macros will run in an interpreter, ensuring portability and compatibility
+\item Having an AST interpreter is also useful beyond macro expansion
+\item For example, it will give us a fast and minimalistic REPL!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Component \#4: AST persistence}
+
+\begin{itemize}
+\item In order to interpret macros, we need to store their ASTs
+\item And not only their ASTs, but also ASTs of their dependencies
+\item Ramping this up, how about we store ASTs for everything?!
+\item AST persistence is also useful beyond macro expansion
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Components \#3+4: Runtime expansion}
+
+\begin{itemize}
+\item AST interpretation and AST persistence work very well together
+\item Interpreted ASTs => we don't need the compiler to run macros
+\item Persistent ASTs => we don't need the compiler to setup environment
+\item As a result, we will be able to expand macros at runtime!!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Component \#5: Tooling infrastructure (SBT)}
+
+\begin{itemize}
+\item At the moment, SBT doesn't know almost anything about macros
+\item A) If macro body changes, we've got to recompile, but we don't
+\item B) If macro data changes, we've got to recompile, but we don't
+\item With ASTs and interpretation traces, we can do so much better!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Component \#5: Tooling infrastructure (IDE)}
+
+\begin{itemize}
+\item Not much can be done if macros are just arbitrary functions
+\item However with interpretation we can easily control expansions
+\item The model of [+]/[-] buttons for macro applications
+\item Both for interactive editing and debugging
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Straightforward reflection API decoupled from compiler internals
+\item Hygienic quasiquotes which are essential for tree manipulations
+\item AST interpreter
+\item AST persistence
+\item Tooling infrastructure: incremental compilation and IDEs
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{}
+
+\vskip40pt
+\begin{center}
+\text{\color{blue}{\Large{Final words}}}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Status}
+
+\begin{itemize}
+\item Palladium was kicked off just two weeks ago
+\item Most of the team is from EPFL with several external contributors
+\item It is a research platform for new metaprogramming technologies
+\item Targetting Scala and Dotty
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Feedback}
+
+\begin{itemize}
+\item Your feedback and contributions are very much welcome
+\item Mailing list: \text{\color{blue}\href{https://groups.google.com/forum/\#!forum/palladium-dev}{palladium-dev @ groups.google.com}}
+\item Design documents: \text{\color{blue}\href{https://drive.google.com/?authuser=0\#folders/0Bxbd8B9L-XfmcE9tRFBXVjZtY0k}{Palladium Shared @ docs.google.com}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Summary}
+
+\begin{itemize}
+\item Palladium will make macros straightforward and portable
+\item New reflection + AST interpretation + AST persistence + tooling
+\item Welcome to the future of Scala macros!
+\end{itemize}
+\end{frame}
+
+\end{document}
