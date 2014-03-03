@@ -371,6 +371,7 @@ SBT will correctly handle macro expansions:
 
 \begin{itemize}
 \item Macros will run in an interpreter, ensuring portability and compatibility
+\item NB! Here we only need to interpret typed ASTs, relying on the fact that our host is going to provide a typechecking facility
 \item Having an AST interpreter is also useful beyond macro expansion
 \item For example, it will give us a fast and minimalistic REPL!
 \end{itemize}
