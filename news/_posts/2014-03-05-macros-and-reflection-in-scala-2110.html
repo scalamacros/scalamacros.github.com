@@ -1,0 +1,41 @@
+---
+layout: news
+title: Macros and reflection in Scala 2.11.0
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>Year 2013 was a very busy year for the Scala reflection/macro team. We've experimented with several new macro flavors, significantly improved the experimental reflection API, expanded the docs, and fixed a huge number of bugs submitted to JIRA. In 2014 we'll be working towards making macros non-experimental - cleaning up the API, improving tool integration and addressing long-standing issues. Below you can find a brief summary of our work and plans for the future, and the full list of changes can be found <a href="http://docs.scala-lang.org/overviews/reflection/changelog211.html">in the official changelog</a>.</p>
+
+<p><b>What are macros good for?</b></p>
+
+<p>We've given <a href="http://scalamacros.org/paperstalks.html">a number of talks about macros</a>, of which we would like to highlight <a href="https://skillsmatter.com/skillscasts/4920-what-are-macros-good-for">"What Are Macros Good For?"</a> as a great introduction to Scala macros. The talk outlines what Scala macros are, and in what capacity the notion of compile-time metaprogramming can be useful, on a series of concrete use cases from research and industry. The talk shows how Slick, Play, Shapeless, Akka, Pickling, Async, Specs, and others use macros and highlights key aspects of associated techniques. In May, we plan to follow up with <a href="http://2014.flatmap.no/speakers/burmako.html">a workshop at flatMap</a> that will elaborate on implementation details of typical macros.</p>
+
+<p><b>Quasiquotes</b></p>
+
+<p>The biggest thing that happened to macros last year is undoubtedly quasiquotes. First prototyped and rejected in 2011, quasiquotes made a glorious comeback in 2013 thanks to the efforts of Denys Shabalin. Having proven to be incredibly useful for working with abstract syntax trees in macros and beyond, quasiquotes were included in Scala 2.11.0-M4 and are going to be shipped with the upcoming Scala 2.11.0 release. For Scala 2.10.x, quasiquotes are available in <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">the macro paradise plugin</a>. Denys has thrown together <a href="http://docs.scala-lang.org/overviews/macros/quasiquotes.html">an epic quasiquote guide</a> that explains everything that you need to know in order to effectively work with abstract syntax trees in your macros. In June, Denys is going to <a href="http://www.scaladays.org/#schedule/Quote-or-be-quoted">present at ScalaDays</a>, outlining inner workings of quasiquotes and showing how quasiquotes simplify integration of external languages.</p>
+
+<p><b>Reshaping the reflection API</b></p>
+
+<p>The 2.11.0-RC1 release of Scala is going to include a major rehash of the reflection API that introduces a number of much needed day-to-day functionality (such as Type.typeArgs, symbolOf[T] or Symbol.isConstructor) and provides first-class support for complex macros. We're by far not done with shaping the reflection API, but the changes in Scala 2.11.0 are going to provide the foundation for the refactoring to come in the future (read more about that below in the "Future work" section). The full list of changes and recommendations on source compatibility with Scala 2.10 are provided <a href="http://docs.scala-lang.org/overviews/reflection/changelog211.html">in the changelog</a>.</p>
+
+<p><b>Thread safety of runtime reflection</b></p>
+
+<p>The most pressing problem in reflection for Scala 2.10.x was its <a href="http://docs.scala-lang.org/overviews/reflection/thread-safety.html">thread unsafety</a>. Attempts to use runtime reflection (e.g. type tags) from multiple threads resulted in weird crashes documented above. We believe to have fixed this problem in Scala 2.11.0-RC1 by introducing a number of locks in critical places of our implementation. On the one hand, the strategy we are using at the moment is sub-optimal in the sense that certain frequently used operations (such as Symbol.typeSignature or TypeSymbol.typeParams) are hidden behind a global lock, but we plan to optimize that in the future. On the other hand, most of the typical APIs (e.g. Type.members or Type.&lt;:&lt;) either use thread-local state or don't require synchronization at all, so it's definitely worth a try.</p>
+
+<p><b>Macro annotations</b></p>
+
+<p>Last year, we've made several attempts at making macros capable of introducing publicly visible definitions. Our first stab at it was <a href="http://docs.scala-lang.org/overviews/macros/typemacros.html">type macros</a>, which made public appearance as part of the first version of macro paradise. Due to reasons outlined <a href="http://scalamacros.org/news/2013/08/05/macro-paradise-2.0.0-snapshot.html">elsewhere</a>, type macros were rejected for inclusion into Scala, and we shifted our attention to <a href="http://docs.scala-lang.org/overviews/macros/annotations.html">macro annotations</a>, first implemented in August in the second version of macro paradise. The jury's still out on whether macro annotations are going to be included in some future version of Scala, but they are definitely not going to happen in Scala 2.11. Nevertheless, you can still get macro annotations with <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">the macro paradise plugin</a>, working for both Scala 2.10.x and Scala 2.11.0. In April, Travis Brown and Eugene Burmako are going to <a href="http://scalar-conf.com/">give a talk at Scalar</a> that will elaborate on how macro annotations can be used to emulate type providers and how one can work around the absense of macro annotations in the official distribution using a clever trick.</p>
+
+<p><b>Fundep materialization</b></p>
+
+<p>Since Scala 2.10.2, implicit whitebox macros can be used to materialize instances of type classes, however such materialized instances can't guide type inference. In Scala 2.11.0, <a href="http://docs.scala-lang.org/overviews/macros/implicits.html#fundep_materialization">materializers</a> can also affect type inference, helping scalac to infer type arguments for enclosing method applications, something that's used with great success in Shapeless. Follow Eugene Burmako's <a href="http://scalamacros.org/paperstalks/2013-06-13-AppliedMaterialization.pdf">talk at a BASE meetup</a> to learn more about this interesting technique.</p>
+
+<p><b>Blackbox and whitebox macros</b></p>
+
+<p>In Scala 2.11.0-RC1, macro defs are split into blackbox macros and whitebox macros, distinguished by the type of Context used in their macro implementations. Blackbox macros are currently better supported in IDEs and are more likely to be included into Scala in non-experimental capacity, whereas whitebox macros are more powerful. This is the current state of things however, and it can change in the future as we're planning to improve tool support of whitebox macros. You can read more about the differences between blackbox and whitebox macros <a href="http://docs.scala-lang.org/overviews/macros/blackbox-whitebox.html">in our documentation</a>.</p>
+
+<p><b>Future work</b></p>
+
+<p>At this point it is clear that reflection and macros are useful. However there's still quite some work to be done in order to make them non-experimental. The main issues that remain to be addressed are verbosity and complexity of the underlying API, difficulties with tool integration, and potential for confusion caused by leaking compiler internals and cryptic error messages. This is something that we've been working on in <a href="http://scalamacros.org/news/2014/03/02/project-palladium.html">Project Palladium</a>, which aims at becoming the new foundation for metaprogramming in Scala, keeping existing functionality in place and at the same time fixing fundamental problems intrinsic to the original implementation. <a href="http://www.scaladays.org/#schedule/Easy-Metaprogramming-For-Everyone-">At ScalaDays</a>, Eugene Burmako will present our results, showing how easy it is to metaprogram with Palladium, and outlining the place of our developments in the future of Scala.</p>
