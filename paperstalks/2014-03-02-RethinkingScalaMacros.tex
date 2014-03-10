@@ -152,7 +152,7 @@ coll.map(x => x + 1)
   def fn(x: Int) = x + 1
   val buf = Coll.newBuilder[T]
   var i = 0
-  while (i < coll.length) buf += fn(coll(i))
+  while (i < coll.length) \{ buf += fn(coll(i)); i += 1 \}
   buf.result
 \}
 
@@ -205,7 +205,7 @@ coll.map(x => x + 1)
   def fn(x: Int) = x + 1
   val buf = Coll.newBuilder[T]
   var i = 0
-  while (i < coll.length) buf += fn(coll(i))
+  while (i < coll.length) \{ buf += fn(coll(i)); i += 1 \}
   buf.result
 \}
 
@@ -246,7 +246,7 @@ implicit class Mapper[Coll[_], A](coll: Coll[A]) \{
       \alert<5>{def fn(..\$ps) = \$body}
       val buf = \$newBuilder[\alert<4>{\$A}]
       var i = 0
-      while (i < coll.length) buf += fn(coll(i))
+      while (i < coll.length) \{ buf += fn(coll(i)); i += 1 \}
       buf.result
     """}
   \}
