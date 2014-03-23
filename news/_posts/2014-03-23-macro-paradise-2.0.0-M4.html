@@ -1,6 +1,6 @@
 ---
 layout: news
-title: Macro paradise 2.0.0-M4
+title: Macro paradise 2.0.0-M4 (upd: and M5!)
 author: Eugene Burmako
 comments: true
 plusone: true
@@ -8,7 +8,7 @@ plusone: true
 
 <p>Hi everyone! When you'll be reading this message, our last milestone build of the 2.0.0 paradise series will already be available at Sonatype. Scala 2.11.0 is already on the verge of being released, and we're also tying the final loose ends, preparing to cut 2.0.0-final.</p>
 
-<p>In this release, we have fixed a couple of issues with REPL (<a href="https://github.com/scalamacros/paradise/issues/18">#18</a> and <a href="https://github.com/scalamacros/paradise/issues/19">#19</a>) and did an almost complete backport of 2.11.0-RC3 quasiquotes to paradise 2.10.x (<a href="https://github.com/scalamacros/paradise/issues/15">#15</a>). Yes, that's right - 2.0.0-M4 brings a long-awaited update of the quasiquote engine, backporting almost half a year worth of Denys's hacking to Scala 2.10.x. Almost all cool new things introduced recently in scala/scala are going to work (including the updated Liftable mechanism), apart from the following few cases:</p>
+<p>In this release, we have fixed a couple of issues with REPL (<a href="https://github.com/scalamacros/paradise/issues/18">#18</a> and <a href="https://github.com/scalamacros/paradise/issues/19">#19</a>) and did an almost complete backport of 2.11.0-RC3 quasiquotes to paradise 2.10.x (<a href="https://github.com/scalamacros/paradise/issues/15">#15</a>). Yes, that's right - 2.0.0-M4 and 2.0.0-M5 bring a long-awaited update of the quasiquote engine, backporting almost half a year worth of Denys's hacking to Scala 2.10.x. Almost all cool new things introduced recently in scala/scala are going to work (including the updated Liftable mechanism), apart from the following few cases:</p>
 
 <ol>
   <li>Standard liftables aren't part of <code>scala.reflect.api.Universe</code>, but have to be imported or mixed in (import <code>scala.quasiquotes.RuntimeLiftables._</code> or subclass <code>scala.quasiquotes.StandardLiftables</code>).</li>
@@ -18,3 +18,5 @@ plusone: true
 </ol>
 
 <p>The second and the fourth limitations should be not very hard to fix, but the third one looks really tricky. We'll do our best to address these issues before 2.0.0-final, and in the meanwhile you can subscribe to <a href="https://github.com/scalamacros/paradise/issues/20">paradise/issues/20</a> to get updates as they happen.</p>
+
+<p><span style="background-color: #46A546; color: #FFFFFF; border-radius: 3px 3px 3px 3px; font-size: 9.75px; font-weight: bold; padding: 1px 3px 2px">NEW</span> The same day that 2.0.0-M4 was released, Nick Stanchenko discovered a blocker issue with liftables. Shortly after that we've released 2.0.0-M5 that patches the issue, so please use M5 instead of M4. Thanks, Nick!</p>
