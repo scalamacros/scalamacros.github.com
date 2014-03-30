@@ -1,0 +1,13 @@
+---
+layout: news
+title: Macro paradise 2.0.0-M6
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>Paradise 2.0.0-M6 implements source compatibility for quasiquotes between 2.10.x and 2.11.0-RC3/2.11.0-RC4 except for several minor known issues documented at <a href="https://github.com/scalamacros/paradise/issues?labels=2.0.0-M6-known-issue%2Chas+workaround&state=open">#2.0.0-M6-known-issues</a>.</p>
+
+<p>The biggest change in comparison with M4/M5 is the fact that <code>StandardLiftables</code> and <code>RuntimeLiftables</code> are no longer necessary. Standard <code>Liftable</code> and <code>Unliftable</code> instances for reflection artifacts (trees, symbols, types, etc) and common data types (primitives, collections, etc) are available without explicit imports both in 2.10.x and in 2.11.0</p>
+
+<p>With M6 we are getting very close to 2.0.0-final, so please try out the fresh release and tell us whether there are any pressing issues that need to be fixed. If you have a library that uses quasiquotes from 2.0.0-M3, try changing version number to 2.0.0-M6, and let us know how it went. We are looking forward to making sure that paradise works the way you'd like it for your use cases!</p>
