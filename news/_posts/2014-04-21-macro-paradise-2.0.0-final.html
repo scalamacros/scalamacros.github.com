@@ -1,0 +1,46 @@
+---
+layout: news
+title: Macro paradise 2.0.0-final
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>Today we're extremely happy to conclude the first development cycle of paradise and, after nine months of active development, release the final version of Macro Paradise 2.0.0 for Scala 2.10.x and 2.11.0. We would like to heartily thank everyone who's been involved in development, testing and adopting our technologies over these nine months!</p>
+
+<h2>What's in there</h2>
+
+<p>Delivering on its promise to make latest macro developments widely accessible, paradise 2.0.0 <b>backports quasiquotes</b> from the recently released Scala 2.11.0 in Scala 2.10.x. With macro paradise, you can write your 2.10.x macros using the state of the art in tree construction and deconstruction!</p>
+
+<p>Apart from consolidating macro capabilities of 2.10.x and 2.11.0, macro paradise also <b>implements macro annotations</b> - a unique feature that's yet to make its way into the official Scala distribution. Macro annotations have already proven useful for <a href="https://github.com/travisbrown/type-provider-examples">building type providers</a>, <a href="http://notes.implicit.ly/post/65499474588/specs2-2-3">generation of matchers for Specs2</a>, <a href="https://groups.google.com/d/msg/scala-language/C7Pm6ab1sPs/NjGoQirw3u0J">building boilerplate-less, Java-compatible enumerations</a> and <a href="http://www.warski.org/blog/2013/09/automatic-generation-of-delegate-methods-with-macro-annotations/">implementing first-class delegation</a>, among the multitude of other uses. We are looking forward to seeing what you are going to build with them!</p>
+
+<h2>Plans for the future</h2>
+
+<p>Our next step in development of macro paradise is <b>transitioning macro annotations into the official Scala distribution</b>. In order for that to work, we plan to to address two existing issues that we have identified while evaluating macro annotations:</p>
+
+<ol>
+  <li>Insufficiently good story for macros in general with respect to convenience of the public API and tool support (error messages, incremental compilation, Intellij, Scala IDE, etc)</li>
+  <li>Seeming unsoundness of <code>c.typecheck</code> in certain situations that can lead to spurious cyclic errors or seeing half-expanded code (one of the manifestations is <a href="https://github.com/scalamacros/paradise/issues/14">https://github.com/scalamacros/paradise/issues/14</a>)</li>
+</ol>
+
+<p>The immediate next move is making existing macro flavors (def macros) easier to use and providing first-class support in the tool ecosystem. This will bring us better understanding of how we can make macro annotations not only available, but also enjoyable for everyone. That's something that we've been doing for quite a while in <a href="http://scalareflect.org/">Project Palladium</a>, and <b>we'll report on our progress during the upcoming Scala Days</b>.</p>
+
+<p>Of course, while pursuing high-level goals outlined above, we will also be <b>performing maintenance releases for both 2.10.x and 2.11.x</b> branches, addressing known issues and newly discovered bugs. For example, we've just fixed <a href="https://github.com/scalamacros/paradise/issues/42">#42</a>, and the fix will soon be deployed as part of 2.1.0-SNAPSHOT available for all supported versions of Scala.</p>
+
+<h2>Migration notes</h2>
+
+<p>Finally, some notes for those of you who have been using pre-release versions of paradise. Comparing with 2.0.0-M3, which is by far the most widely used milestone of paradise, the only big change is in quasiquotes in paradise for 2.10.x.</p>
+
+<p>Before 2.0.0-M4, the quasiquote engine in paradise for 2.10.x was using a very old implementation dating back to 2.11.0-M4. In paradise 2.0.0, we've backported all advances in quasiquoting that have been made since then. This brings a lot of improvements, but can also change behavior in some corner cases. A lot of paradise users have already migrated without a hitch, so everything should be fine, but just in case here's the link to the latest quasiquote documentation that's going to come in handy in tough situations: <a href="http://docs.scala-lang.org/overviews/macros/quasiquotes.html">http://docs.scala-lang.org/overviews/macros/quasiquotes.html</a>.</p>
+
+<p>Also, before 2.0.0-M7, the quasiquote support library for Scala 2.10.x was cross-versioned against minor Scala versions (i.e. <code>quasiquotes_2.10.2</code>, <code>quasiquotes_2.10.3</code> and <code>quasiquotes_2.10.4</code>). Starting from M7, it is binary-compatible across all 2.10.x versions (i.e. there's only <code>quasiquotes_2.10</code>).</p>
+
+<p>Concretely, in order to migrate to 2.0.0 from earlier versions of paradise 2.10.x, you'll need to change your dependency configuration for quasiquotes from using full cross-versioning strategy:</p>
+<ul>
+  <li><span style="background-color: #C43C35; color: #FFFFFF; border-radius: 3px 3px 3px 3px; font-size: 9.75px; font-weight: bold; padding: 1px 3px 2px">OLD</span> <code>"org.scalamacros" % "quasiquotes" % "2.0.0-Mx" % CrossVersion.full</code>, or</li>
+  <li><span style="background-color: #C43C35; color: #FFFFFF; border-radius: 3px 3px 3px 3px; font-size: 9.75px; font-weight: bold; padding: 1px 3px 2px">OLD</span> <code>"org.scalamacros" % "quasiquotes_2.10.x" % "2.0.0-My"</code></li>
+</ul>
+<p>To using binary cross-versioning strategy (which, apart from being more robust with respect to transitive dependencies, also has a nice shorcut in SBT's dependency management DSL):</p>
+<ul>
+  <li><span style="background-color: #46A546; color: #FFFFFF; border-radius: 3px 3px 3px 3px; font-size: 9.75px; font-weight: bold; padding: 1px 3px 2px">NEW</span> <code>"org.scalamacros" %% "quasiquotes" % "2.0.0-M7"</code></li>
+</ul>
