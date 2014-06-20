@@ -147,7 +147,7 @@ res2: universe.Tree = List[Int]
 scala> res1 == res2
 res3: Boolean = false
 \pause
-scala> toolbox.typecheck(list, toolbox.TYPEmode).tpe
+scala> toolbox.typecheck(res2, toolbox.TYPEmode).tpe
 res4: toolbox.u.Type = List[Int]
 
 scala> res1 == res4
