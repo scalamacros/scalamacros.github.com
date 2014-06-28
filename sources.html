@@ -6,7 +6,9 @@ plusone: false
 ---
 <p>Vanilla macros ship with the Scala compiler starting from 2.10.0, so sources of their implementation can be found
 in <a href="https://github.com/scala/scala">Scala's code repository</a>. Macros affect multiple subsystems of the compiler,
-but the main chunk of logic resides in <a href="https://github.com/scala/scala/blob/master/src/compiler/scala/tools/nsc/typechecker/Macros.scala">scala/tools/nsc/typechecker/Macros.scala</a>.</p>
+but the main chunk of logic resides in <a href="https://github.com/scala/scala/blob/2.11.x/src/compiler/scala/tools/nsc/typechecker/Macros.scala">scala/tools/nsc/typechecker/Macros.scala</a>.</p>
 
-<p>Macro paradise is a compiler plugin to Scala 2.10.x that adds new functionality such as quasiquotes and macro annotations.
-It is hosted and published separately from mainline Scala at <a href="https://github.com/scalamacros/paradise">https://github.com/scalamacros/paradise</a>.</p>
+<p>Macro paradise is a compiler plugin to Scala 2.10.x and Scala 2.11.x that adds new functionality such as quasiquotes and macro annotations to the existing macro engine. It is hosted and published separately from mainline Scala at <a href="https://github.com/scalamacros/paradise">https://github.com/scalamacros/paradise</a>.</p>
+
+<p><code>scala.meta</code> is the new foundation for Scala metaprogramming that provides a simple, robust and portable API along with a
+shiny new macro engine that works on top of the new API. It is also hosted and published separately from mainline Scala. Check out <a href="https://github.com/scalameta">https://github.com/scalameta</a> for more information.</p>
