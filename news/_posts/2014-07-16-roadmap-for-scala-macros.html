@@ -1,0 +1,71 @@
+---
+layout: news
+title: Roadmap for Scala macros
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>After the recent announcement of <a href="http://scalameta.org">scala.meta</a>,
+we've been getting questions about how different directions of development of Scala macros
+correlate with each other, and what's going to happen to them in the future.
+Today we would like to go through the list of our developments in the macro land,
+explaining what exactly they entail, and then outline our plans for the future
+of macros in Scala.</p>
+
+<p><b>scala.reflect</b></p>
+
+<p><a href="http://docs.scala-lang.org/overviews/reflection/overview.html">scala.reflect</a> is an experimental API that
+powers both compile-time metaprogramming (macros) and runtime metaprogramming (Java-style reflection)
+in Scala 2.10 and 2.11. Most of the functionality of scala.reflect is implemented in a library shipped
+in the official Scala distribution (<code>scala-reflect.jar</code>). Moreover, <code>scala-compiler.jar</code>
+also features the macro engine, a dedicated submodule of scalac's typechecker, which can run methods written against the scala.reflect API
+to analyze and generate code during compilation. scala.reflect is known to have a number of hard-to-fix issues
+that make it hard to write robust code and preclude IDEs from efficiently supporting macros.</p>
+
+<p><b>Macro paradise</b></p>
+
+<p><a href="http://docs.scala-lang.org/overviews/macros/paradise.html">Macro paradise</a>
+is a compiler plugin for Scala 2.10 and Scala 2.11 that adds new functionality such as quasiquotes
+and macro annotations to scala.reflect. It is hosted and published separately from
+the official Scala distribution, serving as a playground for features that might potentially
+be added to scala.reflect at some point in the future (that's exactly what happened to quasiquotes -
+first, they were part of paradise for Scala 2.10, and then they ended up being included in the official release of Scala 2.11).
+<a href="http://docs.scala-lang.org/overviews/macros/roadmap.html">Consult the docs</a> to
+find out what extensions to scala.reflect are provided by macro paradise for the version of Scala you're using.</p>
+
+<p><b>scala.meta (formerly known as Project Palladium)</b></p>
+
+<p><a href="http://scalameta.org">scala.meta</a> is a new experimental API for metaprogramming that is being designed
+to overcome issues inherent to scala.reflect. This new API is going to greatly simplify writing macros, and
+its technical peculiarities show potential to enable solid tool support for macro writers. Even though scala.meta
+features some of the concepts present in scala.reflect (e.g. quasiquotes), it is significantly different in a number of ways
+(the degree of compatibility between the two APIs remains to be seen as we flesh out scala.meta).
+Most of the functionality of scala.meta will be implemented in a library shipped separately from the official Scala distribution,
+and a compiler plugin will be necessary to expand macros written against the scala.meta API.
+Unlike the other two projects, scala.meta doesn't have public releases yet, with the first technology preview scheduled
+to be released for Scala 2.11 this fall.</p>
+
+<p><b>What will happen to macros in Scala 2.12?</b></p>
+
+<p>We plan to support existing experimental functionality in both scala.reflect and macro paradise for Scala 2.12.
+However, we don't plan to introduce new features, so the functionality of macros in Scala 2.12 and Paradise 2.12
+is going to be the same as in Scala 2.11 and Paradise 2.11 modulo bugfixes and stability improvements.
+In particular, it is highly unlikely for macro annotations to become part of official Scala distribution in 2.12.<p>
+
+<p>Our main effort during the Scala 2.12 development period will be targetted at scala.meta.
+The first milestone release of scala.meta is scheduled for this fall,
+with a milestone revision of the new metaprogramming API and support for expansion of macros using the new API.
+By the time Scala 2.12 is released, we will try to prepare the first stable 0.x release of scala.meta (shipped independently of
+the official Scala distribution) achieving feature-parity with scala.reflect and reliably working in both Scala IDE and Intellij IDEA.</p>
+
+<p><b>What will happen to macros in Scala 2.13 and beyond?</b></p>
+
+<p>We think that macros are useful, and we would like to make them non-experimental in some future version of Scala.
+However, before macros become a standard language feature we need to make sure that macros work well with other features
+and tools. This has proven to be particularly difficult to do in the existing model implemented in scala.reflect,
+so stabilization of macros has to be delayed to Scala 2.13 or later until we figure everything out.</p>
+
+<p>Concepts behind scala.meta look much more principled than scala.reflect, promising to address current problems
+that prevent macros from being a non-experimental language feature. We hope that practical evaluation of scala.meta
+will demonstrate that it can be a worthy successor of scala.reflect and become a standard for metaprogramming in future versions of Scala.</p>
