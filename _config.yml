@@ -1,4 +1,5 @@
 pygments: true
+markdown: kramdown
 
 url: "http://scalamacros.org"
 email: "dev@scalamacros.org"
