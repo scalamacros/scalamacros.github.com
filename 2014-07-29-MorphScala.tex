@@ -1,0 +1,168 @@
+\documentclass[svgnames,dvipsnames,hyperref={bookmarks=false},usepdftitle=false]{beamer}
+\usetheme{scala2014}
+
+\title{MorphScala: Safe Class Morphing with Macros}
+\author{Aggelos Biboudis (\href{https://twitter.com/biboudis}{@biboudis})\\ Eugene Burmako (\href{https://twitter.com/xeno_by}{@xeno{\textunderscore}by})}
+\institute{University of Athens\\ \'Ecole Polytechnique F\'ed\'erale de Lausanne}
+\date{29 July 2014}
+\hypersetup{pdfauthor={Aggelos Biboudis, Eugene Burmako},pdftitle={Easy Metaprogramming For Everyone!}}
+
+\begin{document}
+
+\titleframe
+
+\begin{frame}{Outline}
+\begin{itemize}
+\item Motivation for class morphing in Scala
+\item The idea presented in the paper (the implementation is not there yet!)
+\item Future implementation steps
+\end{itemize}
+\end{frame}
+
+\sectionframe{Motivation}
+
+\begin{frame}{Scala macros}
+\begin{itemize}
+\item Experimental language feature available for almost 2 years
+\item Multiple flavors: def macros, type macros, macro annotations
+\item Most widely used are def macros: methods whose applications expand on sub-method level
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Blackbox macros}
+\begin{semiverbatim}
+trait Query[T] \{
+  \alert{def filter(p: T => Boolean): Query[T] = macro ...}
+\}
+
+val users: Query[User] = ...
+users\alert{.filter(}_.name == "John"\alert{)}
+
+
+                          \arrowdown
+
+Query(Filter(users, Equals(Ref("name"), Literal("John"))))
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Look like normal methods with honest type signatures
+\item Can be treated as black boxes by machines and humans alike
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Whitebox macros}
+\begin{semiverbatim}
+\alert{def h2db(connString: String): Any = macro ...}
+val db = \alert{h2db(}"jdbc:h2:coffees.h2.db"\alert{)}
+
+                          \arrowdown
+
+val db = \{
+  trait Db \{
+    case class Coffee(...)
+    val Coffees: Table[Coffee] = ...
+  \}
+  new Db \{\}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\item Can refine their return types
+\item Thanks to first-class modules this can generate public definitions
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The whitebox conundrum}
+\begin{itemize}
+\item Practice shows that type signatures are very important for macros
+\item But practice also demands intra-method code generation
+\item Blackbox can't do the latter, whitebox isn't very good at the former
+\item Stalemate?
+\end{itemize}
+\end{frame}
+
+\begin{frame}{A new hope}
+\begin{itemize}
+\item At last year's OOPSLA, Aggelos introduced me to MorphJ
+\item MorphJ is an extension to Java that enables class morphing, a form of intra-method template metaprogramming (TMP)
+\item TMP is an interesting declarative approach to metaprogramming, but most importantly MorphJ's TMP allows modular typechecking
+\item So we decided to give it a try
+\end{itemize}
+\end{frame}
+
+\sectionframe{The idea}
+
+\begin{frame}[fragile]{\only<1>{Metaclasses}\only<2>{Compile-time reflection}\only<3>{(1) Uniqueness of declarations}\only<4>{(2) Validity of references}}
+\begin{semiverbatim}
+\alert<1>{@morph}
+class Logged[X] extends X \{
+  \alert<2>{for (q"def \$m(..\$params): \$r" <- members[X]) \{}
+    val args = params.map(p => q"\$\{p.name\}")
+    q"""\alert<2,3>{override def \$m(..\$params): \$r} = \{
+          val result = \alert<4>{super.\$m}(..\$args)
+          \alert<4>{println}(result)
+          result
+        \}"""
+  \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\only<1>{\item \texttt{@morph} designates a metaclass for \texttt{Logged[X]} classes}
+\only<1>{\item \texttt{Logged[X]} classes are instantiated and used in the normal fashion}
+\only<2>{\item MorphScala provides a quasiquote-based DSL to iterate members}
+\only<2>{\item Members can be destructured and give rise to new members}
+\only<3-4>{\item A very appealing property of morphing is modular type checking}
+\only<3>{\item First, we want to guarantee that generated members don't overlap}
+\only<4>{\item Second, we want to guarantee that all references are valid}
+\end{itemize}
+\end{frame}
+
+\sectionframe{Conclusion}
+
+\begin{frame}{Status}
+\begin{itemize}
+\item We haven't implemented the outlined idea yet
+\item There are still some open questions
+\item However most of the implementation tools are already in place
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{\only<1>{(1) Restrictions for the compile-time reflection API}\only<2>{(2) Implementation vehicles}}
+\begin{semiverbatim}
+\alert<2>{@morph}
+class Logged[X] extends X \{
+  for (q"def \$m(..\$params): \$r" <- members[X]) \{
+    \alert<1>{val args = params.map(p => q"\$\{p.name\}")}
+    q"""override def \$m(..\$params): \$r = \{
+          val result = super.\$m(..\$args)
+          println(result)
+          result
+        \}"""
+  \}
+\}
+
+\end{semiverbatim}
+
+\begin{itemize}
+\only<1>{\item Modular type checking is very important}
+\only<1>{\item How much flexibility do we have to sacrifice to achieve it?}
+\only<1>{\item What constructs can we safely intrinsify?}
+\only<2>{\item Can be implemented by a combo of type macros and macro annots}
+\only<2>{\item Are we happy about this elaborate scheme?}
+\only<2>{\item How do we revive type macros?}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Summary}
+\begin{itemize}
+\item MorphScala = template metaprogramming facility inspired by MorphJ
+\item Emphasis on strong type checking guarantees (modular type checking)
+\item Implementation is in the works
+\end{itemize}
+\end{frame}
+
+\end{document}
