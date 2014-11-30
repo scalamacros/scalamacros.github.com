@@ -1,0 +1,57 @@
+---
+layout: news
+title: State of the meta, fall 2014
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>
+  Hello everyone! In this post, I'd like to summarize the developments that happened since <a href="http://localhost:4000/news/2014/06/28/scala-meta.html">"Easy Metaprogramming For Everyone"</a>, our most recent talk at ScalaDays 2014, and provide some updates about our plans for the future. If you have questions or comments, please let us know at the newly created <a href="https://groups.google.com/forum/#!forum/scalameta">scalameta</a> google group.
+</p>
+
+<b><p>When's the M1 release?</p></b>
+
+<p>
+  At ScalaDays we presented a vision of a hygienic quasiquote-based metaprogramming API built on top of principles of platform independence and AST persistence. During the presentation, we also showed several demos that showcased some new cool possibities enabled by this vision. Our design received a warm welcome, so we rolled up our sleeves and started turning the demos into reality to make metaprogramming truly easy for everyone.
+</p>
+
+<p>
+  Since ScalaDays we have made quite some progress in multiple directions (details to follow below), but unfortunately these individual advances don't add up to something publicly usable just yet. Therefore, after much deliberation, we decided to postpone our preview release, which we dubbed M1, until 2015. We are very excited and humbled by your continuous interest and support, but we would like to ask you to wait a bit longer until we get everything together.
+</p>
+
+<b><p>What's in there at the moment?</p></b>
+
+<p>
+  1) We refined the syntactic API, which is at the heart of the scala.meta platform. We've decided to depart from the idea of a dual case class + quasiquote interface as presented at ScalaDays by hiding the case classes behind a number of essential traits and making quasiquotes the only UI to trees (see <a href="https://github.com/scalameta/scalameta/blob/0f840fc5168f8af581f671ba025102cdc130f012/scalameta/Trees.scala#L12">Trees.scala@0f840fc516</a> for details). This is very important to our goal of platform independence, because now the concrete representation of trees is hidden, potentially allowing for alternative implementations / direct integration with platform-specific trees. The API ends up being simpler as well, so it's a double win.
+</p>
+
+<p>
+  2) We have been working towards establishing the lexical API, which will expose the finest details of formatting and syntactic trivia. In order to turn this into reality, @densh is improving the scanner to make it emit streams of position-aware tokens that can later be associated with syntactic trees, automatically granting them precise positions and verbatim prettyprintings. This functionality is also key to a principled implementation of quasiquotes (in order to process a quasiquote like <code>q"class $name"</code>, scalac first parses a synthetic source that looks like <code>class $dummy$1234</code> and then tries to make sense of it; needless to say, this is quite roundabout), which is something that we plan on working next in this department.
+</p>
+
+<p>
+  3) We have been realizing the semantic API, which will provide facilities to resolve references, inspect signatures, compute relations between types, and so on. The first step here is conversion from platform-dependent trees (e.g. scala.reflect trees used by scalac) to scala.meta trees. Towards that end, @xeno-by classified several dozen desugarings performed by scalac and learned how to undo them (see <a href="https://github.com/scalameta/scalahost/blob/13c967bb17147e91c99fe5ca8e17bc0501001e10/foundation/reflection/Ensugar.scala#L46">Ensugar.scala@13c967bb17</a> for details), which creates the foundation for further work on the semantic API. The next step here is implementing the API itself (<a href="https://github.com/scalameta/scalameta/blob/0f840fc5168f8af581f671ba025102cdc130f012/scalameta/semantic/package.scala">semantic/package.scala@0f840fc516</a>) by relaying semantic queries from scala.meta trees to the underlying platform-dependent trees.
+</p>
+
+<p>
+  4) An unexpected development has happened in regard to AST persistence. At ScalaDays, we postulated that a metaprogramming platform should provide trees for all the code it works with - regardless whether the code is being compiled at the moment or has already been compiled. This has stimulated discussions in the Scala team, which led to a surprising realization that typed ASTs are useful as explicitly emitted output of compiler frontend. Splitting the compiler into a frontend and a linker, which make use of typed ASTs as an interchange format for compilation artifacts, solves a number of long-standing problems and enables powerful optimizations (see <a href="https://groups.google.com/forum/#!topic/scala-internals/hshvEUF3JUk">Martin Odersky's post</a> for more details). Our next step here is collaborating with Scala and Dotty teams on a spec for the typed-AST interchange format and implementations of typed-AST persistence.
+</p>
+
+<p>
+  5) Our tool support is steadily improving, and we're glad to mention improvements in macro support for SBT and IDEs. Thanks to continuous work of @Duhemm, SBT is learning how to deal with additional dependencies introduced by macros, getting smarter with every release. An <a href="https://github.com/sbt/sbt/pull/1736">in-progress pull request</a> will make it possible for SBT to deal with fancy dependency kinds, enabling SBT to track reflection API calls made by macro implementations. Another fun development is allowing for dependencies on non-Scala files, which can contain data schemas used by macros and other codegenerating tools (see <a href="https://groups.google.com/forum/#!topic/sbt-dev/f7fKIQSIx20">sbt-dev</a> for details). Additionally, our GSoC project with @lnxmnx has been very fruitful and ultimately concluded with <a href="https://github.com/scala-ide/scala-ide/pull/868">a pull request to scala-ide/scala-ide</a>, which enables the inline macro expansion UI that we have demonstrated at ScalaDays.
+</p>
+
+<p>
+  6) On a more experimental side, we have projects by @vladimirnik (runtime macro expansion), @aghosn (code linting) and @begeric (unified tree traversal/transformation API). We are not sure when and how these projects are going to be released, but we're keeping a close eye on them and are looking forward to reporting more in the future.
+</p>
+
+<p>
+  7) On an even more experimental side, there's a presentation that we recently gave at our lab's open house to EPFL students: <a href="http://scalamacros.org/paperstalks/2014-11-26-SemesterProjectsSpring2015.pdf">"Semester Projects, Spring 2015"</a>. The presentation briefly outlines what we do, why it might be interesting to hack with us and what projects we have to offer. If you're interested in contributing, please drop us an email at <a href="mailto:dev@scalameta.org">dev@scalameta.org</a>, and we'll be happy to discuss.
+</p>
+
+<p><b>What's next?</b></p>
+
+<p>
+  Next we will be focusing on figuring out the missing bits of the infrastructure to get scala.meta macros running. This includes implementing the semantic API, completing support for quasiquotes and creating the scala.meta -> scala.reflect converter that will incorporate expansions of scala.meta macros into scalac's compilation pipeline. Thanks for reading and see you in another edition of State of the Meta!
+</p>
