@@ -168,7 +168,7 @@ def createArray[T: ClassTag](size: Int, el: T) = \{
 \begin{frame}[fragile]{Macros by example}
 
 \begin{semiverbatim}
-\alert{def specialized[T](x: => T) = macro impl[T]}
+\alert{def specialized[T](x: => Any) = macro impl[T]}
 
 def createArray[T: ClassTag](size: Int, el: T) = \{
   val a = new Array[T](size)
@@ -201,7 +201,7 @@ def createArray[T: ClassTag](size: Int, el: T) = \{
 \begin{frame}[fragile]{How macros work}
 
 \begin{semiverbatim}
-def specialized[T](x: => T) = macro impl[T]
+def specialized[T](x: => Any) = macro impl[T]
 
 def impl[T](\alert<1>{c: scala.reflect.macros.Context})
     \alert<2>{(x: c.Tree)(implicit T: c.WeakTypeTag[T])} = \{

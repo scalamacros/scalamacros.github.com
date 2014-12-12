@@ -1,0 +1,104 @@
+\useoutertheme{infolines}
+\setbeamertemplate{headline}{} % removes the headline that infolines inserts
+% \setbeamertemplate{footline}{
+%   \hfill%
+%   \usebeamercolor[fg]{page number in head/foot}%
+%   \usebeamerfont{page number in head/foot}%
+%   \insertpagenumber\,/\,\insertpresentationendpage\kern1em\vskip2pt%
+% }
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \footnotesize\insertpagenumber\kern1em\vskip2pt%
+}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{alerted text}{fg=blue}
+\setbeamertemplate{section in toc}{\text{\color{black}{\inserttocsection}}}
+\usepackage[parfill]{parskip}
+\usepackage[linewidth=0.5pt]{mdframed}
+\newmdenv[innerleftmargin=1mm, innerrightmargin=1mm, innertopmargin=-1mm, innerbottommargin=2mm, leftmargin=-1mm, rightmargin=-1mm]{lstlistinglike}
+\usepackage{tikz}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage{textcomp}
+\usepackage{pifont}
+\usetikzlibrary{shapes.arrows}
+
+\tikzset{
+    myarrow/.style={
+        draw,
+        fill=orange,
+        single arrow,
+        minimum height=3.5ex,
+        single arrow head extend=1ex
+    }
+}
+\newcommand{\arrowup}{%
+\tikz [baseline=-0.5ex]{\node [myarrow,rotate=90] {};}
+}
+\newcommand{\arrowdown}{%
+\tikz [baseline=-1ex]{\node [myarrow,rotate=-90] {};}
+}
+
+\tikzset{
+    myshadedarrow/.style={
+        draw,
+        fill=light-gray,
+        single arrow,
+        minimum height=3.5ex,
+        single arrow head extend=1ex
+    }
+}
+\newcommand{\shadedarrowup}{%
+\tikz [baseline=-0.5ex]{\node [myshadedarrow,rotate=90] {};}
+}
+\newcommand{\shadedarrowdown}{%
+\tikz [baseline=-1ex]{\node [myshadedarrow,rotate=-90] {};}
+}
+
+\newcommand\titleframe{
+  {
+    \setbeamertemplate{footline}{}
+    \begin{frame}
+      \titlepage
+    \end{frame}
+  }
+}
+
+\newcommand\sectionframe[1]{
+  \begin{frame}
+  \vskip40pt
+  \begin{center}
+  \text{\color{blue}{\Large{#1}}}
+  \end{center}
+  \end{frame}
+}
+
+\newenvironment<>{beforeblock}{%
+  \begin{actionenv}#1%
+    \def\insertblocktitle{In \texttt{scala.reflect}}%
+    \par%
+    \mode<presentation>{%
+      \setbeamercolor{block title}{fg=red}
+   }%
+    \usebeamertemplate{block begin}\begin{semiverbatim}}
+  {\end{semiverbatim}\par\usebeamertemplate{block end}\end{actionenv}}
+
+\newenvironment{afterblock}
+{\begin{exampleblock}{In \texttt{scala.meta}}\begin{semiverbatim}}
+{\end{semiverbatim}\end{exampleblock}}
+
+\newenvironment<>{bad}{%
+  \begin{actionenv}#1%
+    \def\insertblocktitle{Trees only}%
+    \par%
+    \mode<presentation>{%
+      \setbeamercolor{block title}{fg=red}
+   }%
+    \usebeamertemplate{block begin}\begin{semiverbatim}}
+  {\end{semiverbatim}\par\usebeamertemplate{block end}\end{actionenv}}
+
+\newenvironment{good}
+{\begin{exampleblock}{Trees and symbols}\begin{semiverbatim}}
+{\end{semiverbatim}\end{exampleblock}}

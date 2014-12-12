@@ -269,7 +269,7 @@ def createArray[T: ClassTag](size: Int, el: T) = \{
 \frametitle{Example \#1 - Term generation}
 
 \begin{semiverbatim}
-\alert{def specialized[T: ClassTag](code: => T) = macro ...}
+\alert{def specialized[T: ClassTag](code: => Any) = macro ...}
 
 def createArray[T: ClassTag](size: Int, el: T) = \{
   val a = new Array[T](size)
