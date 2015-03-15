@@ -67,12 +67,15 @@
 }
 
 \newcommand\sectionframe[1]{
-  \begin{frame}
-  \vskip40pt
-  \begin{center}
-  \text{\color{blue}{\Large{#1}}}
-  \end{center}
-  \end{frame}
+  {
+    \setbeamertemplate{footline}{}
+    \begin{frame}
+    \vskip40pt
+    \begin{center}
+    \text{\color{blue}{\Large{#1}}}
+    \end{center}
+    \end{frame}
+  }
 }
 
 \newenvironment<>{beforeblock}{%
