@@ -1,0 +1,35 @@
+---
+layout: news
+title: State of the meta, spring 2015
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>Hello from ScalaDays San Francisco! It's been just a few minutes after a talk where I provided an offline status update of the scala.meta project, and now I'd like to share the news online. This post will outline the developments that happened since <a href="http://scalamacros.org/news/2014/11/30/state-of-the-meta-fall-2014.html">"State of the Meta, Fall 2014"</a> and summarize our plans for the future.</p>
+
+<p><b>Our presentation at ScalaDays San Francisco</b></p>
+
+<p>Here are the slides that I've just presented at ScalaDays: <a href="http://scalamacros.org/paperstalks/2015-03-17-StateOfTheMetaSpring2015.pdf">http://scalamacros.org/paperstalks/2015-03-17-StateOfTheMetaSpring2015.pdf</a>. In the slides, you'll find a summary of our key insights since the last status update: first-class tokens that give more power and flexibility to the syntactic API and first-class names that enable a much simpler mental model of Scala programs. Also included are some pictures of spaceships from Star Trek :)</p>
+
+<p><b>The first successful launch of our macro engine</b></p>
+
+<p>In the beginning of March, we've been able to run an end-to-end macro expansion pipeline for a simple scala.meta macro. It all works along the lines of the vision presented at ScalaDays Berlin: the <code>scalahost</code> compiler plugin intercepts the typer when it's about to perform macro expansion, then it creates a scala.meta context, converts input trees from scala.reflect to scala.meta, runs the macro against the newly created context and converted trees, and then converts the result back to scala.reflect, the shape that's understood by scalac.</p>
+
+<p>There are still critical improvements to be made to the pipeline and the underlying APIs before scala.meta can be exposed to a wider audience. However, this launch proves that our architecture is sound, and I'm happy to share this milestone with you!</p>
+
+<p><b>When's the M1 release?</b></p>
+
+<p>This winter was the time of intense hacking, and it was also the time of noticeable architectural changes. Our core component, AST persistence, is now being developed as part of the Dotty platform (there it's known by the name of "TASTY"), which has created new requirements to ensugaring. Moreover, our experience with implementing semantic APIs has unveiled additional challenges that we'll have to tackle in order to implement hygiene. As a result, we would like to take more time before pushing an alpha release for general availability.</p>
+
+<p>Even though we are delaying the M1 release, please know that a lot of components of the scala.meta platform are already ready for action. Therefore, if you're feeling adventurous, you might find it interesting and even enjoyable to experiment with our next-generation metaprogramming APIs. To do that, follow the tutorial at <a href="https://github.com/scalameta/scalameta/blob/master/README.md">https://github.com/scalameta/scalameta/blob/master/README.md</a>.
+
+<p><b>What's next?</b></p>
+
+<p>After returning back to Lausanne, we'll be working on polishing existing infrastructure for the imminent M1 release: continuing the development of the scala.meta interpreter, implementing comprehensive support for quasiquotes, fixing unsatisfactory aspects of our tree design and semantic APIs, rethinking the scala.reflect -> scala.meta converter in the light of the low-level nature of TASTY and maybe looking into an initial approximation of hygiene.</p>
+
+<p>In the near future, we plan to hold a hands-on workshop at flatMap Oslo (27-28 Apr): <a href="http://2015.flatmap.no/burmako.html#session">http://2015.flatmap.no/burmako.html#session</a>. Our next status update is scheduled for ScalaDays Amsterdam (8-10 June): <a href="http://event.scaladays.org/scaladays-amsterdam-2015#!#schedulePopupExtras-6906">http://event.scaladays.org/scaladays-amsterdam-2015#!#schedulePopupExtras-6906</a>.</p>
+
+<p><b>Discussion</b></p>
+
+<p>If you have questions or comments, please let us know on our <a href="https://groups.google.com/forum/#!forum/scalameta">mailing list</a>.</p>
