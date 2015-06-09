@@ -1,0 +1,385 @@
+\documentclass[svgnames,dvipsnames,hyperref={bookmarks=false},usepdftitle=false]{beamer}
+\usetheme{scaladays}
+\usepackage{tikz}
+\usetikzlibrary[arrows.meta]
+
+\title{State of the Meta, Summer 2015}
+\author{Eugene Burmako (\href{https://twitter.com/xeno_by}{@xeno{\textunderscore}by})}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\ \texttt{\href{http://scalameta.org/}{http://scalameta.org/}}}
+\date{09 June 2015}
+\hypersetup{pdfauthor={Eugene Burmako},pdftitle={State of the Meta, Summer 2015}}
+
+\begin{document}
+
+\titleframe
+
+\begin{frame}{scala.meta}
+\begin{quote}
+\small{Simple, robust and portable metaprogramming foundation for Scala}
+\end{quote}
+\begin{flushright}
+\textemdash\text{ }\small{github.com/scalameta}
+\end{flushright}
+\end{frame}
+
+\begin{frame}{Main goal}
+\begin{itemize}
+\item Support all kinds of frontend metaprogramming tasks
+\item Especially novel tooling
+\item But also def macros and macro annotations
+\item More on that today in the live demo!
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Presentation outline}
+\begin{itemize}
+\item Syntactic API
+\item Semantic API
+\item Live demo
+\item Roadmap
+\end{itemize}
+\end{frame}
+\begin{frame}{Credits}
+Big thanks to everyone who helped turning scala.meta into reality!
+
+\begin{tabular}{p{0.4\textwidth}p{0.5\textwidth}}
+\begin{itemize}
+\itemsep0.5em
+\item Uladzimir Abramchuk
+\item Eric Beguet
+\item Igor Bogomolov
+\item Eugene Burmako
+\item Mathieu Demarne
+\item Martin Duhem
+\item Adrien Ghosn
+\item Vojin Jovanovic
+\item Guillaume Mass\'e
+\end{itemize} &
+\begin{itemize}
+\itemsep0.5em
+\item Mikhail Mutcianko
+\item Dmitry Naydanov
+\item Artem Nikiforov
+\item Vladimir Nikolaev
+\item Martin Odersky
+\item Alexander Podkhalyuzin
+\item Jatin Puri
+\item Dmitry Petrashko
+\item Denys Shabalin
+\end{itemize} \\
+\end{tabular}
+\end{frame}
+
+\sectionframe{Part 1: Syntactic API}
+
+\begin{frame}[fragile]{Getting started}
+\begin{semiverbatim}
+\$ scala
+
+scala> import scala.meta._
+import scala.meta._
+
+scala> import scala.meta.dialects.Scala211
+import scala.meta.dialects.Scala211
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}{Design goals}
+\begin{itemize}
+\item In \texttt{scala.meta}, we keep all syntactic information about the program
+\item Nothing is desugared (e.g. \texttt{for} loops or string interpolations)
+\item Nothing is thrown away (e.g. comments or formatting details)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Implementation vehicle}
+First-class tokens
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle<1-6>{Tokens}
+\begin{semiverbatim}
+scala> "\alert<2>{class} \alert<3>{C} \alert<4>{\{} \alert<2>{def} \alert<3>{x} \alert<4>{=} 2 \alert<4>{\}}".tokens
+\only<1>{...}\visible<2->{res0: Vector[meta.Token] = Vector(\alert<6>{BOF (0..-1)},}
+\visible<2->{\alert<2>{class (0..4)}, \alert<5>{(5..5)}, \alert<3>{C (6..6)}, \alert<5>{(7..7)}, \alert<4>{\{ (8..8)}, \alert<5>{(9..9)},}
+\visible<2->{\alert<2>{def (10..12)}, \alert<5>{(13..13)}, \alert<3>{x (14..14)}, \alert<5>{(15..15)}, \alert<4>{= (16..16)},}
+\visible<2->{\alert<5>{(17..17)}, 2 (18..18), \alert<5>{(19..19)}, \alert<4>{\} (20..20)}, \alert<6>{EOF (21..20)})}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{High-fidelity parsers}
+\begin{semiverbatim}
+scala> "class C".parse[Stat]
+res1: scala.meta.Stat = class C
+
+scala> "class C \alert<2->{\{\}}".parse[Stat]
+res2: scala.meta.Stat = class C \{\}
+
+\only<2->{scala> res1.tokens}
+\only<2->{res3: Seq[scala.meta.Token] = Vector(BOF (0..-1),}
+\only<2->{class (0..4), (5..5), C (6..6), EOF(7..6))}
+
+\only<2->{scala> res2.tokens}
+\only<2->{res4: Seq[scala.meta.Token] = Vector(BOF (0..-1),}
+\only<2->{class (0..4), (5..5), C (6..6),}
+\only<2->{(7..7), \alert{\{ (8..8), \} (9..9)}, EOF (10..9))}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Automatic and precise range positions}
+\begin{semiverbatim}
+scala> "class C \{ def x = 2 \}".parse[Stat]
+res5: scala.meta.Stat = class C
+
+scala> val q"class C \{ \$method \}" = res5
+method: scala.meta.Stat = def x = 2
+
+\only<2->{scala> method.tokens}
+\only<2->{res6: Seq[scala.meta.Token] = Vector(}
+\only<2->{def (10..12), (13..13), x (14..14), (15..15),}
+\only<2->{= (16..16), (17..17), 2 (18..18))}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Hacky quasiquotes in scala.reflect}
+\begin{semiverbatim}
+\$ scala -Yquasiquote-debug
+
+scala> import scala.reflect.runtime.universe.\_
+import scala.reflect.runtime.universe.\_
+
+scala> val name = TypeName("C")
+name: reflect.runtime.universe.TypeName = C
+
+scala> q"class \alert<2->{\$name}"
+...
+\only<2->{code to parse:}
+\only<2->{class \alert<2->{qq\$a2912896\$macro\$1}}
+\only<2->{parsed:}
+\only<2->{Block(List(), ClassDef(Modifiers(),}
+\only<2->{\alert<2->{TypeName("qq\$a2912896\$macro\$1")}, List(), Template(...))}
+\only<2->{...}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Principled quasiquotes in scala.meta}
+\begin{semiverbatim}
+\$ scala -Dquasiquote.debug
+
+scala> import scala.meta.\_, dialects.Scala211
+import scala.meta.\_
+import dialects.Scala211
+
+scala> val name = t"C"
+name: scala.meta.Type.Name = C
+
+scala> q"class \alert<2->{\$name}"
+...
+\only<2->{tokens: Vector(BOF (0..-1), class (0..4), (5..5),}
+\only<2->{\alert<2->{\$name (6..10)}, EOF (11..10))}
+\only<2->{...}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}{Derived technologies}
+First-class tokens enable:
+\begin{itemize}
+\item High-fidelity parsers
+\item Automatic and precise range positions
+\item Principled quasiquotes
+\end{itemize}
+\end{frame}
+
+\sectionframe{Part 2: Semantic API}
+
+\begin{frame}[fragile]{Getting started}
+\begin{semiverbatim}
+\$ scala
+
+scala> import scala.meta.\_
+import scala.meta.\_
+
+scala> implicit val c = Scalahost.mkProjectContext(...)
+c: scala.meta.projects.Context = ...
+\end{semiverbatim}
+
+\vskip25pt
+\only<1>{\vskip20pt}
+\only<2->{Contexts can come from:}
+\begin{itemize}
+\item<2-> Scalahost.mkProjectContext(...): useful for standalone apps
+\item<3-> Scalahost.mkGlobalContext(global): useful for compiler plugins
+\item<4-> Implicit scope when writing macros: very convenient!
+\item<5-> Anywhere else: anyone can implement a context
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Design goals}
+\begin{itemize}
+\item In \texttt{scala.meta}, we model everything just with its abstract syntax
+\item Types, members, names, modifiers: all represented with trees
+\item There's only one data structure, so there's only one way to do it
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Implementation vehicle}
+First-class names
+\end{frame}
+
+\begin{frame}[fragile]{Bindings in scala.reflect}
+\begin{semiverbatim}
+\small
+\$ scala
+
+scala> import scala.reflect.runtime.universe.\_
+import scala.reflect.runtime.universe.\_
+
+scala> showRaw(q"class \text{\color<5>{blue}{C}} \{ def \text{\color<5>{red}{x}} = 2; def \text{\color<5>{LimeGreen}{y}} = \text{\color<5>{red}{x}} \}")
+\only<1>{...}\only<2->{res1: String = \text{\color<5>{blue}{ClassDef}}(}
+  \only<2->{Modifiers(), \only<1-3>{\alert<3>{TypeName}(}"C"\only<1-3>{)}, List(),}
+  \only<2->{Template(}
+    \only<2->{List(Select(Ident(scala), \only<1-3>{TypeName(}"AnyRef"\only<1-3>{)})),}
+    \only<2->{noSelfType,}
+    \only<2->{List(}
+      \only<2->{DefDef(NoMods, termNames.CONSTRUCTOR, ...),}
+      \only<2->{\text{\color<5>{red}{DefDef}}(NoMods, \only<1-3>{\alert<3>{TermName}(}"x"\only<1-3>{)}, ..., Literal(Constant(2))),}
+      \only<2->{\text{\color<5>{LimeGreen}{DefDef}}(NoMods, \only<1-3>{\alert<3>{TermName}(}"y"\only<1-3>{)}, ..., \text{\color<5>{red}{Ident(\only<1-3>{\alert<3>{TermName}(}"x"\only<1-3>{)})}}))))}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Bindings in scala.meta}
+\begin{semiverbatim}
+\small
+\$ scala
+
+scala> import scala.meta.\_, dialects.Scala211
+import scala.meta.\_
+import dialects.Scala211
+
+scala> q"class \text{\color{blue}{C}} \{ def \text{\color{red}{x}} = 2; def \text{\color{LimeGreen}{y}} = \text{\color{red}{x}} \}".show[Raw]
+res0: String = Defn.Class(
+  Nil, \text{\color{blue}{Type.Name("C")}}, Nil,
+  Ctor.Primary(Nil, Ctor.Name("this"), Nil),
+  Template(
+    Nil, Nil,
+    Term.Param(Nil, Name.Anonymous(), None, None),
+    Some(List(
+      Defn.Def(Nil, \text{\color{red}{Term.Name("x")}}, ..., Lit.Int(2)),
+      Defn.Def(Nil, \text{\color{LimeGreen}{Term.Name("y")}}, ..., \text{\color{red}{Term.Name("x")}})))))
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Key example}
+\texttt{List[Int]}
+\end{frame}
+
+\begin{frame}[fragile]{Key example}
+\begin{semiverbatim}
+\small
+scala> t"List[Int]".show[Raw]
+res1: String =
+Type.Apply(Type.Name("List"), List(Type.Name("Int")))
+
+\only<2>{scala> t"\text{\color{blue}{List}}[\text{\color{red}{Int}}]".show[Semantics]}
+\only<2>{res2: String =}
+\only<2>{Type.Apply(\text{\color{blue}{Type.Name("List")[1]}}, List(\text{\color{red}{Type.Name("Int")[2]}}))}
+\only<2>{[1] Type.Singleton(Term.Name("package")[4])::scala.package#List}
+\only<2>{[2] Type.Singleton(Term.Name("scala")[3])::scala#Int}
+\only<2>{...}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Name resolution}
+\begin{semiverbatim}
+scala> implicit val c = Scalahost.mkProjectContext(...)
+c: scala.meta.projects.Context = ...
+
+scala> q"scala.collection.immutable.List".defn
+res3: scala.meta.Member.Term = object List extends
+SeqFactory[List] with Serializable \{ ... \}
+
+scala> res3.name
+res4: scala.meta.Term.Name = List
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Other semantic APIs}
+\begin{semiverbatim}
+scala> q"scala.collection.immutable.List".defs("apply")
+res5: scala.meta.Member.Term =
+override def apply[A](xs: A*): List[A] = ???
+
+scala> q"scala.collection.immutable.List".parents
+res6: Seq[scala.meta.Member.Term] =
+List(abstract class SeqFactory...)
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}{Derived technologies}
+First-class names enable:
+\begin{itemize}
+\item Unification of trees, types and symbols
+\item Referential transparency and hygiene (under development!)
+\item Simpler mental model of metaprogramming
+\end{itemize}
+\end{frame}
+
+\sectionframe{Part 3: Live demo}
+
+\sectionframe{Part 4: Roadmap}
+
+\begin{frame}{Where we've been before}
+\begin{itemize}
+\item With scala.meta, we started from complete scratch
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Lots of experimentation}
+\begin{itemize}
+\item Safe by construction trees
+\item High-fidelity parsing
+\item Automatic and precise range positions
+\item Principled quasiquotes
+\item Unification of trees, symbols and types
+\item AST persistence
+\item AST interpretation
+\item Simple syntax and compilation for macros
+\item IDE support for macros
+\item SBT support for macros
+\item ...
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Where we are now}
+\begin{itemize}
+\item Tokens provide an elegant and powerful foundation for syntactic APIs
+\item Names enable a simple mental model for semantic APIs
+\item People are already successfully using these new concepts!
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Where we will be soon}
+\vskip25pt
+\begin{itemize}
+\item Experimentation's temporarily on hold, we're now pushing for 0.1
+\item Main focus of 0.1 is making scala.meta trees publicly available
+\item \only<1>{\text{\color{blue}\href{https://github.com/scalameta/scalameta/milestones/0.1}{https://github.com/scalameta/scalameta/milestones/0.1}}}\only<2>{\text{\color{black}\href{https://github.com/scalameta/scalameta/milestones/0.1}{https://github.com/scalameta/scalameta/milestones/0.1}}}
+\end{itemize}
+\pause
+\vskip25pt
+Contributor alert!\\
+\text{\color{blue}\href{https://github.com/scalameta/scalameta/issues}{https://github.com/scalameta/scalameta/issues}}
+\end{frame}
+
+\sectionframe{Wrapping up}
+
+\begin{frame}{Summary}
+\begin{itemize}
+\item scala.meta is a one-stop solution to frontend metaprogramming
+\item Our key innovations include first-class support for tokens and names
+\item We're now pushing for the 0.1 preview release
+\item Join us at \text{\color{blue}\href{https://gitter.im/scalameta/scalameta}{https://gitter.im/scalameta/scalameta}}!
+\end{itemize}
+\end{frame}
+
+\end{document}
