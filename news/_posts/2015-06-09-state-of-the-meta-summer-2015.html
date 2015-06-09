@@ -1,0 +1,33 @@
+---
+layout: news
+title: State of the meta, summer 2015
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>Greetings from ScalaDays Amsterdam! In today's installment of state of the meta, I'd like to share great news: we've settled down on the feature set that we'd like to see in the first preview release, and this summer we'll be pushing for 0.1. Continue reading to learn about our plans in details.</p>
+
+<p><b>A switch of gears</b></p>
+
+<p>When initiating the project a year ago, we had to start from scratch, because one of the axioms of scala.meta was complete platform independence, which meant that everything - data structures, APIs and maybe even some core parts of the compiler - had to be implemented from scratch.</p>
+
+<p>Coming up with a <b>coherent design for a metaprogramming platform took a lot of experimentation</b>. When I was preparing for my today's talk at ScalaDays, I tried to build a list of all non-trivial projects that we carried out and was quite surprised that the list didn't actually fit into a slide: safe by construction trees, high-fidelity parsing, automatic and precise range positions, principled quasiquotes, unification of trees, symbols and types, AST persistence, AST interpretation, simple syntax and compilation for macros and so on, and so on. Here I would like to take time and thank <a href="https://github.com/scalameta/scalameta/blob/master/CONTRIBUTORS.md">everyone who contributed to our project</a>. Thank you guys!</p>
+
+<p>By now, we have arrived at two fundamental abstractions: first-class tokens and first-class names (here's <a href="http://scalamacros.org/paperstalks/2015-06-09-StateOfTheMetaSummer2015.pdf">the link to today's presentation</a> that talks about these abstractions, and soon I'll try to write more substantial documentation on that topic). These abstractions help us realize the first principle of scala.meta: not throwing away any information about code and presenting it in a platform-independent way.</p>
+
+<p>Amazingly enough, for a project that's still fleshing out its core functionality, <a href="http://blog.codacy.com/2015/06/04/a-quick-look-at-scalameta/">these abstractions are already used in practice</a>, which hints that we might've gotten something right. Therefore, after several discussions, <b>we decided to temporarily suspend experimentation and start preparing for the 0.1 release</b>.</p>
+
+<p><b>Our plans for 0.1</b></p>
+
+<p>The main focus of the upcoming release is <b>support for next-generation tooling</b>. Our abstract syntax trees are capable of expressing all syntactic details including formatting and comments, as well as carrying comprehensive semantic information including resolved references and types. Our main goal for the 0.1 release is to make these trees available to tool developers to enable scenarios that are either too hard or outright impossible with the state of the art (e.g. non-trivial refactorings).</p>
+
+<p>Towards this end, we created a bunch of issues on github along with the 0.1 milestone, which will structure our effort and provide an easy way to gauge our progress. If you would like to see a comprehensive list of issues, check out <a href="https://github.com/scalameta/scalameta/milestones/0.1">https://github.com/scalameta/scalameta/milestones/0.1</a>, but in a nutshell the idea of the release is to take tokens and names, fill in the blanks left by prototyping, clean everything up and ship.</p>
+
+<p>Upon careful deliberation, we decided to <b>aggressively prioritize features</b>, which means that some of the metaprogramming staples aren't going make it into 0.1. The most prominent example is quasiquotes which got left. Don't get me wrong. Quasiquotes are extremely important (as our experience with previously quasiquoteless scala.reflect has shown), but we're at such a stage of the project where fundamentals aren't fully figured out, which means that at this very moment quasiquotes are a luxury rather than a necessity. We'll most likely make quasiquotes our main priority for 0.2, but for now we'd just like to get the whole thing off the ground.</p>
+
+<p>This brings me to the another topic that I wanted to mention. Even though we're temporarily defocusing certain functionality of the project, it doesn't mean that we wouldn't be interested in having it sooner. We've created a special <b>"Contributor alert!"</b> label on github: <a href="https://github.com/scalameta/scalameta/labels/Contributor%20alert">https://github.com/scalameta/scalameta/labels/Contributor%20alert</a> (which also includes quasiquotes aka <a href="https://github.com/scalameta/scalameta/issues/157">issue #157</a>) for issues that would be feasible to implement without extensive knowledge about scala.meta internals. We'd be delighted if you decided to take on something from that list.</p>
+
+<p><b>A new discussion platform</b></p>
+
+<p>A few months ago, we created a gitter channel for the scala.meta project, and so far it's been living up to our expectations. Gitter has proven to be very useful for quick discussions and low-traffic status updates, so we decided to completely move from google groups to gitter. This summer we'll be using our new means of communication to provide frequent updates on the state of the 0.1 release, so <b>join us in the chat room to stay tuned</b>: <a href="https://gitter.im/scalameta/scalameta">https://gitter.im/scalameta/scalameta</a>!</p>
