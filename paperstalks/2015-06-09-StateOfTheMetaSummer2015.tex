@@ -6,7 +6,7 @@
 \title{State of the Meta, Summer 2015}
 \author{Eugene Burmako (\href{https://twitter.com/xeno_by}{@xeno{\textunderscore}by})}
 \institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\ \texttt{\href{http://scalameta.org/}{http://scalameta.org/}}}
-\date{Presented on 09 June 2015\\ Last updated on 21 Sep 2015\\ Video available in \text{\color{blue}\href{https://www.parleys.com/tutorial/state-meta-summer-2015}{the ScalaDays collection}}}
+\date{Presented on 09 June 2015\\ Last updated on 03 Oct 2015\\ Video available in \text{\color{blue}\href{https://www.parleys.com/tutorial/state-meta-summer-2015}{the ScalaDays collection}}}
 \hypersetup{pdfauthor={Eugene Burmako},pdftitle={State of the Meta, Summer 2015}}
 
 \begin{document}
@@ -79,9 +79,6 @@ Big thanks to everyone who helped turning scala.meta into reality!
 
 scala> import scala.meta._
 import scala.meta._
-
-scala> import scala.meta.dialects.Scala211
-import scala.meta.dialects.Scala211
 \end{semiverbatim}
 \end{frame}
 
@@ -167,9 +164,8 @@ scala> q"class \alert<2->{\$name}"
 \begin{semiverbatim}
 \$ scala -Dquasiquote.debug
 
-scala> import scala.meta.\_, dialects.Scala211
+scala> import scala.meta.\_
 import scala.meta.\_
-import dialects.Scala211
 
 scala> val name = t"C"
 ...
@@ -201,16 +197,16 @@ First-class tokens enable:
 scala> import scala.meta.\_
 import scala.meta.\_
 
-scala> implicit val mirror = Mirror(...)
-mirror: scala.meta.Mirror = ...
+scala> implicit val c = Context(...)
+c: scala.meta.Context = ...
 \end{semiverbatim}
 
 \vskip25pt
 \only<1>{\vskip20pt}
 \only<2->{Contexts can come from:}
 \begin{itemize}
-\item<2-> Mirror(...): useful for standalone apps
-\item<3-> Proxy(global): useful for compiler plugins
+\item<2-> scalahost: based on scalac internals
+\item<3-> intellijhost: implemented on top of Intellij
 \item<4-> Anywhere else: anyone can implement a context
 \end{itemize}
 \end{frame}
@@ -253,9 +249,8 @@ scala> showRaw(q"class \text{\color<5>{blue}{C}} \{ def \text{\color<5>{red}{x}}
 \small
 \$ scala
 
-scala> import scala.meta.\_, dialects.Scala211
+scala> import scala.meta.\_
 import scala.meta.\_
-import dialects.Scala211
 
 scala> q"class \text{\color{blue}{C}} \{ def \text{\color{red}{x}} = 2; def \text{\color{LimeGreen}{y}} = \text{\color{red}{x}} \}".show[Structure]
 res1: String = Defn.Class(
@@ -281,8 +276,8 @@ scala> t"List[Int]".show[Structure]
 res1: String =
 Type.Apply(Type.Name("List"), List(Type.Name("Int")))
 
-scala> implicit val mirror = Mirror(...)
-mirror: scala.meta.Mirror = ...
+scala> implicit val c = Context(...)
+c: scala.meta.Context = ...
 
 \only<2>{scala> t"\text{\color{blue}{List}}[\text{\color{red}{Int}}]".show[Semantics]}
 \only<2>{res3: String =}
@@ -295,8 +290,8 @@ mirror: scala.meta.Mirror = ...
 
 \begin{frame}[fragile]{Name resolution}
 \begin{semiverbatim}
-scala> implicit val mirror = Mirror(...)
-mirror: scala.meta.Mirror = ...
+scala> implicit val c = Context(...)
+c: scala.meta.Context = ...
 
 scala> q"scala.collection.immutable.List".defn
 res2: scala.meta.Member.Term = object List extends
