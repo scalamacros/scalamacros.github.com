@@ -1,0 +1,29 @@
+---
+layout: news
+title: State of the meta, fall 2015
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>Hello everyone! Today's issue of state of the meta will provide an update on our progress with 0.1, explain the areas of applicability of the recently released 0.0.4 and give you some code examples to play with.</p>
+
+<p><b>Hands on scala.meta</b></p>
+
+<p>My recent <a href="https://github.com/scalameta/tutorial">scala.world workshop</a> snapshots our work towards 0.1 during the summer. The repository linked above contains <b>practical guides to using various aspects of scala.meta</b>.</p>
+
+<p><a href="https://github.com/scalameta/tutorial/tree/view-bounds">The view-bounds guide</a> features a tool that can automatically rewrite view bounds to their desugarings without losing formatting details and comments. Thanks to scala.meta's principled AST model, it is possible to express such a transformation in a couple dozen lines of robust high-level code, which is a significant improvement over the state of the art that typically involves manual tokenization and string manipulations.</p>
+
+<p><a href="https://github.com/scalameta/tutorial/tree/exploring-semantics">The exploring-semantics guide</a> demonstrates our progress with serialization of typed abstract syntax trees. With scala.meta, it becomes possible to save comprehensive information about your programs into .class files and then load it for inspection later on. Semantic APIs that enable this functionality are much less stable than syntactic APIs that power code rewritings, but you can still take a look to get an idea where it's all going.</p>
+
+<p><b>New features in 0.0.4</b></p>
+
+<p>This summer was time of intense hacking! During his Google Summer of Code project, Oleksandr Olgashko (<a href="https://github.com/dveim">@dveim</a>) went through <a href="https://github.com/scalameta/scalameta/blob/master/docs/quasiquotes.md">the entire quasiquote spec</a>, implementing missing functionality, fixing broken aspects of the parser and writing tests, a whole bunch of them. Thanks to Oleksandr, <b>the upcoming 0.1 is unexpectedly going to support quasiquotes</b>, and you can already see with the results of his work in 0.0.4. Check out <a href="https://github.com/scalameta/tutorial/tree/view-bounds">the view-bounds guide</a> for concrete examples.</p>
+
+<p>In the meanwhile, I was working on AST persistence and have found a groundbreaking flaw in our previous semantic model. Devising ways to fix this flaw has led to <b>significant changes in scalameta and almost a complete rewrite of scalahost</b>, which took me a couple months. Our new semantic model is documented in <a href="https://github.com/scalameta/scalameta/blob/master/docs/hosts.md">hosts.md</a> and illustrated in <a href="https://github.com/scalameta/tutorial/tree/advanced-dendrology">the advanced-dendrology guide</a>. This is not going to be an easy reading, so you might want to skip it if you're not interested in internals of scala.meta.</p>
+
+<p>Finally, the project has undergone noticeable restructuring. I removed repositories with obsolete experiments, merged everything relevant into <a href="https://github.com/scalameta/scalameta">a single super-repository</a> (thanks to the advice of <a href="https://github.com/MasseGuillaume">Guillaume Massé</a>) and split the previously monolithic scalameta.jar into about a dozen loosely coupled modules. See code examples in the aforementioned guides to see how to see how things are done in 0.0.4. If this sounds scary, don't worry - <b>most of the publicly visible changes affect the semantic API, but syntactic functionality should work as in 0.0.3</b>.</p>
+
+<p><b>What next?</b></p>
+
+<p>Next, we'll work on <a href="https://github.com/scalameta/scalameta/milestones/0.1">issues scheduled for 0.1</a> and release 0.1 once that list of issues is exhausted. You can always check what exactly is being done at the moment via <a href="https://github.com/scalameta/scalameta/issues?q=is%3Aopen+is%3Aissue+label%3A%22In+progress%22">the "In progress" list</a> and come ask me anything at <a href="https://gitter.im/scalameta/scalameta"><img src="https://badges.gitter.im/Join%20Chat.svg"/></a></p>
