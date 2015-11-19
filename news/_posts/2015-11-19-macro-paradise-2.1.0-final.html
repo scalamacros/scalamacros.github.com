@@ -1,0 +1,23 @@
+---
+layout: news
+title: Macro paradise 2.1.0-final
+author: Eugene Burmako
+comments: true
+plusone: true
+---
+
+<p>After a mostly uneventful one and a half years of bug fixing in the 2.0 series, today we release macro paradise 2.1.0 that accumulates multiple stability and tool compatibility improvements. I am very happy that the compiler plugin that was created as a result of an extended hackathon has scaled beyond a mere hack - successfully passing the test of two years in production and clocking 10k+ downloads per month.</p>
+
+<p><b>Upcoming features in 2.x</b></p>
+
+<p>The 2.x series is going to be solely about bug fixes, and the most important issues that we would like to eventually address involve Scala IDE support (<a href="https://github.com/scalamacros/paradise/issues/61">#61</a> and <a href="https://github.com/scalamacros/paradise/issues/73">#73</a>). Another problem that often comes up is auto-detection of the missing macro paradise plugin (<a href="https://github.com/scalamacros/paradise/issues/13">#13</a>). If you would like to help with these issues, please let us know <a href="https://gitter.im/scalamacros/paradise">on gitter</a>.</p>
+
+<p><b>c.typecheck</b></p>
+
+<p>Support for c.typecheck in macro annotations remains an unsolved mystery (<a href="https://github.com/scalamacros/paradise/issues/75">#75</a>). Introduced to make macro annotations as powerful as possible, c.typecheck has proven to be a tricky beast to tackle. Under certain circumstances / in certain lexical contexts / depending on the phase of the moon, c.typecheck can return incorrect results or outright crash the typer.</p>
+
+<p>We've been trying to unravel this mystery for a long time, but I think that it's time to call it quits. With a heavy heart, I've labelled the corresponding issue (<a href="https://github.com/scalamacros/paradise/issues/75">#75</a>) as "wontfix" for the 2.x series. We will revisit this design challenge in the upcoming refresh of the macro system based on scala.meta, and in the meanwhile support for c.typecheck will remain in exactly the same that as it was originally released in 2.0.0-SNAPSHOT.</p>
+
+<p><b>Migration notes</b></p>
+
+<p>If you were using any stable release of macro paradise between 2.0.0 and 2.1.0-M5, migration should be as easy as changing the version number in your build. If you were on a pre-release version of 2.0.0 (sonatype tells me that you exist, guys), consult <a href="http://localhost:4000/news/2014/04/21/macro-paradise-2.0.0-final.html">the migration notes for 2.0.0</a>.</p>
