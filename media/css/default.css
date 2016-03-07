@@ -166,3 +166,7 @@ div.newsHeader {
 div.usecaseHeader {
   font-weight: bold;
 }
+
+abbr {
+  border-bottom: 1px dotted #000;
+}
