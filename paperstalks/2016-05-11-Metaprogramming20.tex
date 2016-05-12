@@ -187,7 +187,7 @@ new Table(Map(users, Ref("name", classOf[String])))
 \begin{semiverbatim}
 class Table[T](val query: Query[T]) \{
   inline def map[U](fn: T => U): Table[U] = meta \{
-    val subquery: c.Tree = translate(fn)
+    val subquery: scala.meta.Tree = translate(fn)
     q"new Table(Map(\$this, \$subquery))"
   \}
 \}
