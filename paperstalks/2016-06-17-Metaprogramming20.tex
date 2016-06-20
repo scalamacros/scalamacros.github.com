@@ -256,6 +256,7 @@ class main extends scala.annotation.StaticAnnotation \{
 
 
 \begin{frame}[fragile]{Example: the new @main macro}
+\small{
 \begin{semiverbatim}
 @main object Test \{
   println("hello world")
@@ -264,7 +265,9 @@ class main extends scala.annotation.StaticAnnotation \{
 \only<2->{                          \arrowdown}
 \only<2->{}
 \only<2->{meta \{}
-\only<2->{  object Test \{ println("hello world") \}}
+\only<2->{  val q"object \$name \{ ..\$stats \}" = \alert{q"object Test \{ ... \}"}}
+\only<2->{  val main = q"def main(args: Array[String]): Unit = \{ ..\$stats \}"}
+\only<2->{  q"object \$name \{ \$main \}"}
 \only<2->{\}}
 
 \only<3->{                          \arrowdown}
@@ -274,7 +277,7 @@ class main extends scala.annotation.StaticAnnotation \{
 \only<3->{    println("hello world")}
 \only<3->{  \}}
 \only<3->{\}}
-\end{semiverbatim}
+\end{semiverbatim}}
 \end{frame}
 
 \begin{frame}{Macro support in IntelliJ IDEA}
