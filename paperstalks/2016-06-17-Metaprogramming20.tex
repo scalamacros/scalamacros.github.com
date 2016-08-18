@@ -3,15 +3,22 @@
 \usepackage{tikz}
 \usetikzlibrary[arrows.meta]
 
-\title{No, macros are not going away}
+\title{Metaprogramming 2.0}
 \author{Eugene Burmako (\href{https://twitter.com/xeno_by}{@xeno{\textunderscore}by})}
-\institute{\includegraphics[height=2cm]{epfl.png}}
+\institute{\'Ecole Polytechnique F\'ed\'erale de Lausanne \\ \href{http://scalameta.org/}{\texttt{http://scalameta.org/}}}
 \date{17 June 2016}
 \hypersetup{pdfauthor={Eugene Burmako},pdftitle={Metaprogramming 2.0}}
 
 \begin{document}
 
-\titleframe
+{
+\setbeamertemplate{footline}{}
+\begin{frame}
+  \titlepage
+  This talk was presented and recorded at ScalaDays Berlin 2016:\\
+  \text{\color{blue}\href{https://www.youtube.com/watch?v=IPnd\_SZJ1nM}{https://www.youtube.com/watch?v=IPnd\_SZJ1nM}}
+\end{frame}
+}
 
 \begin{frame}{Today's talk}
 \begin{itemize}
