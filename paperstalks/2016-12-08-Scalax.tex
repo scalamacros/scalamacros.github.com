@@ -1,0 +1,215 @@
+\documentclass[svgnames,dvipsnames,hyperref={bookmarks=false},usepdftitle=false]{beamer}
+\usetheme{scalax}
+\usepackage{tikz}
+\usetikzlibrary[arrows.meta]
+
+\title{A new macro system for Scala}
+\author{Eugene Burmako (\href{https://twitter.com/xeno_by}{@xeno{\textunderscore}by})}
+\institute{\includegraphics[height=1cm]{twitter.png}}
+\date{8 December 2016}
+\hypersetup{pdfauthor={Eugene Burmako},pdftitle={A new macro system for Scala}}
+
+\begin{document}
+
+\titleframe
+
+\begin{frame}{In today's talk}
+\begin{itemize}
+\item Introduction to Scala macros
+\item What's wrong with old-style macros?
+\item The design of new-style macros
+\item Live demonstration
+\end{itemize}
+\end{frame}
+
+\sectionframe{Introduction to Scala macros}
+
+\begin{frame}{Scala macros}
+\begin{itemize}
+\item Methods or annotations that expand at compile time
+\item Logic is written against abstract syntax trees
+\item The API is a thin wrapper over Scala compiler internals
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{@xsd} macro annotation}
+\begin{semiverbatim}
+\alert{@xsd("schema.xsd")}
+\alert{object schema}
+
+object Test extends App \{
+  import schema._
+  val p = new Person("Vassily", "Pupkin")
+  // ...
+\}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Designing \texttt{@xsd}}
+\begin{semiverbatim}
+\alert{object schema \{}
+\alert{  class Person(firstName: String, lastName: String)}
+\alert{\}}
+
+object Test extends App \{
+  import schema._
+  val p = new Person("Vassily", "Pupkin")
+  // ...
+\}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}{Implementing \texttt{@xsd}}
+Live demonstration
+\end{frame}
+
+\sectionframe{What's wrong with old-style macros?}
+
+\begin{frame}{Problem \#1: Hard to write}
+\begin{itemize}
+\item Old-style macros require knowledge of Scala compiler internals
+\item Moreover, they are often unnecessarily verbose
+\item There is no easy way to troubleshoot errors in macro expansions
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Problem \#2: Don't work in IntelliJ}
+\begin{itemize}
+\item Old-style macros require Scala compiler internals to run
+\item As a result, IntelliJ cannot expand old-style macros
+\item Because of the same reason, Dotty cannot expand old-style macros
+\end{itemize}
+\end{frame}
+
+\sectionframe{The design of new-style macros}
+
+\begin{frame}{Key ideas}
+\begin{itemize}
+\item Replace compiler internals with a portable API
+\item Make things less verbose while we're at it
+\item Implement the API in Scala, IntelliJ, Dotty, etc
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Idea \#1: Scala.meta}
+\begin{itemize}
+\item Platform-independent metaprogramming library
+\item Available for Scala, IntelliJ and Dotty
+\item Precisely represents Scala code including whitespace and formatting
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Idea \#2: Make things less verbose}
+\begin{semiverbatim}
+import scala.annotation.StaticAnnotation
+import scala.reflect.macros.whitebox.Context
+
+class xsd extends StaticAnnotation \{
+  def macroTransform(annottees: Any*): Any =
+    macro xsdMacro.impl
+\}
+
+class xsdMacro(val c: Context) \{
+  def impl(annottees: c.Tree*): c.Tree = \{
+    import c.universe._
+    ...
+  \}
+\}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Idea \#2: Make things less verbose}
+\begin{semiverbatim}
+import scala.annotation.StaticAnnotation
+\alert{import scala.meta._}
+
+class xsd extends StaticAnnotation \{
+  def macroTransform(annottees: Any*): Any =
+    macro xsdMacro.impl
+\}
+
+\alert{class xsdMacro \{}
+\alert{  def impl(annottees: Tree*): Tree = \{}
+    ...
+  \}
+\}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Idea \#2: Make things less verbose}
+\begin{semiverbatim}
+import scala.annotation.StaticAnnotation
+import scala.meta._
+
+class xsd extends StaticAnnotation \{
+  \alert{inline} def macroTransform(annottees: Any): Any = \alert{meta} \{
+    ...
+  \}
+\}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Idea \#2: Make things less verbose}
+\begin{semiverbatim}
+import scala.annotation.StaticAnnotation
+import scala.meta._
+
+class xsd extends StaticAnnotation \{
+  inline def \alert{apply}(defn: Any): Any = meta \{
+    ...
+  \}
+\}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}{Idea \#3: Cross-platform design}
+\begin{itemize}
+\item From day one, we've been in touch with the team at JetBrains
+\item From day one, we've been thinking about a Dotty implementation
+\end{itemize}
+\end{frame}
+
+\begin{frame}{SIP-28/SIP-29 Inline/meta}
+\begin{itemize}
+\item New-style macros are designed via the Scala Improvement Process
+\item You can find many more details in the official proposal
+\item Join the SIP meetings to get updates about our progress
+\end{itemize}
+\end{frame}
+
+\sectionframe{Live demonstration}
+
+\sectionframe{Summary}
+
+\begin{frame}{Summary}
+\begin{itemize}
+\item Old-style macros are hard to write and don't work in IntelliJ
+\item That's why they are going to be removed from Scala 3
+\item We're designing new-style macros via the Scala Improvement Process
+\item There is a beta-quality implementation of macro annotations
+\item Def macros are next on the todo list
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Deliverables}
+\begin{itemize}
+\item Scalac: scalameta/paradise 3.0.0-beta4
+\item IntelliJ: JetBrains/intellij-scala 2016.3.2.81
+\item Dotty: liufengyun/eden 0.1.2-SNAPSHOT
+\item Practical introduction into scala.meta and new-style macros:
+\text{\color{blue}{\href{http://scalameta.org/tutorial/}{http://scalameta.org/tutorial/}}}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Credits}
+\begin{itemize}
+\item Design: Denys Shabalin, Martin Odersky et al.
+\item Scalac integration: \'{O}lafur P\'{a}ll Geirsson, Oleksandr Olgashko et al.
+\item IntelliJ integration: Mikhail Mutcianko
+\item Dotty integration: Martin Odersky, Liu Fengyun
+\end{itemize}
+\end{frame}
+
+% Credits!!!
+
+\end{document}

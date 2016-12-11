@@ -1,0 +1,191 @@
+\documentclass[svgnames,dvipsnames,hyperref={bookmarks=false},usepdftitle=false]{beamer}
+\usetheme{bythebay}
+\usepackage{tikz}
+\usetikzlibrary[arrows.meta]
+
+\title{Scala.meta: the past, the present, and the future}
+\author{Eugene Burmako (\href{https://twitter.com/xeno_by}{@xeno{\textunderscore}by})}
+% \institute{\includegraphics[height=1cm]{twitter.png}}
+\date{12 November 2016}
+\hypersetup{pdfauthor={Eugene Burmako},pdftitle={Scala.meta: the past, the present, and the future}}
+
+\begin{document}
+
+\titleframe
+
+\begin{frame}{What is scala.meta?}
+\begin{itemize}
+\item Implementation-independent metaprogramming library
+\item Aspiring successor for scala.reflect
+\item Software product with a stable version and a vibrant community
+\end{itemize}
+\end{frame}
+
+\begin{frame}{In today's talk}
+\begin{itemize}
+\item Recently released scala.meta 1.x
+\item Prominent use cases including new-style macro annotations
+\item Plans for scala.meta 2.x
+\end{itemize}
+\end{frame}
+
+\sectionframe{Scala.meta 1.x}
+
+\begin{frame}{Supported functionality}
+\begin{itemize}
+\item Vendor-neutral tree interchange format
+\item High-fidelity parsing
+\item First-class tokens
+\item Integration with Dotty
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle<1>{Parsing: easy to get started}
+\frametitle<2>{Parsing: remember all syntactic details}
+\begin{semiverbatim}
+scala> import scala.meta._
+import scala.meta._
+
+scala> "x + y".parse[Term]
+res0: scala.meta.parsers.Parsed[scala.meta.Term] = x + y
+
+\only<2->{scala> "x + y // hello world".parse[Term]}
+\only<2->{res1: scala.meta.parsers.Parsed[scala.meta.Term] = }
+\only<2->{x + y // hello world}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Tokens: remember all syntactic details}
+\begin{semiverbatim}
+scala> val add = "x + y // hello world".parse[Term].get
+add: scala.meta.Term = x + y // hello world
+
+\only<1->{scala> add.tokens}
+\only<1->{res2: scala.meta.tokens.Tokens =}
+\only<1->{Tokens(, x,  , +,  , y,  , // hello world, )}
+
+\only<2->{scala> add.tokens.structure}
+\only<2->{res3: String = Tokens(BOF [0..0), x [0..1),  [1..2), }
+\only<2->{+ [2..3), [3..4), y [4..5),   [5..6), }
+\only<2->{// hello world [6..20), EOF [20..20))}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Parsing: support for dialects}
+\begin{semiverbatim}
+scala> val sbtBuild = new File(".../project/plugins.sbt")
+sbtBuild: java.io.File = .../project/plugins.sbt
+
+\only<2->{scala> \alert{scala.meta.dialects.Sbt0136}(sbtBuild).parse[Source]}
+\only<2->{res4: scala.meta.parsers.Parsed[scala.meta.Source] =}
+\only<2->{}
+\only<2->{addSbtPlugin("com.typesafe.sbt" \% "sbt-pgp" \% "0.8.1")}
+\only<2->{}
+\only<2->{addSbtPlugin("com.eed3si9n" \% "sbt-assembly" \% "0.11.2")}
+\only<2->{...}
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]{Parsing: support for dialects}
+\begin{semiverbatim}
+scala> \alert{import scala.meta.dialects.Dotty}
+\alert{import scala.meta.dialects.Dotty}
+
+scala> "trait Foo(bar: Int)".parse[Source].get
+res5: scala.meta.Source = trait Foo(bar: Int)
+
+scala> "Foo \& Bar".parse[Type].get
+res6: scala.meta.Type = Foo \& Bar
+
+scala> res6.structure
+res7: String = Type.And(Type.Name("Foo"), Type.Name("Bar"))
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle<1>{Quasiquotes: stealing better parts of scala.reflect}
+\begin{semiverbatim}
+scala> q"x + y"
+res8: scala.meta.Term.ApplyInfix = x + y
+
+scala> val q"\$a + \$b" = res5
+a: scala.meta.Term = x
+b: scala.meta.Term.Arg = y
+\end{semiverbatim}
+\end{frame}
+
+\sectionframe{Use cases}
+
+\begin{frame}{Use cases}
+Innovative tooling enabled by scala.meta 1.x:
+\begin{itemize}
+\item Codacy
+\item Scalafmt
+\item Scalafix
+\item New-style macros
+\item ...
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Live demo}
+Platform-independent new-style macro annotations
+
+\pause
+
+Try yourself at \text{\color{blue}{\href{https://github.com/scalameta/sbt-macro-example}{https://github.com/scalameta/sbt-macro-example}}}
+\end{frame}
+
+\sectionframe{Scala.meta 2.x}
+
+\begin{frame}{Under heavy development}
+Semantic API:
+\begin{itemize}
+\item Typechecking
+\item Name resolution
+\item Type inference
+\item ...
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Semantic API}
+\begin{semiverbatim}
+scala> implicit val m = Mirror("...classpath...")
+m: Mirror = ...
+
+scala> q"List".tpe
+res1: Type = List.type
+
+scala> q"List".defn
+res2: Member.Term =
+object List extends SeqFactory[List] with Serializable { ... }
+\end{semiverbatim}
+\end{frame}
+
+\begin{frame}{Use cases}
+\begin{itemize}
+\item New-style def macros
+\item Powerful code migrations with Scalafix
+\item ...
+\end{itemize}
+\end{frame}
+
+\sectionframe{Summary}
+
+\begin{frame}{Summary}
+\begin{itemize}
+\item Scala.meta is a thing
+\item You can use it as a library to write next-gen tooling
+\item You can use it to write new-style macro annotations
+\pause
+\vskip40pt
+\item The future will bring even more goodies
+\item Check out our talks at Scala eXchange 2016
+\begin{itemize}
+\item ``A new macro system for Scala'' (Eugene Burmako)
+\item ``Smooth migrations to Dotty with scalafix '' (\'{O}lafur P\'{a}ll Geirsson)
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\end{document}
